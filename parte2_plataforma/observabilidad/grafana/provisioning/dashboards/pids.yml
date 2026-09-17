@@ -1,0 +1,9 @@
+apiVersion: 1
+
+providers:
+  - name: pids
+    folder: PIDS
+    type: file
+    disableDeletion: true
+    options:
+      path: /var/lib/grafana/dashboards

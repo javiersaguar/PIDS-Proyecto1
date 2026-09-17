@@ -1,0 +1,465 @@
+# Plataforma PIDS (E3: privacidad total).
+#
+# Sin perfil se levanta el núcleo: S3, Redpanda, MongoDB, API de captura y API de acceso.
+# Perfiles:  spark · airflow · observabilidad · chatbot · herramientas · simulador
+# Ejemplo:   docker compose --profile spark --profile observabilidad up -d   (o: make todo)
+#
+# Todos los puertos se publican solo en 127.0.0.1. Las redes separan lo que puede ver cada servicio:
+#   datos       almacenamiento y cola (S3, MongoDB, Redpanda) y quien los usa
+#   servicios   APIs, chatbot, Grafana y Prometheus
+# El chatbot y Grafana no están en la red de datos: solo llegan a la información a través de la API de acceso.
+
+name: pids
+
+x-python: &python
+  build:
+    context: .
+    dockerfile: docker/servicio-python.Dockerfile
+  restart: unless-stopped
+
+x-spark: &spark
+  image: pids/spark:local
+  build:
+    context: .
+    dockerfile: parte2_plataforma/spark/Dockerfile
+  profiles: [spark]
+  restart: unless-stopped
+  networks: [datos, servicios]
+  environment: &spark-env
+    AWS_ACCESS_KEY_ID: ${S3_SPARK_ACCESS_KEY}
+    AWS_SECRET_ACCESS_KEY: ${S3_SPARK_SECRET_KEY}
+    PIDS_MONGO_URI: mongodb://pids_spark:${MONGO_SPARK_PASSWORD}@mongo:27017/?authSource=admin
+    PIDS_KAFKA_BROKERS: redpanda:9092
+  volumes:
+    - spark-checkpoints:/opt/spark/checkpoints
+
+x-spark-worker: &spark-worker
+  <<: *spark
+  command: >-
+    /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
+    --cores ${SPARK_WORKER_CORES:-4} --memory ${SPARK_WORKER_MEMORY:-6g} --webui-port 8081
+  depends_on:
+    spark-master:
+      condition: service_started
+
+x-airflow: &airflow
+  image: pids/airflow:local
+  build:
+    context: .
+    dockerfile: parte2_plataforma/airflow/Dockerfile
+  profiles: [airflow]
+  restart: unless-stopped
+  networks: [datos, servicios]
+  user: "50000:0"
+  environment: &airflow-env
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__CORE__AUTH_MANAGER: airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:${AIRFLOW_DB_PASSWORD}@airflow-db/airflow
+    AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY}
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "false"
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    AIRFLOW__CORE__EXECUTION_API_SERVER_URL: http://airflow-apiserver:8080/execution/
+    AIRFLOW__API_AUTH__JWT_SECRET: ${AIRFLOW_JWT_SECRET}
+    AIRFLOW__API_AUTH__JWT_ISSUER: pids
+    AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: "true"
+    # Spark: pasarela REST del máster (modo cluster con seguimiento del driver)
+    AIRFLOW_CONN_SPARK_DEFAULT: '{"conn_type": "spark", "host": "spark://spark-master", "port": 6066, "extra": {"deploy-mode": "cluster"}}'
+    AWS_ACCESS_KEY_ID: ${S3_INGESTA_ACCESS_KEY}
+    AWS_SECRET_ACCESS_KEY: ${S3_INGESTA_SECRET_KEY}
+    PIDS_S3_ENDPOINT: http://s3:8333
+    PIDS_ACCESO_URL: http://acceso:8000
+    PIDS_ACCESO_CLAVE: ${ACCESO_CLAVE_AIRFLOW}
+  volumes:
+    - ./parte2_plataforma/airflow/dags:/opt/airflow/dags:ro
+    - airflow-logs:/opt/airflow/logs
+  depends_on: &airflow-depends
+    airflow-db:
+      condition: service_healthy
+
+services:
+
+  # ---------------------------------------------------------------- almacenamiento y cola
+  s3:
+    image: chrislusf/seaweedfs:4.47
+    restart: unless-stopped
+    networks: [datos]
+    entrypoint: ["/bin/sh", "/etc/pids/arrancar.sh"]
+    environment:
+      S3_ADMIN_ACCESS_KEY: ${S3_ADMIN_ACCESS_KEY}
+      S3_ADMIN_SECRET_KEY: ${S3_ADMIN_SECRET_KEY}
+      S3_SPARK_ACCESS_KEY: ${S3_SPARK_ACCESS_KEY}
+      S3_SPARK_SECRET_KEY: ${S3_SPARK_SECRET_KEY}
+      S3_INGESTA_ACCESS_KEY: ${S3_INGESTA_ACCESS_KEY}
+      S3_INGESTA_SECRET_KEY: ${S3_INGESTA_SECRET_KEY}
+    volumes:
+      - s3-datos:/data
+      - ./parte2_plataforma/s3/arrancar.sh:/etc/pids/arrancar.sh:ro
+      - ./parte2_plataforma/s3/s3.plantilla.json:/etc/pids/s3.plantilla.json:ro
+    ports:
+      - "127.0.0.1:${PUERTO_S3:-8333}:8333"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:9333/cluster/healthz >/dev/null"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  s3-init:
+    <<: *python
+    image: pids/trabajos:local
+    build:
+      context: .
+      dockerfile: docker/servicio-python.Dockerfile
+      args: {GRUPO: datos}
+    restart: "no"
+    networks: [datos]
+    command: ["python", "-m", "parte2_plataforma.s3.crear_buckets"]
+    environment:
+      S3_ENDPOINT: http://s3:8333
+      AWS_ACCESS_KEY_ID: ${S3_ADMIN_ACCESS_KEY}
+      AWS_SECRET_ACCESS_KEY: ${S3_ADMIN_SECRET_KEY}
+    depends_on:
+      s3:
+        condition: service_healthy
+
+  redpanda:
+    image: redpandadata/redpanda:v25.2.1
+    restart: unless-stopped
+    networks: [datos]
+    command:
+      - redpanda
+      - start
+      - --mode=dev-container
+      - --smp=1
+      - --memory=1G
+      - --kafka-addr=internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr=internal://redpanda:9092,external://localhost:19092
+      - --rpc-addr=redpanda:33145
+      - --advertise-rpc-addr=redpanda:33145
+    volumes:
+      - redpanda-datos:/var/lib/redpanda/data
+    ports:
+      - "127.0.0.1:19092:19092"
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health | grep -E 'Healthy:.+true'"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  redpanda-init:
+    image: redpandadata/redpanda:v25.2.1
+    restart: "no"
+    networks: [datos]
+    entrypoint: ["/bin/bash", "-c"]
+    # viajes-crudos lleva datos individuales: retención de 24 h (E3, minimización)
+    command:
+      - >-
+        rpk topic create viajes-crudos -p 3 -c retention.ms=86400000 -X brokers=redpanda:9092 || true;
+        rpk topic create gestos -p 1 -c retention.ms=3600000 -X brokers=redpanda:9092 || true;
+        rpk topic list -X brokers=redpanda:9092
+    depends_on:
+      redpanda:
+        condition: service_healthy
+
+  mongo:
+    image: mongo:8.0
+    restart: unless-stopped
+    networks: [datos]
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      MONGO_SPARK_PASSWORD: ${MONGO_SPARK_PASSWORD}
+      MONGO_ACCESO_PASSWORD: ${MONGO_ACCESO_PASSWORD}
+      MONGO_AUDITOR_PASSWORD: ${MONGO_AUDITOR_PASSWORD}
+    volumes:
+      - mongo-datos:/data/db
+      - ./parte2_plataforma/mongodb/init:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "127.0.0.1:${PUERTO_MONGO:-27018}:27017"   # 27017 lo usa el MongoDB instalado en Windows
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  # ---------------------------------------------------------------- APIs
+  captura:
+    <<: *python
+    image: pids/captura:local
+    build:
+      context: .
+      dockerfile: docker/servicio-python.Dockerfile
+      args: {GRUPO: captura}
+    networks: [datos, servicios]
+    command: ["uvicorn", "parte2_plataforma.captura.app:app", "--host", "0.0.0.0", "--port", "8000"]
+    environment:
+      KAFKA_BROKERS: redpanda:9092
+      CAPTURA_CLAVES: simulador=${CAPTURA_CLAVE_SIMULADOR},gestos=${CAPTURA_CLAVE_GESTOS},chatbot=${CAPTURA_CLAVE_CHATBOT}
+    ports:
+      - "127.0.0.1:${PUERTO_CAPTURA:-8001}:8000"
+    healthcheck: &salud-python
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/salud')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    depends_on:
+      redpanda-init:
+        condition: service_completed_successfully
+
+  acceso:
+    <<: *python
+    image: pids/acceso:local
+    build:
+      context: .
+      dockerfile: docker/servicio-python.Dockerfile
+      args: {GRUPO: acceso}
+    networks: [datos, servicios]
+    command: ["uvicorn", "parte2_plataforma.acceso.app:app", "--host", "0.0.0.0", "--port", "8000"]
+    environment:
+      MONGO_URI: mongodb://pids_acceso:${MONGO_ACCESO_PASSWORD}@mongo:27017/?authSource=admin
+      ACCESO_CLAVES: chatbot=${ACCESO_CLAVE_CHATBOT},airflow=${ACCESO_CLAVE_AIRFLOW},equipo=${ACCESO_CLAVE_EQUIPO}
+    ports:
+      - "127.0.0.1:${PUERTO_ACCESO:-8002}:8000"
+    healthcheck: *salud-python
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  # ---------------------------------------------------------------- Spark (modo cluster)
+  spark-master:
+    <<: *spark
+    command: >-
+      /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
+      --host spark-master --port 7077 --webui-port 8080
+    ports:
+      - "127.0.0.1:${PUERTO_SPARK:-8090}:8080"
+    depends_on:
+      s3-init:
+        condition: service_completed_successfully
+      redpanda-init:
+        condition: service_completed_successfully
+      mongo:
+        condition: service_healthy
+
+  spark-worker-1:
+    <<: *spark-worker
+    ports:
+      - "127.0.0.1:8091:8081"
+
+  spark-worker-2:
+    <<: *spark-worker
+    ports:
+      - "127.0.0.1:8092:8081"
+
+  # ---------------------------------------------------------------- Airflow
+  airflow-db:
+    image: postgres:17
+    profiles: [airflow]
+    restart: unless-stopped
+    networks: [servicios]
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: ${AIRFLOW_DB_PASSWORD}
+      POSTGRES_DB: airflow
+    volumes:
+      - airflow-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 5s
+      retries: 20
+
+  airflow-init:
+    <<: *airflow
+    restart: "no"
+    user: "0:0"
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - chown -R 50000:0 /opt/airflow/logs && exec /entrypoint airflow version
+    environment:
+      <<: *airflow-env
+      _AIRFLOW_DB_MIGRATE: "true"
+      _AIRFLOW_WWW_USER_CREATE: "true"
+      _AIRFLOW_WWW_USER_USERNAME: ${AIRFLOW_ADMIN_USER}
+      _AIRFLOW_WWW_USER_PASSWORD: ${AIRFLOW_ADMIN_PASSWORD}
+
+  airflow-apiserver:
+    <<: *airflow
+    command: api-server
+    ports:
+      - "127.0.0.1:${PUERTO_AIRFLOW:-8085}:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/api/v2/monitor/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      <<: *airflow-depends
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-scheduler:
+    <<: *airflow
+    command: scheduler
+    depends_on:
+      <<: *airflow-depends
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-dag-processor:
+    <<: *airflow
+    command: dag-processor
+    depends_on:
+      <<: *airflow-depends
+      airflow-init:
+        condition: service_completed_successfully
+
+  # ---------------------------------------------------------------- observabilidad
+  prometheus:
+    image: prom/prometheus:v3.1.0
+    profiles: [observabilidad]
+    restart: unless-stopped
+    networks: [datos, servicios]
+    volumes:
+      - ./parte2_plataforma/observabilidad/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-datos:/prometheus
+    ports:
+      - "127.0.0.1:${PUERTO_PROMETHEUS:-9090}:9090"
+
+  grafana:
+    image: grafana/grafana:11.5.1
+    profiles: [observabilidad]
+    restart: unless-stopped
+    networks: [servicios]
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+    volumes:
+      - ./parte2_plataforma/observabilidad/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./parte2_plataforma/observabilidad/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-datos:/var/lib/grafana
+    ports:
+      - "127.0.0.1:${PUERTO_GRAFANA:-3000}:3000"
+    depends_on:
+      - prometheus
+
+  # ---------------------------------------------------------------- chatbot (parte 3)
+  ollama:
+    image: ollama/ollama:0.34.1
+    profiles: [chatbot]
+    restart: unless-stopped
+    networks: [servicios]
+    volumes:
+      - ollama-modelos:/root/.ollama
+    ports:
+      - "127.0.0.1:${PUERTO_OLLAMA:-11435}:11434"   # 11434 lo usa el Ollama instalado en Windows
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+  ollama-modelo:
+    image: ollama/ollama:0.34.1
+    profiles: [chatbot]
+    restart: "no"
+    networks: [servicios]
+    environment:
+      OLLAMA_HOST: ollama:11434
+    entrypoint: ["ollama", "pull", "${OLLAMA_MODELO:-llama3.1:8b}"]
+    depends_on:
+      ollama:
+        condition: service_healthy
+
+  chatbot:
+    <<: *python
+    image: pids/chatbot:local
+    build:
+      context: .
+      dockerfile: docker/servicio-python.Dockerfile
+      args: {GRUPO: chatbot}
+    profiles: [chatbot]
+    networks: [servicios]
+    working_dir: /app/parte3_chatbot
+    command: ["chainlit", "run", "app.py", "--host", "0.0.0.0", "--port", "8000", "--headless"]
+    environment:
+      OLLAMA_URL: http://ollama:11434
+      OLLAMA_MODELO: ${OLLAMA_MODELO:-llama3.1:8b}
+      ACCESO_URL: http://acceso:8000
+      ACCESO_CLAVE: ${ACCESO_CLAVE_CHATBOT}
+      CAPTURA_URL: http://captura:8000
+      CAPTURA_CLAVE: ${CAPTURA_CLAVE_CHATBOT}
+      GESTOS_ACTIVOS: ${GESTOS_ACTIVOS:-false}
+    ports:
+      - "127.0.0.1:${PUERTO_CHATBOT:-8010}:8000"
+    depends_on:
+      ollama-modelo:
+        condition: service_completed_successfully
+      acceso:
+        condition: service_healthy
+
+  # ---------------------------------------------------------------- herramientas de desarrollo
+  redpanda-consola:
+    image: redpandadata/console:v3.1.0
+    profiles: [herramientas]
+    restart: unless-stopped
+    networks: [datos]
+    environment:
+      KAFKA_BROKERS: redpanda:9092
+    ports:
+      - "127.0.0.1:${PUERTO_CONSOLA:-8088}:8080"
+    depends_on:
+      redpanda:
+        condition: service_healthy
+
+  simulador:
+    <<: *python
+    image: pids/trabajos:local
+    build:
+      context: .
+      dockerfile: docker/servicio-python.Dockerfile
+      args: {GRUPO: datos}
+    profiles: [simulador]
+    restart: "no"
+    networks: [servicios]
+    command:
+      - python
+      - -m
+      - parte2_plataforma.simulador.simulador
+      - --fichero
+      - ${SIMULADOR_FICHERO:-data/muestra/yellow_tripdata_2020_muestra.csv}
+      - --ritmo
+      - ${SIMULADOR_RITMO:-50}
+    environment:
+      CAPTURA_URL: http://captura:8000
+      CAPTURA_CLAVE: ${CAPTURA_CLAVE_SIMULADOR}
+    volumes:
+      - ./data:/app/data:ro
+    depends_on:
+      captura:
+        condition: service_healthy
+
+networks:
+  datos:
+  servicios:
+
+volumes:
+  s3-datos:
+  redpanda-datos:
+  mongo-datos:
+  spark-checkpoints:
+  airflow-db:
+  airflow-logs:
+  prometheus-datos:
+  grafana-datos:
+  ollama-modelos:

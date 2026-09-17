@@ -1,0 +1,12 @@
+apiVersion: 1
+
+# Grafana solo ve Prometheus: los datos de negocio le llegan como métricas ya agregadas y
+# protegidas por la API de acceso (E3). No tiene credenciales de MongoDB ni de S3.
+datasources:
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false

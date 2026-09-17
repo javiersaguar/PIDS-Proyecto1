@@ -1,0 +1,6 @@
+# Para equipos sin GPU NVIDIA (o sin NVIDIA Container Toolkit): el LLM corre en CPU.
+# Uso: make chatbot SIN_GPU=1   (equivale a añadir -f docker-compose.sin-gpu.yml)
+# En CPU conviene un modelo pequeño: OLLAMA_MODELO=llama3.2:3b en .env
+services:
+  ollama:
+    deploy: !reset {}

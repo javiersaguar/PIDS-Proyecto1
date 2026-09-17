@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.12.15"
+      - run: uv sync --frozen
+      - run: uv run pytest -q
+
+  spark:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tests de Scala (en la etapa de compilación de la imagen)
+        run: >-
+          docker build --target compilacion --build-arg EJECUTAR_TESTS=true
+          -f parte2_plataforma/spark/Dockerfile .
+
+  compose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: docker-compose.yml válido con todos los perfiles
+        run: |
+          python3 scripts/generar_env.py
+          docker compose --profile spark --profile airflow --profile observabilidad \
+            --profile chatbot --profile herramientas --profile simulador config --quiet

@@ -1,0 +1,10 @@
+# Finales de línea LF en el repositorio: los scripts se ejecutan en Linux (contenedores y WSL)
+* text=auto eol=lf
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+*.png binary
+*.jpg binary
+*.pdf binary
+*.parquet binary
+*.keras binary

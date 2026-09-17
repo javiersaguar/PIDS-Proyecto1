@@ -1,0 +1,80 @@
+{
+  "uid": "pids-plataforma",
+  "title": "PIDS · Plataforma y privacidad",
+  "tags": ["pids"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": {"from": "now-1h", "to": "now"},
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Servicios activos",
+      "gridPos": {"h": 5, "w": 24, "x": 0, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"refId": "A", "expr": "up", "legendFormat": "{{job}}"}],
+      "options": {"colorMode": "background", "graphMode": "none", "textMode": "name", "reduceOptions": {"calcs": ["lastNotNull"]}},
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [{"type": "value", "options": {"0": {"text": "caído", "color": "red"}, "1": {"text": "activo", "color": "green"}}}],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}
+        }
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Eventos recibidos por segundo",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 5},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"refId": "A", "expr": "sum by (tipo) (rate(captura_eventos_total[1m]))", "legendFormat": "{{tipo}}"}],
+      "fieldConfig": {"defaults": {"unit": "reqps"}}
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Decisiones de privacidad por minuto",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 5},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"refId": "A", "expr": "sum by (resultado) (increase(acceso_consultas_total[1m]))", "legendFormat": "{{resultado}}"}],
+      "fieldConfig": {
+        "defaults": {"unit": "short"},
+        "overrides": [
+          {"matcher": {"id": "byName", "options": "rechazada"}, "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "red"}}]},
+          {"matcher": {"id": "byName", "options": "enmascarada"}, "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "orange"}}]},
+          {"matcher": {"id": "byName", "options": "permitida"}, "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "green"}}]}
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Grupos enmascarados (total)",
+      "gridPos": {"h": 6, "w": 6, "x": 0, "y": 13},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"refId": "A", "expr": "sum(acceso_grupos_enmascarados_total)"}],
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}}
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Consultas rechazadas (total)",
+      "gridPos": {"h": 6, "w": 6, "x": 6, "y": 13},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"refId": "A", "expr": "sum(acceso_consultas_total{resultado=\"rechazada\"})"}],
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}},
+      "fieldConfig": {"defaults": {"color": {"mode": "fixed", "fixedColor": "red"}}}
+    },
+    {
+      "id": 6,
+      "type": "bargauge",
+      "title": "Viajes del último día publicado por barrio (histórico, agregado protegido)",
+      "gridPos": {"h": 6, "w": 12, "x": 12, "y": 13},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"refId": "A", "expr": "publico_viajes_ultimo_dia{fuente=\"historico\"}", "legendFormat": "{{barrio}}"}],
+      "options": {"orientation": "horizontal", "displayMode": "gradient", "reduceOptions": {"calcs": ["lastNotNull"]}}
+    }
+  ]
+}

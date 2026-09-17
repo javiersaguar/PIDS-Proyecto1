@@ -1,0 +1,58 @@
+[project]
+name = "pids-proyecto1"
+version = "0.1.0"
+description = "PIDS 26/27 Proyecto 1: plataforma de datos de taxis con privacidad total (E3) y chatbot"
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+dependencies = []
+
+# Un grupo por servicio: cada imagen Docker instala solo el suyo
+# (uv sync --frozen --no-default-groups --group <servicio>). En local se instalan todos.
+[dependency-groups]
+datos = [
+    "pandas>=3.0",
+    "pyarrow>=25",
+    "requests>=2.32",
+    "tabulate>=0.9",
+    "boto3>=1.43",
+    "httpx>=0.28",
+]
+captura = [
+    "fastapi>=0.141",
+    "uvicorn[standard]>=0.53",
+    "pydantic>=2.13",
+    "aiokafka>=0.14",
+    "prometheus-client>=0.26",
+    "sse-starlette>=3.4",
+]
+acceso = [
+    "fastapi>=0.141",
+    "uvicorn[standard]>=0.53",
+    "pydantic>=2.13",
+    "pymongo>=4.18",
+    "prometheus-client>=0.26",
+]
+chatbot = [
+    "chainlit>=2.12",
+    "ollama>=0.6",
+    "httpx>=0.28",
+    "httpx-sse>=0.4",
+]
+dev = [
+    "pytest>=9",
+    "pytest-asyncio>=1.0",
+    "httpx>=0.28",
+]
+
+[tool.uv]
+package = false
+default-groups = ["datos", "captura", "acceso", "chatbot", "dev"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+asyncio_mode = "auto"
+filterwarnings = [
+    "ignore::DeprecationWarning:starlette.*",
+    "ignore:Using `httpx` with `starlette.testclient`",
+]

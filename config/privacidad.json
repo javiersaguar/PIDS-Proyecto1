@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "descripcion": "Reglas propias de privacidad (escenario E3). Las aplica Spark al publicar agregados y la API de acceso al responder. Cambiar un valor aquí cambia el comportamiento de todo el sistema.",
+  "k_minimo": 10,
+  "decimales": 2,
+  "granularidad_temporal_minima_horas": 1,
+  "max_dias_por_consulta": 31,
+  "max_filas_por_respuesta": 500,
+  "metricas": ["n_viajes", "distancia_media", "importe_medio", "propina_media", "pct_pago_tarjeta"],
+  "niveles": {
+    "hora_zona": {
+      "descripcion": "Viajes por hora y zona de origen. Sin destino: origen y destino a nivel de hora identificarían a personas.",
+      "coleccion": "viajes_hora_zona",
+      "dimensiones": ["hora", "zona_origen"],
+      "tiempo": "hora"
+    },
+    "dia_barrio": {
+      "descripcion": "Viajes por día y barrio (borough) de origen.",
+      "coleccion": "viajes_dia_barrio",
+      "dimensiones": ["dia", "barrio_origen"],
+      "tiempo": "dia"
+    },
+    "od_dia_barrio": {
+      "descripcion": "Flujos entre barrios por día: el único nivel con destino, y solo a nivel de barrio y día.",
+      "coleccion": "od_dia_barrio",
+      "dimensiones": ["dia", "barrio_origen", "barrio_destino"],
+      "tiempo": "dia"
+    }
+  },
+  "fuentes": {
+    "historico": "",
+    "tiempo_real": "tr_"
+  },
+  "campos_individuales": ["id", "recogida", "llegada", "lote", "vendor_id", "pasajeros", "tarifa", "propina", "importe_total", "zona_destino", "minuto", "segundo", "matricula", "conductor"]
+}

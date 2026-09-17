@@ -1,0 +1,19 @@
+{
+  "identities": [
+    {
+      "name": "admin",
+      "credentials": [{"accessKey": "${S3_ADMIN_ACCESS_KEY}", "secretKey": "${S3_ADMIN_SECRET_KEY}"}],
+      "actions": ["Admin", "Read", "List", "Tagging", "Write"]
+    },
+    {
+      "name": "spark",
+      "credentials": [{"accessKey": "${S3_SPARK_ACCESS_KEY}", "secretKey": "${S3_SPARK_SECRET_KEY}"}],
+      "actions": ["Read:crudo", "Write:crudo", "List:crudo", "Read:referencia", "List:referencia"]
+    },
+    {
+      "name": "ingesta",
+      "credentials": [{"accessKey": "${S3_INGESTA_ACCESS_KEY}", "secretKey": "${S3_INGESTA_SECRET_KEY}"}],
+      "actions": ["Read:crudo", "Write:crudo", "List:crudo", "Read:referencia", "Write:referencia", "List:referencia"]
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+# Secretos
+.env
+
+# Datos (solo se versiona la muestra)
+data/*
+!data/README.md
+!data/muestra/
+data/muestra/*
+!data/muestra/yellow_tripdata_2020_muestra.csv
+*.parquet
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Resultados generados
+informes/
+*.log
+
+# Ficheros que Chainlit crea al arrancar
+.chainlit/
+.files/
+
+# Parte 1: datos y modelos pesados
+parte1_gestos/**/data/
+parte1_gestos/**/cache/
+parte1_gestos/**/resultados/
+parte1_gestos/**/modelos/
+
+# Editores y sistema
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
