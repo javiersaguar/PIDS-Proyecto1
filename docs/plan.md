@@ -16,24 +16,25 @@
 | 5 | Integración con la parte 1 (gestos) | ⏳ última (opcional) |
 | 6 | Entrega: documentación, capturas, vídeo, presentación | ⏳ |
 
-## Reparto propuesto (5 personas)
+## Reparto propuesto (a confirmar en la primera reunión)
 
 | Persona | Responsabilidad | Carpetas |
 |---|---|---|
-| 1 | Spark (Scala): histórico y tiempo real | `parte2_plataforma/spark` |
-| 2 | Almacenamiento, cola y despliegue (Compose, S3, MongoDB, Redpanda) | `docker-compose.yml`, `parte2_plataforma/{s3,mongodb}` |
-| 3 | APIs y reglas de privacidad | `parte2_plataforma/{captura,acceso,comun}`, `config/` |
-| 4 | Airflow, Prometheus, Grafana y métricas de calidad | `parte2_plataforma/{airflow,observabilidad}`, `docs/metricas_calidad.md` |
-| 5 | Chatbot, casos de uso e integración con los gestos | `parte3_chatbot`, `integracion` |
+| Javier Saguar | Spark (Scala): histórico y tiempo real; ya trae el contexto de la parte 1 | `parte2_plataforma/spark`, `parte1_gestos` |
+| Alejandro Cuevas | Almacenamiento, cola y despliegue (Compose, S3, MongoDB, Redpanda) | `docker-compose.yml`, `parte2_plataforma/{s3,mongodb}` |
+| Mónica Fernández | APIs y reglas de privacidad (el núcleo de E3) | `parte2_plataforma/{captura,acceso,comun}`, `config/` |
+| Pedro José Orrego | Airflow, Prometheus, Grafana y las 3 métricas de calidad | `parte2_plataforma/{airflow,observabilidad}`, `docs/metricas_calidad.md` |
+| Daniel Naval | Chatbot, casos de uso e integración con los gestos | `parte3_chatbot`, `integracion` |
 
-Documentación y presentación, entre todos.
+Documentación y presentación, entre todos. Cada uno describe sus cambios en [`../BITACORA.md`](../BITACORA.md).
 
 ## Forma de trabajar
 
 - Una rama por tarea y *pull request* a `main`; el CI pasa los tests de Python y de Scala y valida
   el `docker-compose.yml`.
 - Cambios pequeños y probados: `make test` antes de subir.
-- Cada avance relevante se apunta en [`registro_avances.md`](registro_avances.md).
+- Cada cambio se describe en [`../BITACORA.md`](../BITACORA.md), con la plantilla: qué, por qué, cómo
+  comprobarlo y qué queda pendiente. Es también el contexto que se le pasa a cualquier asistente de IA.
 
 ## Checklist de la entrega (diapositivas 6-10)
 

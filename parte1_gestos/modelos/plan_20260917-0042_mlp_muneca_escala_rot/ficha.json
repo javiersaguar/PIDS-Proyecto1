@@ -1,0 +1,117 @@
+{
+  "fecha": "2026-09-17T01:32:38",
+  "semilla": 0,
+  "aumentar": 3,
+  "voltear": true,
+  "hiperparametros": {
+    "epocas": 200,
+    "paciencia": 20,
+    "batch": 32,
+    "lr": 0.001,
+    "weight_decay": 0.0001
+  },
+  "epocas": 45,
+  "mejor_epoca": 25,
+  "accuracy_validacion": 0.9593679458239278,
+  "segundos_entrenamiento": 52.9,
+  "parametros": 5030,
+  "bytes_modelo": 88204,
+  "tflite_disponible": false,
+  "dataset": {
+    "muestras_con_mano": 2931,
+    "participantes": [
+      "p1",
+      "p2",
+      "p3",
+      "p4",
+      "p5"
+    ],
+    "tomas": [
+      "gestos_p1_20260914-163555",
+      "gestos_p2_20260914-165026",
+      "gestos_p3_20260916-153029",
+      "gestos_p4_20260916-154654",
+      "gestos_p5_20260916-155908"
+    ],
+    "por_participante": [
+      {
+        "participante": "p1",
+        "tomas": 1,
+        "imagenes": 600,
+        "con_mano": 572,
+        "tasa_deteccion": 0.9533333333333334
+      },
+      {
+        "participante": "p2",
+        "tomas": 1,
+        "imagenes": 600,
+        "con_mano": 585,
+        "tasa_deteccion": 0.975
+      },
+      {
+        "participante": "p3",
+        "tomas": 1,
+        "imagenes": 600,
+        "con_mano": 588,
+        "tasa_deteccion": 0.98
+      },
+      {
+        "participante": "p4",
+        "tomas": 1,
+        "imagenes": 600,
+        "con_mano": 599,
+        "tasa_deteccion": 0.9983333333333333
+      },
+      {
+        "participante": "p5",
+        "tomas": 1,
+        "imagenes": 600,
+        "con_mano": 587,
+        "tasa_deteccion": 0.9783333333333334
+      }
+    ]
+  },
+  "metricas_referencia": {
+    "experimento": "plan_20260917-0042_volteo",
+    "por_protocolo": [
+      {
+        "normalizacion": "muneca_escala_rot",
+        "protocolo": "lopo",
+        "modelo": "mlp",
+        "accuracy": 0.964867612883012,
+        "accuracy_espejado": 0.9659356801403556,
+        "accuracy_std_pliegues": 0.0164566845120381,
+        "accuracy_min": 0.9471890971039182,
+        "balanced_accuracy": 0.9644516221538229,
+        "f1_macro": 0.9646098055868012,
+        "accuracy_std_semillas": 0.0031336981326429,
+        "n_pliegues": 5,
+        "n_semillas": 2,
+        "n_test": 2931,
+        "tiempo_entrenamiento_s": 200.50872261000916,
+        "epocas": 54.5,
+        "ic95_repo": 0.0066655479409769,
+        "dispersion": 0.0164566845120381
+      }
+    ]
+  },
+  "avisos": [],
+  "versiones": {
+    "python": "3.12.9",
+    "sistema": "Windows-11-10.0.26200-SP0",
+    "procesador": "AMD64 Family 25 Model 97 Stepping 2, AuthenticAMD",
+    "cpus_logicas": 32,
+    "numpy": "2.5.3",
+    "pandas": "3.0.5",
+    "sklearn": "1.9.0",
+    "torch": "2.10.0+cu128",
+    "keras": "3.15.1",
+    "mediapipe": "0.10.35",
+    "cv2": "5.0.0",
+    "matplotlib": "3.11.2",
+    "joblib": "1.6.0",
+    "keras_backend": "torch",
+    "cuda": "12.8",
+    "gpu": "NVIDIA GeForce RTX 5070 Laptop GPU"
+  }
+}

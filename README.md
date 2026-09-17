@@ -91,5 +91,12 @@ Las contraseñas y claves están en `.env`.
 
 ## Equipo
 
-- Javier Saguar
-- _(pendiente de completar con el resto del grupo)_
+Javier Saguar · Alejandro Cuevas · Mónica Fernández · Pedro José Orrego · Daniel Naval
+
+Reparto de tareas en [`docs/plan.md`](docs/plan.md).
+
+## Bitácora
+
+Cada cambio se describe en [`BITACORA.md`](BITACORA.md): qué se hizo, por qué, cómo comprobarlo y qué
+queda pendiente. **Léela antes de empezar a trabajar**, y si usas un asistente de IA, pásasela como
+primer contexto para que no trabaje con información desactualizada.

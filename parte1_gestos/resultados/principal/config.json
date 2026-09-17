@@ -1,0 +1,135 @@
+{
+  "experimento": {
+    "nombre": "plan_20260917-0042_principal",
+    "modelos": [
+      "cnn_baseline",
+      "mlp",
+      "svm",
+      "random_forest",
+      "knn",
+      "logreg"
+    ],
+    "normalizaciones": [
+      "ninguna",
+      "muneca",
+      "muneca_escala",
+      "muneca_escala_rot"
+    ],
+    "protocolos": [
+      "temporal",
+      "lopo"
+    ],
+    "semillas": [
+      0,
+      1,
+      2
+    ],
+    "espejo": false,
+    "lado_espejo": "Left",
+    "aumentar": 0,
+    "voltear": false,
+    "epocas": 200,
+    "paciencia": 20,
+    "batch": 32,
+    "frac_val": 0.15,
+    "workers": 12,
+    "medir_rendimiento": true,
+    "min_deteccion": 0.5,
+    "raices_datos": [
+      "C:\\Users\\Javier\\PIDS_HandPose\\entrenamiento\\datos",
+      "C:\\Users\\Javier\\PIDS_HandPose\\kit-grabacion\\HAR_mediapipe\\data"
+    ],
+    "incluir_pruebas": false,
+    "dispositivo": "auto",
+    "workers_gpu": 8
+  },
+  "clases": [
+    "ok",
+    "paper",
+    "rock",
+    "rockandroll",
+    "scissors",
+    "thumbsup"
+  ],
+  "fecha": "2026-09-17T00:42:43",
+  "versiones": {
+    "python": "3.12.9",
+    "sistema": "Windows-11-10.0.26200-SP0",
+    "procesador": "AMD64 Family 25 Model 97 Stepping 2, AuthenticAMD",
+    "cpus_logicas": 32,
+    "numpy": "2.5.3",
+    "pandas": "3.0.5",
+    "sklearn": "1.9.0",
+    "torch": "2.10.0+cu128",
+    "keras": "3.15.1",
+    "mediapipe": "0.10.35",
+    "cv2": "5.0.0",
+    "matplotlib": "3.11.2",
+    "joblib": "1.6.0",
+    "keras_backend": "torch",
+    "cuda": "12.8",
+    "gpu": "NVIDIA GeForce RTX 5070 Laptop GPU"
+  },
+  "n_trabajos": 336,
+  "dataset": {
+    "imagenes": 3000,
+    "con_mano": 2931,
+    "participantes": [
+      "p1",
+      "p2",
+      "p3",
+      "p4",
+      "p5"
+    ],
+    "tomas": [
+      "gestos_p1_20260914-163555",
+      "gestos_p2_20260914-165026",
+      "gestos_p3_20260916-153029",
+      "gestos_p4_20260916-154654",
+      "gestos_p5_20260916-155908"
+    ],
+    "por_participante": [
+      {
+        "participante": "p1",
+        "tomas": 1,
+        "imagenes": 600,
+        "con_mano": 572,
+        "tasa_deteccion": 0.9533333333333334
+      },
+      {
+        "participante": "p2",
+        "tomas": 1,
+        "imagenes": 600,
+        "con_mano": 585,
+        "tasa_deteccion": 0.975
+      },
+      {
+        "participante": "p3",
+        "tomas": 1,
+        "imagenes": 600,
+        "con_mano": 588,
+        "tasa_deteccion": 0.98
+      },
+      {
+        "participante": "p4",
+        "tomas": 1,
+        "imagenes": 600,
+        "con_mano": 599,
+        "tasa_deteccion": 0.9983333333333333
+      },
+      {
+        "participante": "p5",
+        "tomas": 1,
+        "imagenes": 600,
+        "con_mano": 587,
+        "tasa_deteccion": 0.9783333333333334
+      }
+    ]
+  },
+  "avisos": [
+    "toma con estado \"interrumpida\" (gestos_p1_20260914-163103): se IGNORA por defecto (usa --incluir-incompletas para incluirla)",
+    "toma con estado \"en_curso\" (gestos_p1_20260914-163127): se IGNORA por defecto (usa --incluir-incompletas para incluirla)",
+    "toma con estado \"en_curso\" (gestos_p2_20260914-163325): se IGNORA por defecto (usa --incluir-incompletas para incluirla)",
+    "toma con estado \"en_curso\" (gestos_p3_20260914-163405): se IGNORA por defecto (usa --incluir-incompletas para incluirla)"
+  ]
+}

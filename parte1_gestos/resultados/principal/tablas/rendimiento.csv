@@ -1,0 +1,8 @@
+modelo,familia,parametros,bytes_disco,latencia_ms,tflite_error,resolucion,tflite_bytes,tflite_cuant_bytes,latencia_tflite_ms,kb_disco,kb_tflite,kb_tflite_cuant,latencia_despliegue_ms,kb_despliegue
+cnn_baseline,red neuronal,23126.0,310627,1.2313999759498984,"TFLite requiere TensorFlow, que no esta instalado en este entorno",,,,,303.3466796875,,,1.2313999759498984,303.3466796875
+knn,clasico,,311102,10.31500002136454,,,,,,303.810546875,,,10.31500002136454,303.810546875
+logreg,clasico,,3441,0.1361000176984816,,,,,,3.3603515625,,,0.1361000176984816,3.3603515625
+mlp,red neuronal,5030.0,88204,0.8411000017076731,"TFLite requiere TensorFlow, que no esta instalado en este entorno",,,,,86.13671875,,,0.8411000017076731,86.13671875
+random_forest,clasico,,7726713,6.259849993512034,,,,,,7545.6181640625,,,6.259849993512034,7545.6181640625
+svm,clasico,,204565,0.1635000226087868,,,,,,199.7705078125,,,0.1635000226087868,199.7705078125
+extractor_mediapipe,extractor,,7819105,16.07270000386052,,1280x720,,,,7635.8447265625,,,16.07270000386052,7635.8447265625

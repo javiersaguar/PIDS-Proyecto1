@@ -26,11 +26,15 @@ informes/
 .chainlit/
 .files/
 
-# Parte 1: datos y modelos pesados
+# Parte 1: se versiona el código, los CSV de landmarks, los informes y los modelos pequeños.
+# Fuera quedan las 3000 imágenes del dataset, las cachés y los ficheros regenerables.
 parte1_gestos/**/data/
 parte1_gestos/**/cache/
-parte1_gestos/**/resultados/
-parte1_gestos/**/modelos/
+parte1_gestos/**/*.jpg
+parte1_gestos/**/*.npy
+parte1_gestos/**/figuras/
+parte1_gestos/**/predicciones.csv.gz
+parte1_gestos/**/muestras.csv.gz
 
 # Editores y sistema
 .vscode/*

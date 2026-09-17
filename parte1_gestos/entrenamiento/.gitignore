@@ -1,0 +1,14 @@
+# Datos y artefactos: no se versionan (imagenes de personas, ficheros grandes, regenerables)
+datos/
+cache/
+resultados/
+modelos/
+*.jpg
+*.zip
+*.keras
+*.tflite
+*.joblib
+
+__pycache__/
+*.py[cod]
+.venv/

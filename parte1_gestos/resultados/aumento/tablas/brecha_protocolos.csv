@@ -1,0 +1,5 @@
+modelo,normalizacion,lopo
+cnn_baseline,muneca_escala_rot,0.9578014768763221
+mlp,muneca_escala_rot,0.961045549939086
+svm,muneca_escala_rot,0.9463193897739671
+logreg,ninguna,0.9076839782747191

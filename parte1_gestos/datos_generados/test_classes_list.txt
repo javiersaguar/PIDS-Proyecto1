@@ -1,0 +1,6 @@
+ok
+paper
+rock
+rockandroll
+scissors
+thumbsup

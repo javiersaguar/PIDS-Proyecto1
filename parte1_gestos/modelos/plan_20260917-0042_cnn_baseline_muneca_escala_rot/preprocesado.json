@@ -1,0 +1,11 @@
+{
+  "modelo": "cnn_baseline",
+  "normalizacion": "muneca_escala_rot",
+  "espejo": false,
+  "lado_espejo": "Left",
+  "forma_entrada": "cnn",
+  "fichero_modelo": "modelo.keras",
+  "entrada": "x, y crudas de MediaPipe HandLandmarker (21 landmarks) + handedness + ancho/alto",
+  "umbral_deteccion_mediapipe": 0.5,
+  "num_hands": 1
+}
