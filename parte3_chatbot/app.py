@@ -22,7 +22,8 @@ from ollama import AsyncClient
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import gestos  # noqa: E402
-from herramientas import ESQUEMAS, ClienteAcceso, parece_individual  # noqa: E402
+from herramientas import (  # noqa: E402
+    ESQUEMAS, INSTRUCCION_RECHAZO, ClienteAcceso, hay_datos, parece_individual, tiene_cifras)
 from prompts import BIENVENIDA, SISTEMA  # noqa: E402
 
 OLLAMA_URL = os.environ.get('OLLAMA_URL', 'http://ollama:11434')
@@ -54,13 +55,24 @@ async def _conversar(texto: str) -> None:
     llm: AsyncClient = cl.user_session.get('llm')
     mensajes: list = cl.user_session.get('mensajes')
     mensajes.append({'role': 'user', 'content': texto})
+    datos = False              # ¿alguna herramienta ha devuelto datos en este turno?
+    ultimo_rechazo: dict | None = None
 
     for _ in range(MAX_PASOS):
         respuesta = await llm.chat(model=MODELO, messages=mensajes, tools=ESQUEMAS)
         mensajes.append(respuesta.message)
         llamadas = respuesta.message.tool_calls or []
         if not llamadas:
-            await cl.Message(content=respuesta.message.content or '(sin respuesta)').send()
+            contenido = respuesta.message.content or '(sin respuesta)'
+            # Barrera: sin datos no se dejan pasar cifras (los modelos pequeños se las inventan)
+            if not datos and tiene_cifras(contenido):
+                if ultimo_rechazo:
+                    await _mostrar_rechazo(ultimo_rechazo)
+                else:
+                    await cl.Message(content='No tengo datos publicados para esa consulta, así que no te '
+                                             'doy cifras. Prueba con otro día, barrio o nivel de agregación.').send()
+                return
+            await cl.Message(content=contenido).send()
             return
         for llamada in llamadas:
             nombre, argumentos = llamada.function.name, dict(llamada.function.arguments or {})
@@ -68,10 +80,15 @@ async def _conversar(texto: str) -> None:
                 paso.input = argumentos
                 resultado = await acceso.ejecutar(nombre, argumentos)
                 paso.output = resultado
-            if isinstance(resultado, dict) and resultado.get('resultado') == 'rechazada' and resultado.get('alternativa'):
-                cl.user_session.set('alternativa', resultado['alternativa'])
+            datos = datos or hay_datos(resultado)
+            aviso = ''
+            if isinstance(resultado, dict) and resultado.get('resultado') == 'rechazada':
+                ultimo_rechazo = resultado
+                aviso = INSTRUCCION_RECHAZO
+                if resultado.get('alternativa'):
+                    cl.user_session.set('alternativa', resultado['alternativa'])
             mensajes.append({'role': 'tool', 'tool_name': nombre,
-                             'content': json.dumps(resultado, ensure_ascii=False, default=str)[:12000]})
+                             'content': json.dumps(resultado, ensure_ascii=False, default=str)[:12000] + aviso})
     await cl.Message(content='No he podido completar la consulta en pocos pasos; ¿puedes concretarla?').send()
 
 

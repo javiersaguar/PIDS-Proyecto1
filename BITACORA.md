@@ -8,10 +8,11 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 
 ## Cómo se usa
 
-- **Antes de trabajar:** lee «Estado actual», «Decisiones tomadas» y las dos o tres últimas entradas.
-  Si vas a usar una IA, dale este fichero completo como primer contexto.
+- **Antes de trabajar:** lee «Estado actual», «Decisiones tomadas» y las dos o tres últimas entradas,
+  y mira qué toca en [`TAREAS.md`](TAREAS.md). Si vas a usar una IA, dale los dos ficheros completos
+  como primer contexto.
 - **Al terminar, antes del commit o del *pull request*:** añade una entrada nueva **arriba** de la
-  lista, con la plantilla, y actualiza «Estado actual».
+  lista, actualiza «Estado actual» y marca la tarea en [`TAREAS.md`](TAREAS.md).
 - **Si has trabajado con una IA:** la entrada la firma la persona que ha usado y revisado el
   resultado. En el repositorio solo figuramos los cinco del grupo como autores.
 - **Si cambias una decisión anterior:** añádela a «Decisiones tomadas» y marca la vieja como
@@ -26,12 +27,14 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 | | |
 |---|---|
 | **Escenario** | E3 · privacidad total |
-| **Funciona y está probado** | Reglas de esquema y privacidad (Python y Scala), APIs de captura y acceso (56 tests), validación del `docker-compose` con todos los perfiles, parte 1 completa (96,5 % LOPO) |
-| **Escrito pero sin probar en ejecución** | Trabajos Spark (sin compilar), DAG de Airflow, panel de Grafana, chatbot con Ollama, cliente de gestos |
-| **Sin empezar** | Medición de las 3 métricas de calidad, alertas en Grafana, integración de gestos en la demo, vídeo y presentación |
-| **Cómo levantarlo** | En Ubuntu (WSL2): `make entorno && make sync && make test && make nucleo` |
-| **Pendiente inmediato** | Construir las imágenes (≈10 GB de descargas), compilar el Scala con `make test-spark` y hacer la primera carga con `make airflow && make historico-muestra` |
-| **Requisitos por instalar** | NVIDIA Container Toolkit en WSL, para que Ollama use la GPU (si no: `make chatbot SIN_GPU=1`) |
+| **Funciona y está probado en ejecución** | Núcleo (S3, Redpanda, MongoDB, APIs), carga histórica con Spark en modo cluster, tiempo real con streaming y simulador, filtro de privacidad (permitida / enmascarada / rechazada), DAG de Airflow completo, Prometheus (9 objetivos) y panel de Grafana. 56 tests de Python y 7 de Scala |
+| **Probado a medias** | Chatbot: funciona en CPU con `llama3.2:3b` y con la barrera contra cifras inventadas; falta repetirlo con `llama3.1:8b` en GPU |
+| **En marcha** | Carga del dataset completo (3,09 GB, 24,6 M de viajes) ya subido a `s3://crudo/historico/` |
+| **Sin empezar** | Medición formal de las 3 métricas de calidad, alertas en Grafana, integración de gestos en la demo, vídeo y presentación |
+| **Cómo levantarlo** | En Ubuntu (WSL2): `make entorno && make sync && make test && make airflow && make historico-muestra` |
+| **Siguientes tareas** | Ver [`TAREAS.md`](TAREAS.md) (T01 a T10) |
+| **Pendiente inmediato** | Instalar el NVIDIA Container Toolkit para el chatbot con GPU, medir las métricas de calidad y cargar un mes completo (`make historico MES=2020-01`) |
+| **Requisitos por instalar** | NVIDIA Container Toolkit en WSL (sin él: `make chatbot SIN_GPU=1` y `OLLAMA_MODELO=llama3.2:3b`) |
 
 ## Decisiones tomadas
 
@@ -66,6 +69,119 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 ---
 
 ## Entradas
+
+### 2026-09-17 · Javier Saguar · Año 2020 completo cargado y formatos de la exportación arreglados
+
+- **Rama / commits:** `main` · pendiente de commit
+- **Qué he hecho:**
+  - Cargado el dataset completo: 24 648 499 viajes en **2 minutos** (Spark en modo cluster, 6 núcleos).
+  - Arreglado lo que lo impedía: la exportación completa de NYC Open Data viene en **formato europeo**
+    (fechas «2020 Jan 01 12:28:15 AM» y decimales con coma). La primera carga rechazó las 24,6 M de
+    filas por «falta un campo obligatorio». Ahora el esquema acepta los cuatro formatos (muestra, API,
+    exportación y Parquet), con una muestra de cada uno en `data/muestra/` y tests en los dos lenguajes.
+  - Corregido el reparto de recursos de Spark: con ejecutores de 4 GB solo cabía uno por worker (6 GB),
+    así que el trabajo se quedaba con 2 núcleos aunque pidiera 6. `lanzar.sh` usa ahora ejecutores de
+    2 GB y 2 núcleos, parametrizables.
+  - Medida la métrica de utilidad (M2) y documentada la decisión sobre los grupos suprimidos.
+- **Por qué:** sin el dataset completo no hay cifras reales que discutir, y el formato de la exportación
+  es un problema de calidad de datos que hay que contar en la memoria.
+- **Ficheros clave:** `config/esquema_viaje.json`, `parte2_plataforma/comun/esquema.py`,
+  `parte2_plataforma/spark/src/main/scala/pids/{Config,Esquema}.scala`, `parte2_plataforma/spark/lanzar.sh`,
+  `docs/{datos,metricas_calidad,escenario_E3}.md`
+- **Cómo comprobarlo:**
+  ```bash
+  make test && make test-spark
+  make subir-csv FICHERO=/ruta/al/csv
+  make historico-fichero RUTA=s3a://crudo/historico/<fichero>.csv LOTE=anio-2020
+  ```
+- **Resultado:** 23 684 852 válidos (96,1 %) y 963 647 rechazados (3,9 %) con su desglose por motivo.
+  Publicados 287 016 grupos hora-zona (más 430 113 suprimidos), 2 253 día-barrio y 7 926 de flujos;
+  214 MB en MongoDB. **Los grupos suprimidos son el 60 % del nivel fino pero solo el 4,9 % de los
+  viajes.** Consultas reales comprobadas: JFK por horas el 15 de enero (144-197 viajes/hora, importe
+  medio 43-52 $) y el efecto del COVID el 15 de marzo (Manhattan 51 604 viajes).
+  100 tests en verde (92 de Python y 8 de Scala).
+- **Pendiente y riesgos:** falta la curva privacidad–utilidad con k = 5 y k = 20 (T03), y el trabajo de
+  tiempo real hay que relanzarlo cada vez que se recrea el máster.
+- **Contexto para quien siga:** el nivel hora-zona es el que crece (717 k documentos por año); si se
+  cargan más años hay que revisar la decisión de publicar los grupos vacíos (`docs/escenario_E3.md`).
+
+### 2026-09-17 · Javier Saguar · Chatbot en marcha, barrera contra cifras inventadas y dataset completo ingerido
+
+- **Rama / commits:** `main` · pendiente de commit
+- **Qué he hecho:**
+  - Levantado Ollama y el chatbot. Sin GPU (falta el toolkit de NVIDIA), así que en CPU con `llama3.2:3b`.
+  - **Hallazgo importante:** al rechazar la API su consulta, el modelo pequeño **se inventó las cifras**
+    («Manhattan: 12.456 viajes»). Arreglado con tres capas:
+    1. barrera determinista en el chatbot: si ninguna herramienta ha devuelto datos y la respuesta trae
+       cifras, no se muestra; se enseña el rechazo con su alternativa (ignora fechas, horas y códigos
+       de error, que no son datos);
+    2. la respuesta de una herramienta rechazada lleva una instrucción explícita de no inventar;
+    3. el prompt lo prohíbe de forma destacada y explica el formato de las fechas.
+  - La API ahora tolera las chapuzas de formato del LLM sin relajar ninguna regla: `metricas` como texto
+    (`'["n_viajes"]'` o `'n_viajes, propina_media'`), cadenas vacías como «sin filtro», y barrios
+    desconocidos se rechazan indicando los válidos.
+  - Subido el dataset completo (3,09 GB, 24 648 499 viajes) desde Windows a `s3://crudo/historico/` con
+    el script nuevo `parte2_plataforma/s3/subir_fichero.py` (`make subir-csv`), y lanzada su carga
+    (`make historico-fichero`).
+  - Creados [`TAREAS.md`](TAREAS.md) (las 10 tareas siguientes) y `comprobar_agente.py` (probar el
+    agente sin interfaz). README y `docs/plan.md` apuntan a los dos ficheros de seguimiento.
+- **Por qué:** un chatbot que inventa cifras es peor que uno que no responde, y más en un escenario cuyo
+  objetivo es no exponer datos. La barrera no depende de que el modelo obedezca.
+- **Ficheros clave:** `parte3_chatbot/{app.py,herramientas.py,prompts.py,comprobar_agente.py}`,
+  `parte2_plataforma/comun/privacidad.py`, `parte2_plataforma/s3/subir_fichero.py`, `TAREAS.md`
+- **Cómo comprobarlo:**
+  ```bash
+  make test                                    # 85 tests
+  make chatbot SIN_GPU=1
+  docker compose exec chatbot python comprobar_agente.py
+  ```
+- **Resultado:** el chatbot responde con los datos reales (Manhattan 932, Queens 41, Brooklyn 12 el
+  1 de enero) y avisa de los grupos suprimidos. 85 tests en verde.
+- **Pendiente y riesgos:** con `llama3.2:3b` el modelo sigue formateando mal las llamadas (listas como
+  texto) y confunde niveles; hay que repetir las pruebas con `llama3.1:8b` en GPU (T01). La carga del
+  año completo estaba en marcha al escribir esto: sus cifras van en la próxima entrada.
+- **Contexto para quien siga:** la barrera está en `herramientas.tiene_cifras` + `hay_datos`, y se
+  prueba sola con los tests de `tests/test_chatbot.py`. Si se cambia el modelo, conviene volver a pasar
+  `comprobar_agente.py` con los 8 casos de uso antes de dar nada por bueno.
+
+### 2026-09-17 · Javier Saguar · Primer despliegue completo: histórico, tiempo real y Airflow funcionando
+
+- **Rama / commits:** `main` · pendiente de commit
+- **Qué he hecho:**
+  - Compilado los trabajos Scala y pasado sus tests (`make test-spark`). Un test fallaba por pedir los
+    arrays de Spark como `Seq` inmutable: Spark los devuelve como `ArraySeq` mutable.
+  - Levantado el núcleo, el clúster de Spark, Airflow y la observabilidad, y ejecutado la carga de la
+    muestra en modo cluster, el streaming y el simulador.
+  - Dos arreglos para que Airflow pueda enviar trabajos a Spark:
+    1. `spark-submit` hablaba con el puerto 6066 usando el protocolo antiguo («Too large frame»);
+       ahora la pasarela REST se activa desde `spark-defaults.conf`.
+    2. En modo cluster el driver recibe la configuración **del cliente**, así que la imagen de Airflow
+       necesita el mismo `spark-defaults.conf` que el clúster; sin él, el trabajo salía sin el endpoint
+       de S3 y fallaba con 403.
+  - Bajadas las particiones de shuffle de 200 a 8: los agregados tardaban ~3 min en aparecer.
+  - Añadido `parte3_chatbot/comprobar_agente.py` para probar el agente sin abrir la interfaz.
+- **Por qué:** el código estaba escrito pero sin ejecutar; había que comprobar los puntos de riesgo
+  (modo cluster, conectores de S3 y MongoDB, permisos, privacidad).
+- **Ficheros clave:** `parte2_plataforma/airflow/Dockerfile`, `parte2_plataforma/spark/conf/spark-defaults.conf`,
+  `parte2_plataforma/spark/src/test/scala/pids/PrivacidadSpec.scala`, `parte3_chatbot/comprobar_agente.py`
+- **Cómo comprobarlo:**
+  ```bash
+  make test-spark
+  make airflow && make historico-muestra
+  make tiempo-real && make simular
+  ```
+- **Resultado medido con la muestra (999 viajes):**
+  - 991 válidos y 8 rechazados, con los mismos motivos que la versión Python.
+  - Publicados 84 grupos hora-zona (47 suprimidos), 6 día-barrio (3 suprimidos) y 16 de flujos (10 suprimidos).
+  - Tiempo real: los 999 viajes enviados en 3 s y los agregados `tr_*` publicados con el mismo enmascarado.
+  - API: consulta permitida, enmascarada (`<10`) y rechazada con alternativa; `/viajes/123` devuelve 403.
+  - DAG `pids_carga_historica` completo en verde; 9 objetivos de Prometheus activos y panel de Grafana cargado.
+- **Pendiente y riesgos:** el chatbot solo se ha podido probar en CPU, porque falta instalar el NVIDIA
+  Container Toolkit en WSL (sin él, Docker no ve la GPU: «no known GPU vendor found»). Al reiniciar el
+  máster de Spark se pierde el driver del streaming: hay que relanzar `make tiempo-real`.
+- **Contexto para quien siga:** el commit de los agregados en S3 usa el `FileOutputCommitter` estándar
+  (Spark avisa de que es lento); a esta escala da igual. Los trabajos se envían siempre en modo cluster,
+  así que los logs del driver están en el worker, en `/opt/spark/work/driver-*/stderr`.
 
 ### 2026-09-17 · Javier Saguar · Parte 1 integrada en el repositorio y bitácora
 

@@ -6,7 +6,9 @@ import pytest
 
 from parte2_plataforma.comun import esquema as E
 
-MUESTRA = Path(__file__).resolve().parents[1] / 'data' / 'muestra' / 'yellow_tripdata_2020_muestra.csv'
+DATOS = Path(__file__).resolve().parents[1] / 'data' / 'muestra'
+MUESTRA = DATOS / 'yellow_tripdata_2020_muestra.csv'
+MUESTRA_EUROPEA = DATOS / 'exportacion_formato_europeo.csv'
 
 
 @pytest.fixture(scope='module')
@@ -82,3 +84,33 @@ def test_cada_regla(cambio, motivo):
 
     ok, _ = E.normalizar(pd.DataFrame([base]))
     assert len(E.validar(ok)[0]) == 1
+
+
+def test_exportacion_completa_con_formato_europeo():
+    """La exportación completa de NYC Open Data trae "2020 Jan 01 12:28:15 AM" y decimales con coma."""
+    df, extra = E.normalizar(pd.read_csv(MUESTRA_EUROPEA, dtype=str))
+    assert extra == []
+    validos, rechazados = E.validar(df)
+    # de las 8 filas, una es de diciembre de 2019 (la exportación incluye viajes fuera de 2020)
+    assert rechazados['motivos'].tolist() == [['fecha_fuera_de_rango']]
+    assert len(validos) == 7
+    assert validos['recogida'].iloc[0] == pd.Timestamp('2020-01-01 00:28:15')
+    assert validos['distancia_millas'].iloc[0] == 1.2
+    assert validos['importe_total'].iloc[0] == 11.27
+    assert validos['vendor_id'].iloc[0] == 1
+
+
+@pytest.mark.parametrize('texto, esperado', [
+    ('1,2', 1.2),
+    ('11,27', 11.27),
+    ('1.234,56', 1234.56),      # punto de miles y coma decimal
+    ('1.2', 1.2),               # formato de la muestra de Moodle
+    ('6', 6.0),
+    ('', None),
+])
+def test_numeros_con_coma_o_con_punto(texto, esperado):
+    serie = E._a_numero(pd.Series([texto], dtype='string'), decimal_coma=True)
+    if esperado is None:
+        assert pd.isna(serie.iloc[0])
+    else:
+        assert serie.iloc[0] == esperado

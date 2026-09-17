@@ -95,8 +95,15 @@ Javier Saguar · Alejandro Cuevas · Mónica Fernández · Pedro José Orrego ·
 
 Reparto de tareas en [`docs/plan.md`](docs/plan.md).
 
-## Bitácora
+## Cómo trabajamos
 
-Cada cambio se describe en [`BITACORA.md`](BITACORA.md): qué se hizo, por qué, cómo comprobarlo y qué
-queda pendiente. **Léela antes de empezar a trabajar**, y si usas un asistente de IA, pásasela como
-primer contexto para que no trabaje con información desactualizada.
+Dos ficheros llevan el día a día del proyecto. **Léelos antes de ponerte a trabajar** y, si usas un
+asistente de IA, pásaselos como primer contexto: así nadie trabaja con información desactualizada.
+
+| Fichero | Para qué |
+|---|---|
+| [`TAREAS.md`](TAREAS.md) | Las **10 tareas siguientes**, en orden, con qué hay que hacer y cuándo se considera terminada. Coges una, pones tu nombre y la marcas al acabar |
+| [`BITACORA.md`](BITACORA.md) | Qué se ha hecho ya: cada cambio con su motivo, cómo comprobarlo y qué quedó pendiente. Incluye el estado actual del proyecto y las decisiones tomadas |
+
+Cada cambio termina con una entrada en la bitácora y su tarea actualizada; los *pull requests* lo
+recuerdan con una casilla.

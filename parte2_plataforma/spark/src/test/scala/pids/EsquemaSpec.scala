@@ -42,6 +42,21 @@ class EsquemaSpec extends AnyFunSuite with SparkLocal {
     assert(validado.select(Esquema.Motivos).as[Seq[String]].head() == Seq("falta_campo_obligatorio"))
   }
 
+  test("la exportación completa (mes abreviado y decimales con coma) se normaliza igual") {
+    val bruto = spark.read.option("header", "true").csv("../../data/muestra/exportacion_formato_europeo.csv")
+    val validado = Esquema.validar(Esquema.normalizar(bruto, cfg.esquema), cfg.esquema)
+    val (validos, rechazados) = Esquema.separar(validado, cfg.esquema)
+    // de las 8 filas, una es de diciembre de 2019
+    assert(validos.count() == 7)
+    assert(rechazados.count() == 1)
+    val fila = validos
+      .filter(col("recogida") === lit(java.sql.Timestamp.valueOf("2020-01-01 00:28:15")))
+      .collect().head
+    assert(fila.getAs[Double]("distancia_millas") == 1.2)      // "1,2" en el fichero
+    assert(fila.getAs[Double]("importe_total") == 11.27)       // "11,27"
+    assert(fila.getAs[Int]("zona_origen") == 238)
+  }
+
   test("tipar deja los códigos como enteros") {
     val bruto = spark.read.option("header", "true").csv(muestra)
     val (validos, _) = Esquema.separar(Esquema.validar(Esquema.normalizar(bruto, cfg.esquema), cfg.esquema), cfg.esquema)

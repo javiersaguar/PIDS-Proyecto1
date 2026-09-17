@@ -38,12 +38,21 @@ object Esquema {
     val n = s"`${f.name}`"
     if (cfg.fechas(canon)) f.dataType match {
       case TimestampType | TimestampNTZType | DateType => c.cast(TimestampType)
-      case _ => expr(s"coalesce(try_to_timestamp(trim($n), '${cfg.formatoFechaCsv}'), try_to_timestamp(trim($n)))")
+      case _ =>
+        // cada fuente trae su formato: muestra de Moodle, exportación completa (mes abreviado) o ISO
+        val intentos = cfg.formatosFecha.map(fmt => s"try_to_timestamp(trim($n), '$fmt')") :+
+          s"try_to_timestamp(trim($n))"
+        expr(intentos.mkString("coalesce(", ", ", ")"))
     }
     else if (cfg.texto(canon)) upper(trim(c.cast(StringType)))
     else f.dataType match {
       case _: NumericType => c.cast(DoubleType)
-      case _              => expr(s"try_cast(trim($n) AS DOUBLE)")
+      case _ if cfg.decimalComa =>
+        // "1,2" y "1.234,56": con coma decimal, el punto es separador de miles
+        expr(s"""case when trim($n) like '%,%'
+                 |     then try_cast(replace(replace(trim($n), '.', ''), ',', '.') AS DOUBLE)
+                 |     else try_cast(trim($n) AS DOUBLE) end""".stripMargin)
+      case _ => expr(s"try_cast(trim($n) AS DOUBLE)")
     }
   }
 

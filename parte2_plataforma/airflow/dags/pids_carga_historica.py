@@ -83,6 +83,8 @@ with DAG(
             "{{ ti.xcom_pull(task_ids='subir_mes') }}",
             "{{ 'muestra' if params.muestra else 'historico-' ~ params.mes }}",
         ],
+        # El resto de la configuración (pasarela REST del máster, endpoint de S3, zona horaria…) viene
+        # de parte2_plataforma/spark/conf/spark-defaults.conf, que la imagen de Airflow también lleva.
         conf={
             'spark.cores.max': '4',
             'spark.executor.cores': '2',

@@ -33,8 +33,9 @@ Documentación y presentación, entre todos. Cada uno describe sus cambios en [`
 - Una rama por tarea y *pull request* a `main`; el CI pasa los tests de Python y de Scala y valida
   el `docker-compose.yml`.
 - Cambios pequeños y probados: `make test` antes de subir.
-- Cada cambio se describe en [`../BITACORA.md`](../BITACORA.md), con la plantilla: qué, por qué, cómo
-  comprobarlo y qué queda pendiente. Es también el contexto que se le pasa a cualquier asistente de IA.
+- El trabajo del día a día se lleva en dos ficheros de la raíz: [`../TAREAS.md`](../TAREAS.md) (las 10
+  tareas siguientes, con criterio de «hecha») y [`../BITACORA.md`](../BITACORA.md) (qué se hizo, por qué,
+  cómo comprobarlo y qué quedó pendiente). Son también el contexto que se pasa a cualquier asistente de IA.
 
 ## Checklist de la entrega (diapositivas 6-10)
 

@@ -32,6 +32,50 @@ def parece_individual(texto: str) -> bool:
     return any(re.search(p, t) for p in PATRONES_INDIVIDUALES)
 
 
+# Instrucción que se añade a la respuesta de una herramienta rechazada: los modelos pequeños tienden a
+# inventarse las cifras cuando no reciben datos.
+INSTRUCCION_RECHAZO = (
+    '\n\nINSTRUCCIÓN: la plataforma NO ha devuelto datos. Vuelve a llamar a consultar_viajes con '
+    'exactamente los parámetros del campo "alternativa", o explica al usuario por qué no se puede '
+    'responder. NO escribas ninguna cifra: no tienes datos.')
+
+
+MESES = 'enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre'
+# Fechas y horas: son parte de la pregunta, no un dato inventado
+FECHAS_Y_HORAS = [
+    rf'\b\d{{1,2}}\s+de\s+({MESES})(\s+de\s+\d{{4}})?\b',
+    r'\b\d{4}-\d{2}-\d{2}([T ]\d{2}:\d{2}(:\d{2})?)?\b',
+    r'\b\d{1,2}:\d{2}\b',
+    r'\b(19|20)\d{2}\b',
+    r'\b(error|http|c[oó]digo)\s*:?\s*\d{3}\b',     # códigos de error, no datos
+]
+PALABRAS_DE_DATO = (r'viajes?|trayectos?|d[oó]lares|usd|\$|millas|km|propina|importe|media|total|'
+                    r'porcentaje|%')
+
+
+def tiene_cifras(texto: str) -> bool:
+    """¿La respuesta da cifras (no fechas ni horas)?
+
+    Se usa para no dejar pasar números cuando ninguna herramienta ha devuelto datos: los modelos
+    pequeños tienden a inventarse los resultados. Las fechas y horas de la propia pregunta no cuentan.
+    """
+    limpio = texto or ''
+    for patron in FECHAS_Y_HORAS:
+        limpio = re.sub(patron, ' ', limpio, flags=re.IGNORECASE)
+    if re.search(r'\d[\d.,]*\s*(' + PALABRAS_DE_DATO + r')', limpio, re.IGNORECASE):
+        return True
+    return bool(re.search(r'\d{2,}', limpio))          # cualquier número de dos o más dígitos
+
+
+def hay_datos(resultado) -> bool:
+    """¿La herramienta ha devuelto datos de verdad (filas o zonas)?"""
+    if isinstance(resultado, list):
+        return bool(resultado)
+    if isinstance(resultado, dict):
+        return bool(resultado.get('filas'))
+    return False
+
+
 ESQUEMAS: list[dict[str, Any]] = [
     {
         'type': 'function',

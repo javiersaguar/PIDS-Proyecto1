@@ -29,6 +29,14 @@
    archivo de tiempo real a los 90.
 9. **LLM local:** las preguntas no salen del equipo.
 
+## Decisión: los grupos suprimidos se publican, pero vacíos
+
+Un grupo con menos de 10 viajes se publica con `suprimido: true` y sin cifras, en vez de no publicarse.
+Así la respuesta puede distinguir «no hubo viajes» de «hubo muy pocos y no se muestran», que es lo que
+pide E3 («informar de la decisión de privacidad»). Con el año 2020 completo eso supone 430 113
+documentos extra y 214 MB en total en MongoDB, coste asumible. Si en el futuro se cargan varios años,
+habría que revisarlo (ver `docs/metricas_calidad.md`).
+
 ## Riesgos conocidos y trabajo futuro
 
 - **Ataques por diferencia entre niveles:** con el día y barrio publicados y las horas y zonas visibles,

@@ -67,3 +67,58 @@ def test_enmascarar_oculta_cifras_y_no_da_totales():
 def test_coleccion_segun_fuente():
     assert P.coleccion(consulta()) == 'viajes_hora_zona'
     assert P.coleccion(consulta(fuente='tiempo_real')) == 'tr_viajes_hora_zona'
+
+
+def test_barrio_desconocido_se_rechaza_con_alternativa_sin_filtro():
+    peticion = consulta(nivel="dia_barrio", zona_origen=None, desde=datetime(2020, 1, 1),
+                        hasta=datetime(2020, 1, 2), barrio_origen="[Manhattan, Brooklyn]")
+    decision = P.evaluar(peticion)
+    assert decision.resultado == P.Resultado.RECHAZADA
+    assert any("barrio_origen desconocido" in m for m in decision.motivos)
+    assert decision.alternativa.barrio_origen is None
+    assert P.evaluar(decision.alternativa).resultado == P.Resultado.PERMITIDA
+
+
+def test_barrio_vacio_equivale_a_sin_filtro():
+    peticion = consulta(nivel="dia_barrio", zona_origen=None, desde=datetime(2020, 1, 1),
+                        hasta=datetime(2020, 1, 2), barrio_origen="  ", barrio_destino="")
+    assert peticion.barrio_origen is None and peticion.barrio_destino is None
+    assert P.evaluar(peticion).resultado == P.Resultado.PERMITIDA
+
+
+def test_metricas_vacias_usan_el_numero_de_viajes():
+    assert consulta(metricas=[]).metricas == ["n_viajes"]
+
+
+def test_mensaje_de_granularidad_concuerda():
+    dia = P.evaluar(consulta(nivel="dia_barrio", zona_origen=None, desde=datetime(2020, 1, 1, 5),
+                             hasta=datetime(2020, 1, 1, 9)))
+    assert any("de un día completo" in m for m in dia.motivos)
+    hora = P.evaluar(consulta(desde=datetime(2020, 1, 1, 5, 30), hasta=datetime(2020, 1, 1, 9)))
+    assert any("de una hora completa" in m for m in hora.motivos)
+
+
+@pytest.mark.parametrize('metricas, esperado', [
+    ('["n_viajes", "importe_medio"]', ['n_viajes', 'importe_medio']),
+    ('n_viajes, propina_media', ['n_viajes', 'propina_media']),
+    ('n_viajes', ['n_viajes']),
+    ('', ['n_viajes']),
+    ([], ['n_viajes']),
+])
+def test_metricas_mal_formadas_por_el_llm_se_normalizan(metricas, esperado):
+    """La API acepta la chapuza de formato, pero sigue validando contra las métricas publicadas."""
+    peticion = consulta(metricas=metricas)
+    assert peticion.metricas == esperado
+    assert P.evaluar(peticion).resultado == P.Resultado.PERMITIDA
+
+
+@pytest.mark.parametrize('zona', ['', 'null', None])
+def test_zona_vacia_equivale_a_sin_filtro(zona):
+    assert consulta(nivel='dia_barrio', desde=datetime(2020, 1, 1), hasta=datetime(2020, 1, 2),
+                    zona_origen=zona).zona_origen is None
+
+
+def test_campos_extra_como_texto_siguen_rechazandose():
+    decision = P.evaluar(consulta(campos_extra='["recogida"]'))
+    assert decision.resultado == P.Resultado.RECHAZADA
+    assert any('campos individuales' in m for m in decision.motivos)

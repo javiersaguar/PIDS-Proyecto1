@@ -58,7 +58,8 @@ class PrivacidadSpec extends AnyFunSuite with SparkLocal {
     val fila = Esquema.validar(
       Esquema.normalizar(TiempoReal.desenvolver(eventos, cfg.esquema), cfg.esquema, Seq("lote")), cfg.esquema)
       .collect().head
-    assert(fila.getAs[Seq[String]](Esquema.Motivos).isEmpty)
+    // Spark devuelve los arrays como ArraySeq mutable: hay que pedirlos como scala.collection.Seq
+    assert(fila.getAs[scala.collection.Seq[String]](Esquema.Motivos).isEmpty)
     assert(fila.getAs[Double]("zona_origen") == 238.0)
     assert(fila.getAs[String]("lote") == "l1")
   }

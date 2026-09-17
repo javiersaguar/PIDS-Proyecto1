@@ -82,6 +82,14 @@ historico: ## Ejecuta en Airflow la carga histórica de un mes (MES=2020-01)
 historico-muestra: ## Carga histórica del CSV de muestra (rápida, para probar)
 	$(COMPOSE) exec airflow-apiserver airflow dags trigger pids_carga_historica --conf '{"mes": "2020-01", "muestra": true}'
 
+subir-csv: ## Sube un CSV/Parquet propio a la zona restringida de S3 (FICHERO=/ruta/al/fichero.csv)
+	@test -n "$(FICHERO)" || (echo "Uso: make subir-csv FICHERO=/ruta/al/fichero.csv" && exit 1)
+	docker compose run --rm -T -v "$(dir $(abspath $(FICHERO)))":/entrada:ro s3-init 		python -m parte2_plataforma.s3.subir_fichero "/entrada/$(notdir $(FICHERO))"
+
+historico-fichero: ## Carga con Spark un fichero ya subido a S3 (RUTA=s3a://crudo/historico/... LOTE=nombre)
+	@test -n "$(RUTA)" || (echo "Uso: make historico-fichero RUTA=s3a://crudo/historico/fichero.csv [LOTE=nombre]" && exit 1)
+	docker compose exec spark-master /opt/pids/lanzar.sh CargaHistorica "$(RUTA)" "$(or $(LOTE),manual)"
+
 datos-muestra: ## Perfila y valida el CSV de muestra
 	uv run python scripts/perfilar_datos.py data/muestra/yellow_tripdata_2020_muestra.csv
 

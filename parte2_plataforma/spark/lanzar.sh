@@ -12,6 +12,8 @@ if [[ "$clase" == "TiempoReal" ]]; then
     supervisar=(--supervise)
 fi
 
+# Cuidado al ajustar: cada worker tiene SPARK_WORKER_MEMORY (6g por defecto), así que si cada ejecutor
+# pide mucha memoria solo cabe uno por worker y el trabajo se queda sin núcleos aunque cores.max sea alto.
 exec /opt/spark/bin/spark-submit \
     --master spark://spark-master:7077 \
     --deploy-mode cluster \
@@ -19,8 +21,8 @@ exec /opt/spark/bin/spark-submit \
     --class "pids.$clase" \
     --name "pids-${clase,,}" \
     --conf spark.cores.max="${PIDS_CORES:-3}" \
-    --conf spark.executor.cores=1 \
-    --conf spark.executor.memory="${PIDS_MEMORIA_EJECUTOR:-1g}" \
-    --conf spark.driver.memory=1g \
+    --conf spark.executor.cores="${PIDS_CORES_EJECUTOR:-2}" \
+    --conf spark.executor.memory="${PIDS_MEMORIA_EJECUTOR:-2g}" \
+    --conf spark.driver.memory="${PIDS_MEMORIA_DRIVER:-1g}" \
     --conf spark.standalone.submit.waitAppCompletion=false \
     file:/opt/pids/pids-spark.jar "$@"

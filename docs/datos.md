@@ -9,8 +9,24 @@
 | `taxi_zone_lookup.csv` de la TLC | Zona → barrio y nombre (265 zonas) | **Fuente nueva**: permite agregar por barrio y buscar zonas por nombre |
 | Muestra de Moodle | 999 viajes | Tests y pruebas rápidas |
 
-Cada fuente trae un formato distinto (nombres en mayúsculas o minúsculas, fechas en 12 h, ISO o
-timestamp); `config/esquema_viaje.json` los unifica.
+## La misma columna, cuatro formatos
+
+Es el problema de calidad más llamativo que nos hemos encontrado: **el mismo dataset llega en formatos
+distintos según por dónde se descargue**, y `config/esquema_viaje.json` los unifica.
+
+| Fuente | Nombres | Fecha de recogida | Distancia |
+|---|---|---|---|
+| Muestra de Moodle | `VendorID` | `01/01/2020 12:28:15 AM` | `1.2` |
+| Exportación completa (botón «Export» de NYC Open Data) | `"VendorID"` | `2020 Jan 01 12:28:15 AM` | `1,2` |
+| API SODA | `vendorid` | `2020-01-01T00:28:15.000` | `1.20` |
+| Parquet de la TLC | `VendorID` | timestamp | 1.2 (double) |
+
+La exportación completa sale con **formato europeo**: el mes abreviado en la fecha y la **coma como
+separador decimal** (con el punto como separador de miles). La primera carga del año completo rechazó
+los 24 648 499 viajes por «falta un campo obligatorio», porque todos los números quedaban vacíos.
+
+La normalización acepta ahora los cuatro formatos, y hay dos ficheros de muestra en `data/muestra/`
+(uno de cada formato de texto) con tests en Python y en Scala que comprueban que dan el mismo viaje.
 
 ## Diccionario
 

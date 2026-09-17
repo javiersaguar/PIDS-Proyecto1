@@ -58,7 +58,7 @@ def normalizar(df: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
     for col in columnas():
         if col in cfg['fechas'] or col in cfg['texto']:
             continue
-        valores = pd.to_numeric(out[col], errors='coerce')
+        valores = _a_numero(out[col], cfg.get('decimal_coma', False))
         out[col] = valores.astype('Int64') if col in cfg['enteras'] and _son_enteros(valores) else valores
     for col in cfg['texto']:
         out[col] = out[col].astype('string').str.strip().str.upper()
@@ -70,17 +70,35 @@ def _son_enteros(valores: pd.Series) -> bool:
     return bool((v == v.round()).all())
 
 
+def _a_numero(serie: pd.Series, decimal_coma: bool) -> pd.Series:
+    """A número, aceptando el decimal con coma de la exportación completa ("1,2" o "1.234,56")."""
+    if pd.api.types.is_numeric_dtype(serie):
+        return serie
+    texto = serie.astype('string').str.strip()
+    if decimal_coma:
+        con_coma = texto.str.contains(',', na=False)
+        if con_coma.any():
+            # con coma decimal, el punto es separador de miles
+            texto = texto.mask(con_coma, texto.str.replace('.', '', regex=False).str.replace(',', '.', regex=False))
+    return pd.to_numeric(texto, errors='coerce')
+
+
 def _a_fecha(serie: pd.Series) -> pd.Series:
-    """A datetime sin zona horaria y siempre con la misma resolución (cada fuente trae una distinta)."""
+    """A datetime sin zona horaria y con la misma resolución, probando los formatos de cada fuente.
+
+    Muestra de Moodle "01/01/2020 12:28:15 AM", exportación completa "2020 Jan 01 12:28:15 AM",
+    API en ISO y Parquet ya como timestamp.
+    """
     if pd.api.types.is_datetime64_any_dtype(serie):
-        fechas = serie.dt.tz_localize(None) if serie.dt.tz is not None else serie
-    else:
-        texto = serie.astype('string')
-        # formato de la exportación CSV; si no encaja, ISO (API)
-        fechas = pd.to_datetime(texto, format='%m/%d/%Y %I:%M:%S %p', errors='coerce').astype('datetime64[us]')
+        return (serie.dt.tz_localize(None) if serie.dt.tz is not None else serie).astype('datetime64[us]')
+    texto = serie.astype('string').str.strip()
+    fechas = pd.Series(pd.NaT, index=serie.index, dtype='datetime64[us]')
+    for formato in config()['formatos_fecha_python'] + ['ISO8601']:
         pendientes = fechas.isna() & texto.notna()
-        if pendientes.any():
-            fechas[pendientes] = pd.to_datetime(texto[pendientes], format='ISO8601', errors='coerce')
+        if not pendientes.any():
+            break
+        intento = pd.to_datetime(texto[pendientes], format=formato, errors='coerce')
+        fechas[pendientes] = intento.astype('datetime64[us]')
     return fechas.astype('datetime64[us]')
 
 

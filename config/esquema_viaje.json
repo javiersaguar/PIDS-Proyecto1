@@ -1,6 +1,6 @@
 {
-  "version": 1,
-  "descripcion": "Esquema canónico de un viaje y reglas de validación. Lo leen Python (captura, scripts) y Scala (Spark), para que histórico y tiempo real apliquen exactamente las mismas reglas.",
+  "version": 2,
+  "descripcion": "Esquema canónico de un viaje y reglas de validación. Lo leen Python (captura, scripts) y Scala (Spark), para que histórico y tiempo real apliquen exactamente las mismas reglas. Las fuentes traen formatos distintos: fechas en 12 h (muestra de Moodle), con mes abreviado (exportación completa de NYC Open Data) o ISO (API), y decimales con punto o con coma.",
   "alias": {
     "vendorid": "vendor_id",
     "tpep_pickup_datetime": "recogida",
@@ -21,11 +21,31 @@
     "total_amount": "importe_total",
     "congestion_surcharge": "recargo_congestion"
   },
-  "enteras": ["vendor_id", "pasajeros", "tarifa_id", "zona_origen", "zona_destino", "tipo_pago"],
-  "fechas": ["recogida", "llegada"],
-  "texto": ["almacenado_y_reenviado"],
-  "formato_fecha_csv": "MM/dd/yyyy hh:mm:ss a",
-  "obligatorias": ["vendor_id", "recogida", "llegada", "distancia_millas", "zona_origen", "zona_destino", "tarifa", "importe_total"],
+  "enteras": [
+    "vendor_id",
+    "pasajeros",
+    "tarifa_id",
+    "zona_origen",
+    "zona_destino",
+    "tipo_pago"
+  ],
+  "fechas": [
+    "recogida",
+    "llegada"
+  ],
+  "texto": [
+    "almacenado_y_reenviado"
+  ],
+  "obligatorias": [
+    "vendor_id",
+    "recogida",
+    "llegada",
+    "distancia_millas",
+    "zona_origen",
+    "zona_destino",
+    "tarifa",
+    "importe_total"
+  ],
   "reglas": {
     "recogida_desde": "2020-01-01T00:00:00",
     "recogida_hasta": "2021-01-01T00:00:00",
@@ -33,14 +53,62 @@
     "distancia_maxima_millas": 200,
     "zona_minima": 1,
     "zona_maxima": 265,
-    "vendor_id": [1, 2],
-    "tarifa_id": [1, 2, 3, 4, 5, 6, 99],
-    "tipo_pago": [1, 2, 3, 4, 5, 6],
-    "almacenado_y_reenviado": ["Y", "N"]
+    "vendor_id": [
+      1,
+      2
+    ],
+    "tarifa_id": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      99
+    ],
+    "tipo_pago": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "almacenado_y_reenviado": [
+      "Y",
+      "N"
+    ]
   },
   "diccionario": {
-    "vendor_id": {"1": "Creative Mobile Technologies", "2": "VeriFone"},
-    "tarifa_id": {"1": "Estándar", "2": "JFK", "3": "Newark", "4": "Nassau o Westchester", "5": "Negociada", "6": "Viaje compartido", "99": "Desconocida"},
-    "tipo_pago": {"1": "Tarjeta", "2": "Efectivo", "3": "Sin cargo", "4": "Disputa", "5": "Desconocido", "6": "Viaje anulado"}
-  }
+    "vendor_id": {
+      "1": "Creative Mobile Technologies",
+      "2": "VeriFone"
+    },
+    "tarifa_id": {
+      "1": "Estándar",
+      "2": "JFK",
+      "3": "Newark",
+      "4": "Nassau o Westchester",
+      "5": "Negociada",
+      "6": "Viaje compartido",
+      "99": "Desconocida"
+    },
+    "tipo_pago": {
+      "1": "Tarjeta",
+      "2": "Efectivo",
+      "3": "Sin cargo",
+      "4": "Disputa",
+      "5": "Desconocido",
+      "6": "Viaje anulado"
+    }
+  },
+  "formatos_fecha": [
+    "MM/dd/yyyy hh:mm:ss a",
+    "yyyy MMM dd hh:mm:ss a"
+  ],
+  "formatos_fecha_python": [
+    "%m/%d/%Y %I:%M:%S %p",
+    "%Y %b %d %I:%M:%S %p"
+  ],
+  "decimal_coma": true
 }

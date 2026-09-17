@@ -54,3 +54,34 @@ async def test_cliente_devuelve_el_rechazo_y_limpia_argumentos():
     assert recibido['clave'] == 'k'
     assert (await cliente.ejecutar('borrar_todo', {}))['error'].startswith('herramienta desconocida')
     await cliente.cerrar()
+
+
+@pytest.mark.parametrize("texto, esperado", [
+    ("Manhattan tuvo 12.456 viajes", True),
+    ("- Bronx: 4.234 viajes", True),
+    ("La propina media fue de 2,13 dolares", True),
+    ("El 80% de los pagos fueron con tarjeta", True),
+    ("No se pudieron obtener los datos del 1 de enero de 2020", False),
+    ("Puedo darte el dato entre las 3:00 y las 4:00", False),
+    ("La consulta 2020-01-01T00:00:00 fue rechazada por privacidad", False),
+    ("No hay datos publicados para esa consulta", False),
+    ("", False),
+])
+def test_detecta_cifras_pero_no_fechas_ni_horas(texto, esperado):
+    assert H.tiene_cifras(texto) is esperado
+
+
+@pytest.mark.parametrize("resultado, esperado", [
+    ({"resultado": "permitida", "filas": [{"n_viajes": 40}]}, True),
+    ({"resultado": "enmascarada", "filas": []}, False),
+    ({"resultado": "rechazada", "motivos": ["x"]}, False),
+    ([{"_id": 138, "nombre": "JFK"}], True),
+    ([], False),
+    ("texto", False),
+])
+def test_solo_cuentan_como_datos_las_filas_devueltas(resultado, esperado):
+    assert H.hay_datos(resultado) is esperado
+
+
+def test_la_instruccion_de_rechazo_prohibe_inventar():
+    assert "NO escribas ninguna cifra" in H.INSTRUCCION_RECHAZO
