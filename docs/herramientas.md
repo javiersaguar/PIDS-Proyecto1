@@ -19,14 +19,26 @@ Sin GPU NVIDIA, el chatbot funciona en CPU con `make chatbot SIN_GPU=1` y `OLLAM
 
 ## NVIDIA Container Toolkit (en Ubuntu/WSL2)
 
-Para que el contenedor de Ollama use la GPU. Sigue la guía oficial de NVIDIA para Ubuntu (instalar el
-paquete `nvidia-container-toolkit` desde su repositorio) y después:
+Es lo que permite que el contenedor de Ollama use la GPU. Probado el 17/09/2026 con Ubuntu 26.04,
+Docker 29.6 y el driver 595.79 (RTX 5070 Laptop).
 
 ```bash
+curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+sudo apt-get update && sudo apt-get install -y nvidia-container-toolkit
 sudo nvidia-ctk runtime configure --runtime=docker
+sudo nvidia-ctk cdi generate --mode=wsl --output=/etc/cdi/nvidia.yaml
 sudo systemctl restart docker
-docker run --rm --gpus all ubuntu nvidia-smi
+docker run --rm --gpus all ubuntu:24.04 nvidia-smi -L        # debe listar la GPU
 ```
+
+**El paso del CDI es imprescindible** y no aparece destacado en la guía oficial: Docker 29 busca la GPU
+por CDI, así que sin `/etc/cdi/nvidia.yaml` falla con «failed to discover GPU vendor from CDI: no known
+GPU vendor found» aunque el toolkit esté instalado. En WSL hace falta `--mode=wsl`, porque el driver lo
+aporta Windows (`/usr/lib/wsl/lib`).
+
+Si no tienes la contraseña de `sudo` en WSL, desde PowerShell puedes cambiarla sin saber la anterior:
+`wsl -d Ubuntu -u root passwd <tu_usuario>`.
 
 ## Primera ejecución
 

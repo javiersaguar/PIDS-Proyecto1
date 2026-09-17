@@ -25,22 +25,20 @@ primera que esté libre.
 
 ---
 
-## T01 · Chatbot con GPU
+## T01 · Mover el desarrollo de la parte 1 al repositorio
 
-- **Estado:** libre · **Responsable:** — · **Estimación:** 1 h · **Dificultad:** baja
-- **Por qué:** el chatbot solo se ha probado en CPU con un modelo pequeño (`llama3.2:3b`). Con la GPU
-  se puede usar `llama3.1:8b`, que responde mucho mejor con herramientas.
+- **Estado:** libre · **Responsable:** — · **Estimación:** 2 h · **Dificultad:** baja
+- **Por qué:** `parte1_gestos/` es una **copia** de `C:\Users\Javier\PIDS_HandPose`. Mientras se siga
+  trabajando en la carpeta vieja, las dos versiones se separan y nadie sabe cuál vale.
 - **Qué hay que hacer:**
-  1. Instalar el NVIDIA Container Toolkit en Ubuntu (WSL2) siguiendo la guía oficial de NVIDIA
-     (`docs/herramientas.md`) y `sudo nvidia-ctk runtime configure --runtime=docker`.
-  2. Comprobar: `docker run --rm --gpus all ubuntu nvidia-smi` debe listar la RTX 5070.
-  3. `make chatbot` (sin `SIN_GPU`) y verificar en `nvidia-smi` que el modelo ocupa memoria de la GPU.
-- **Hecha cuando:** el chatbot responde a «¿Cuántos viajes salieron de cada barrio el 1 de enero?» con
-  el modelo de 8B, y el tiempo de respuesta baja de 10 s.
-- **Dónde:** `docs/herramientas.md`, `.env` (`OLLAMA_MODELO`)
-- **Notas:** ahora mismo Docker no ve la GPU («no known GPU vendor found»). Con `llama3.2:3b` el modelo
-  formatea mal las llamadas (manda listas como texto, confunde niveles) y, sin la barrera nueva, se
-  inventaba las cifras: por eso interesa el modelo de 8B.
+  1. Comprobar que el pipeline y la demo funcionan desde el repositorio (en Windows, con su `.venv`).
+  2. Dejar en la carpeta vieja solo los datos que no se versionan (imágenes y tomas) y un aviso de que
+     el código vive en el repositorio.
+  3. Anotar en `parte1_gestos/README.md` cómo se ejecuta desde aquí y dónde están las imágenes.
+- **Hecha cuando:** se puede entrenar y lanzar la demo usando solo lo que hay en el repositorio.
+- **Dónde:** `parte1_gestos/`
+- **Notas:** las 3000 imágenes y las 5 tomas siguen fuera del repositorio a propósito; conviene una copia
+  de seguridad aparte.
 
 ## T02 · Curva privacidad-utilidad y ataque por diferencia
 
@@ -165,7 +163,6 @@ primera que esté libre.
 - Airflow: un DAG que cargue los 12 meses en cadena, con reintentos.
 - Comparar la exportación completa con los Parquet mensuales de la TLC (¿mismos viajes?).
 - Committer de S3A más rápido para las escrituras de Spark.
-- Mover el desarrollo de la parte 1 a este repositorio y dejar de usar la carpeta antigua de Windows.
 
 ## Tareas terminadas
 
@@ -176,3 +173,4 @@ primera que esté libre.
 | 17/09/2026 | Primer despliegue completo: histórico, tiempo real, Airflow y observabilidad | Javier Saguar | entrada del 17/09 |
 | 17/09/2026 | Chatbot en marcha (CPU) con barrera contra cifras inventadas | Javier Saguar | entrada del 17/09 |
 | 17/09/2026 | Dataset completo ingerido y cargado: 23,7 M de viajes válidos en 2 min | Javier Saguar | entrada del 17/09 |
+| 17/09/2026 | T01 Chatbot con GPU: toolkit de NVIDIA, `llama3.1:8b` y respuestas en 3-5 s | Javier Saguar | entrada del 17/09 |

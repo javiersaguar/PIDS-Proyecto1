@@ -27,14 +27,14 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 | | |
 |---|---|
 | **Escenario** | E3 · privacidad total |
-| **Funciona y está probado en ejecución** | Núcleo (S3, Redpanda, MongoDB, APIs), carga histórica con Spark en modo cluster, tiempo real con streaming y simulador, filtro de privacidad (permitida / enmascarada / rechazada), DAG de Airflow completo, Prometheus (9 objetivos) y panel de Grafana. 56 tests de Python y 7 de Scala |
-| **Probado a medias** | Chatbot: funciona en CPU con `llama3.2:3b` y con la barrera contra cifras inventadas; falta repetirlo con `llama3.1:8b` en GPU |
-| **En marcha** | Carga del dataset completo (3,09 GB, 24,6 M de viajes) ya subido a `s3://crudo/historico/` |
+| **Funciona y está probado en ejecución** | Núcleo (S3, Redpanda, MongoDB, APIs), carga histórica con Spark en modo cluster, tiempo real con streaming y simulador, filtro de privacidad (permitida / enmascarada / rechazada), DAG de Airflow completo, Prometheus (9 objetivos) y panel de Grafana. 92 tests de Python y 8 de Scala |
+| **Datos cargados** | Año 2020 completo: 23 684 852 viajes válidos y 287 016 grupos hora-zona publicados |
+| **Chatbot** | Con GPU y `llama3.1:8b`: responde en 3-5 s, con la barrera contra cifras inventadas |
 | **Sin empezar** | Medición formal de las 3 métricas de calidad, alertas en Grafana, integración de gestos en la demo, vídeo y presentación |
 | **Cómo levantarlo** | En Ubuntu (WSL2): `make entorno && make sync && make test && make airflow && make historico-muestra` |
 | **Siguientes tareas** | Ver [`TAREAS.md`](TAREAS.md) (T01 a T10) |
-| **Pendiente inmediato** | Instalar el NVIDIA Container Toolkit para el chatbot con GPU, medir las métricas de calidad y cargar un mes completo (`make historico MES=2020-01`) |
-| **Requisitos por instalar** | NVIDIA Container Toolkit en WSL (sin él: `make chatbot SIN_GPU=1` y `OLLAMA_MODELO=llama3.2:3b`) |
+| **Pendiente inmediato** | Medir las métricas de calidad M1 y M3 (T03) y pasar los 8 casos de uso del chatbot (T05) |
+| **Requisitos** | Todo instalado en este equipo (incluido el NVIDIA Container Toolkit). En equipos sin GPU: `make chatbot SIN_GPU=1` con `OLLAMA_MODELO=llama3.2:3b` |
 
 ## Decisiones tomadas
 
@@ -69,6 +69,38 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 ---
 
 ## Entradas
+
+### 2026-09-17 · Javier Saguar · T01 · Chatbot con GPU y `llama3.1:8b`
+
+- **Rama / commits:** `main` · pendiente de commit
+- **Qué he hecho:**
+  - Instalado el NVIDIA Container Toolkit 1.20 en WSL y configurado Docker.
+  - **La guía oficial no basta con Docker 29:** hay que generar el descriptor CDI
+    (`nvidia-ctk cdi generate --mode=wsl --output=/etc/cdi/nvidia.yaml`). Sin él sigue fallando con
+    «failed to discover GPU vendor from CDI», aunque el toolkit esté instalado. Queda documentado en
+    `docs/herramientas.md`, con el truco para cambiar la contraseña de sudo si no se recuerda
+    (`wsl -d Ubuntu -u root passwd <usuario>`).
+  - Descargado `llama3.1:8b` en el contenedor y levantado el chatbot con GPU (`make chatbot`).
+  - Ajustado el prompt: el modelo filtraba por un solo barrio cuando se le preguntaba por todos; ahora
+    sabe que los filtros son opcionales y de un solo valor.
+- **Por qué:** con el modelo pequeño en CPU las llamadas a las herramientas salían mal formadas y las
+  respuestas eran lentas; era el mayor riesgo para la demo de la parte 3.
+- **Ficheros clave:** `docs/herramientas.md`, `parte3_chatbot/prompts.py`
+- **Cómo comprobarlo:**
+  ```bash
+  docker run --rm --gpus all ubuntu:24.04 nvidia-smi -L
+  make chatbot
+  docker compose exec chatbot python comprobar_agente.py
+  ```
+- **Resultado:** el modelo ocupa 5,2 GB de la GPU (de 8 GB) y responde en **3-5 s** en caliente (42 s
+  la primera consulta, que incluye cargarlo en memoria). Casos probados con el año completo:
+  viajes por barrio del 1 de enero, «qué barrio tuvo más viajes el 3 de marzo» (Manhattan, 203 866) y
+  el rechazo de «dame el viaje de las 3:12 desde Times Square», bloqueado en 1 s sin llegar al LLM.
+  Las cifras coinciden con lo que devuelve la API.
+- **Pendiente y riesgos:** quedan por pasar los 8 casos de uso completos (T05) y guardar capturas. La
+  GPU tiene 8 GB: con un modelo más grande habría que bajar el contexto o usar cuantización menor.
+- **Contexto para quien siga:** `.env` ya trae `OLLAMA_MODELO=llama3.1:8b`; en equipos sin GPU sigue
+  valiendo `make chatbot SIN_GPU=1` con `llama3.2:3b`, pero ese modelo formatea peor las llamadas.
 
 ### 2026-09-17 · Javier Saguar · Año 2020 completo cargado y formatos de la exportación arreglados
 
