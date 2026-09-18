@@ -22,7 +22,7 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 
 ## Estado actual
 
-**Última actualización: 17/09/2026 · Javier Saguar**
+**Última actualización: 18/09/2026 · Javier Saguar**
 
 | | |
 |---|---|
@@ -30,6 +30,7 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 | **Funciona y está probado en ejecución** | Núcleo (S3, Redpanda, MongoDB, APIs), carga histórica con Spark en modo cluster, tiempo real con streaming y simulador, filtro de privacidad (permitida / enmascarada / rechazada), DAG de Airflow completo, Prometheus (9 objetivos) y panel de Grafana. 92 tests de Python y 8 de Scala |
 | **Datos cargados** | Año 2020 completo: 23 684 852 viajes válidos y 287 016 grupos hora-zona publicados |
 | **Chatbot** | Con GPU y `llama3.1:8b`: responde en 3-5 s, con la barrera contra cifras inventadas |
+| **Parte 1** | Se ejecuta desde el repositorio, con `PIDS_DATOS` apuntando a las imágenes (que siguen fuera de Git) |
 | **Sin empezar** | Medición formal de las 3 métricas de calidad, alertas en Grafana, integración de gestos en la demo, vídeo y presentación |
 | **Cómo levantarlo** | En Ubuntu (WSL2): `make entorno && make sync && make test && make airflow && make historico-muestra` |
 | **Siguientes tareas** | Ver [`TAREAS.md`](TAREAS.md) (T01 a T10) |
@@ -69,6 +70,39 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 ---
 
 ## Entradas
+
+### 2026-09-18 · Javier Saguar · La parte 1 se ejecuta desde el repositorio
+
+- **Rama / commits:** `main` · pendiente de commit
+- **Qué he hecho:**
+  - Quitadas las rutas fijas del código de gestos: la carpeta de las imágenes se indica con la variable
+    `PIDS_DATOS` (o `--datos`), y el modelo de MediaPipe y el `.keras` del notebook se buscan en varias
+    ubicaciones, con la del repositorio primero.
+  - `parte1_gestos/descargar_modelos.py`: descarga `hand_landmarker.task` (7,8 MB) de Google y lo deja
+    donde lo esperan el grabador y la demo. Así el repositorio se basta solo.
+  - `parte1_gestos/README.md` explica paso a paso cómo ejecutarlo en Windows desde el repositorio.
+  - En la carpeta antigua he dejado `LEEME_EL_CODIGO_SE_HA_MOVIDO.md`: dice dónde vive ahora el código,
+    qué se queda allí (imágenes, tomas, caché y el `.venv`) y pide no editar esa copia. **No he borrado
+    nada.**
+- **Por qué:** `parte1_gestos/` era una copia de la carpeta de Windows; mientras se trabajara en las dos,
+  se acabarían separando y nadie sabría cuál vale para la entrega.
+- **Ficheros clave:** `parte1_gestos/entrenamiento/hgr/constantes.py`, `parte1_gestos/descargar_modelos.py`,
+  `parte1_gestos/demo/src/demo-gestures-PIDS.py`, `parte1_gestos/README.md`
+- **Cómo comprobarlo:** en Windows, desde una copia limpia del repositorio:
+  ```powershell
+  $env:PIDS_DATOS = "C:\Users\Javier\PIDS_HandPose\kit-grabacion\HAR_mediapipe\data"
+  ...\.venv\Scripts\python.exe parte1_gestos\descargar_modelos.py
+  ...\.venv\Scripts\python.exe parte1_gestos\entrenamiento\preprocesar.py
+  ...\.venv\Scripts\python.exe parte1_gestos\entrenamiento\entrenar.py --rapido --nombre prueba
+  ```
+- **Resultado:** probado en una copia limpia: preprocesado de las 5 tomas (3000 imágenes, 2931 con
+  mano), entrenamiento rápido con CNN al 95,7 % en LOPO (como antes) y demo sobre las imágenes de test
+  con 95,2 % de aciertos.
+- **Pendiente y riesgos:** el dataset de imágenes sigue solo en el portátil de Javier; hacer copia de
+  seguridad es ahora la tarea T01. Quien trabaje la parte 1 en Windows necesita su propio clon del
+  repositorio (el de WSL es para las partes 2 y 3) y el `.venv` que ya existe.
+- **Contexto para quien siga:** el `.venv` de la parte 1 no se toca desde WSL; MediaPipe y Keras con
+  PyTorch están fijados ahí por lo de Smart App Control, que bloquea TensorFlow en este equipo.
 
 ### 2026-09-17 · Javier Saguar · T01 · Chatbot con GPU y `llama3.1:8b`
 

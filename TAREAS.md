@@ -25,20 +25,19 @@ primera que esté libre.
 
 ---
 
-## T01 · Mover el desarrollo de la parte 1 al repositorio
+## T01 · Copia de seguridad del dataset de gestos
 
-- **Estado:** libre · **Responsable:** — · **Estimación:** 2 h · **Dificultad:** baja
-- **Por qué:** `parte1_gestos/` es una **copia** de `C:\Users\Javier\PIDS_HandPose`. Mientras se siga
-  trabajando en la carpeta vieja, las dos versiones se separan y nadie sabe cuál vale.
+- **Estado:** libre · **Responsable:** — · **Estimación:** 30 min · **Dificultad:** baja
+- **Por qué:** las 3000 imágenes y las 5 tomas originales **solo existen en el portátil de Javier**
+  (`C:\Users\Javier\PIDS_HandPose`), porque no caben en el repositorio. Si se pierde ese disco, se pierde
+  el dataset del proyecto y no se puede volver a grabar (cinco personas, una tarde).
 - **Qué hay que hacer:**
-  1. Comprobar que el pipeline y la demo funcionan desde el repositorio (en Windows, con su `.venv`).
-  2. Dejar en la carpeta vieja solo los datos que no se versionan (imágenes y tomas) y un aviso de que
-     el código vive en el repositorio.
-  3. Anotar en `parte1_gestos/README.md` cómo se ejecuta desde aquí y dónde están las imágenes.
-- **Hecha cuando:** se puede entrenar y lanzar la demo usando solo lo que hay en el repositorio.
-- **Dónde:** `parte1_gestos/`
-- **Notas:** las 3000 imágenes y las 5 tomas siguen fuera del repositorio a propósito; conviene una copia
-  de seguridad aparte.
+  1. Comprimir `kit-grabacion\HAR_mediapipe\data` (las 5 tomas con su metadata.json).
+  2. Subirlo a un sitio compartido del grupo (Drive de la universidad, por ejemplo) y anotar el enlace
+     en `parte1_gestos/README.md`.
+  3. Comprobar que alguien más del grupo puede descargarlo y ejecutar `preprocesar.py` con él.
+- **Hecha cuando:** otro miembro del grupo ha reproducido el preprocesado desde la copia.
+- **Dónde:** `parte1_gestos/README.md`
 
 ## T02 · Curva privacidad-utilidad y ataque por diferencia
 
@@ -174,3 +173,4 @@ primera que esté libre.
 | 17/09/2026 | Chatbot en marcha (CPU) con barrera contra cifras inventadas | Javier Saguar | entrada del 17/09 |
 | 17/09/2026 | Dataset completo ingerido y cargado: 23,7 M de viajes válidos en 2 min | Javier Saguar | entrada del 17/09 |
 | 17/09/2026 | T01 Chatbot con GPU: toolkit de NVIDIA, `llama3.1:8b` y respuestas en 3-5 s | Javier Saguar | entrada del 17/09 |
+| 18/09/2026 | T01 Parte 1 ejecutable desde el repositorio (sin rutas fijas) | Javier Saguar | entrada del 18/09 |

@@ -29,10 +29,9 @@ import cv2
 import numpy as np
 
 # [PIDS] rutas desde este fichero
-PROJECT_DIR = Path(__file__).resolve().parent.parent          # .../work/HAR_mediapipe
-ROOT_DIR = PROJECT_DIR.parent                                 # .../work
-PIDS_DIR = ROOT_DIR.parent                                    # .../PIDS_HandPose
-for p in (PROJECT_DIR / 'src', ROOT_DIR / 'common', PIDS_DIR / 'entrenamiento'):
+PROJECT_DIR = Path(__file__).resolve().parent.parent          # .../parte1_gestos/demo
+PARTE1_DIR = PROJECT_DIR.parent                               # .../parte1_gestos
+for p in (PROJECT_DIR / 'src', PROJECT_DIR / 'common', PARTE1_DIR / 'entrenamiento'):
     if str(p) not in sys.path:
         sys.path.insert(0, str(p))
 os.environ.setdefault('KERAS_BACKEND', 'torch')
@@ -48,7 +47,11 @@ from config import Config, ConfigMediapipeDetector  # noqa: E402
 from gui import Colors, WindowMessage  # noqa: E402
 from landmarksLib import draw_landmarks_on_image  # noqa: E402
 
-MODEL_PATH = PROJECT_DIR / "models" / "gestos_pids_CNN1.keras"
+# El modelo del notebook se versiona en parte1_gestos/modelos/; si se acaba de entrenar, también vale
+# la copia que deja el notebook junto a la demo.
+_CANDIDATOS_MODELO = [PROJECT_DIR / "models" / "gestos_pids_CNN1.keras",
+                      PARTE1_DIR / "modelos" / "gestos_pids_CNN1.keras"]
+MODEL_PATH = next((c for c in _CANDIDATOS_MODELO if c.is_file()), _CANDIDATOS_MODELO[-1])
 
 # Classes to be recognized; ATENTION: 'None' class must be the last one; the others must be specified
 # in the order they were trained (alphabetical order)
