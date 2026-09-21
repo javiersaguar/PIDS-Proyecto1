@@ -88,7 +88,12 @@ Nuevas en `.env.example` (F0): `ACCESO_CLAVE_FRONTEND=`, `FRONTEND_CLAVE=`, `FRO
 añade `frontend=${ACCESO_CLAVE_FRONTEND}` a `ACCESO_CLAVES`.
 
 Servicios opcionales (Prometheus, Airflow, Ollama, MongoDB): si no responden, el BFF devuelve `disponible: false` o
-`null` en ese campo y el portal lo muestra como «no disponible»; **nunca** un 500.
+`null` en ese campo y el portal lo muestra como «no disponible»; **nunca** un 500. Excepciones acordadas: sin la API
+de acceso, `/consultas`, `/catalogo` y `/zonas` responden **503** con `detail` (no hay nada que mostrar), mientras que
+`/panel` y `/tiempo-real` responden 200 con `acceso_disponible: false`; Airflow caído → **503** en `/operaciones/airflow/*`
+(la SPA muestra su tarjeta de error con «Reintentar»); Airflow que rechaza la petición → 409 o 502 con su detalle.
+Cachés en memoria del BFF: catálogo y zonas 10 min; meses de `dia_barrio` 60 s; tiempo real 20 s (para que el refresco
+de 30 s del portal no multiplique las entradas de la auditoría; lo cacheado ya salió filtrado por la API).
 
 ## 4. Sesión y seguridad del portal
 
@@ -143,10 +148,13 @@ export interface Panel {                         // GET /api/panel
   servicios: Servicio[];                                                        // `up` por job en Prometheus + GET /salud de las APIs
   enlaces: Record<'grafana' | 'airflow' | 'spark' | 'chatbot' | 'chatbot_rag' | 'api_acceso' | 'api_captura', string>;
   prometheus_disponible: boolean;
+  acceso_disponible: boolean;                    // false si la API de acceso no ha respondido (distinto de «sin datos»)
 }
-export interface UltimoDia { dia: string; por_barrio: Record<string, number>; total: number }   // solo grupos visibles
+// solo grupos visibles; los enmascarados se cuentan (grupos_enmascarados), nunca se suman
+export interface UltimoDia { dia: string; por_barrio: Record<string, number>; total: number; grupos_enmascarados: number }
 
-export interface TiempoReal {                    // GET /api/tiempo-real?horas=6
+export interface TiempoReal {                    // GET /api/tiempo-real?horas=6 (1…48)
+  acceso_disponible: boolean;
   frescura: Panel['frescura_tiempo_real'];
   ultimo_dia: string | null;                     // último día con datos en tr_viajes_dia_barrio
   por_hora: { hora: string; n_viajes: number; grupos: number; grupos_enmascarados: number }[];   // últimas N horas con datos, solo visibles
@@ -175,7 +183,7 @@ export interface EjecucionAirflow {              // GET /api/operaciones/airflow
 // POST /api/operaciones/airflow/cargas {mes: '2020-01', muestra: boolean} -> EjecucionAirflow (202)
 export interface Simulacion {                    // GET /api/operaciones/simulacion · POST (inicia) · DELETE (para)
   activa: boolean; lote: string | null; fichero: string | null; enviados: number; total: number;
-  ritmo: number; inicio: string | null; error: string | null;
+  ritmo: number; inicio: string | null; fin: string | null; error: string | null;
 }
 // POST /api/operaciones/simulacion {fichero: 'yellow_tripdata_2020_muestra.csv', ritmo?: 50, maximo?: number} -> Simulacion (202)
 // Los ficheros permitidos son solo los de data/muestra (GET /api/operaciones/simulacion/ficheros -> string[]).
@@ -183,7 +191,8 @@ export interface Simulacion {                    // GET /api/operaciones/simulac
 // --- chat (F2) ---
 export interface Motor { id: 'ollama' | 'rag'; nombre: string; modelo: string; disponible: boolean; descripcion: string }
 // GET /api/chat/motores -> Motor[]
-// POST /api/chat/sesiones {motor} -> {id: string, motor: Motor['id']}   · DELETE /api/chat/sesiones/{id} -> 204
+// POST /api/chat/sesiones {motor} -> 201 {id: string, motor: Motor['id']} (422 motor desconocido, 409 no disponible,
+//      503 si el motor no arranca)   · DELETE /api/chat/sesiones/{id} -> 204
 // POST /api/chat/sesiones/{id}/mensajes {texto} -> text/event-stream con los eventos de abajo
 // POST /api/chat/sesiones/{id}/alternativa -> el mismo flujo, ejecutando la alternativa pendiente de la sesión
 export interface EventoPaso { nombre: string; argumentos: Record<string, unknown>; resultado: string; segundos: number }
@@ -193,7 +202,12 @@ export interface EventoRespuesta {
   alternativa: Consulta | null; alternativa_descripcion: string | null;      // agente.describir(alternativa)
   fuentes: { titulo: string; fuente: string; tipo: string }[];             // solo el motor rag
 }
-// eventos SSE: `paso` (EventoPaso), `respuesta` (EventoRespuesta), `error` ({detail})
+// eventos SSE: `paso` (EventoPaso), `respuesta` (EventoRespuesta), `error` ({detail}); sse-starlette envía además
+// comentarios `: ping` cada 15 s, que el cliente ignora. Dos mensajes a la vez sobre la misma sesión -> 409;
+// alternativa sin rechazo pendiente -> 400. En un rechazo del filtro previo el agente no llama a `ejecutar`, pero su
+// `Llamada` solicitud_individual se emite igualmente como `paso` (segundos 0) para que se vea que quedó auditado.
+// `EventoPaso.resultado` resume filas y enmascarados («enmascarada (8 filas, 1 enmascarada)», «rechazada», «N zonas»).
+// `tokens` es 0 (no null) en los turnos que no llaman al LLM.
 ```
 
 Detalles de implementación que no se negocian:

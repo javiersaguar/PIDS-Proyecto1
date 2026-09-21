@@ -36,7 +36,8 @@ describe('PaginaAcceso', () => {
     await usuario.click(screen.getByRole('button', { name: 'Entrar' }))
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Panel' })).toBeInTheDocument()
-    expect(screen.getByText('En construcción')).toBeInTheDocument()
+    // Ya dentro del shell: la navegación está pintada y el panel intenta cargar sus datos.
+    expect(screen.getByRole('navigation')).toBeInTheDocument()
   })
 
   it('sin sesión, una ruta protegida redirige al acceso', async () => {
