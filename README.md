@@ -10,6 +10,7 @@ el reconocimiento de gestos de la parte 1.
 | 2 | Plataforma: captura, procesado, almacenamiento, acceso y visualización | [`parte2_plataforma/`](parte2_plataforma/) |
 | 3 | Chatbot que consulta la plataforma | [`parte3_chatbot/`](parte3_chatbot/) |
 | — | Integración gestos ↔ plataforma ↔ chatbot (última fase) | [`integracion/`](integracion/) |
+| 4 | Portal web corporativo: panel, explorador, asistente, tiempo real, auditoría y operaciones | [`parte4_frontend/`](parte4_frontend/) |
 
 ## E3 en una frase
 
@@ -50,11 +51,13 @@ make observabilidad       # + Prometheus y Grafana
 make chatbot              # + Ollama y chatbot (SIN_GPU=1 si no hay GPU NVIDIA)
 make tiempo-real          # arranca el streaming en Spark
 make simular              # envía viajes a la API de captura
+make frontend             # + portal web (contraseña: FRONTEND_CLAVE de .env)
 make                      # lista de todos los comandos
 ```
 
 | Servicio | URL |
 |---|---|
+| Portal web | http://localhost:8020 |
 | Chatbot | http://localhost:8010 |
 | Airflow | http://localhost:8085 |
 | Grafana | http://localhost:3000 |
@@ -82,6 +85,7 @@ Las contraseñas y claves están en `.env`.
 │   ├── simulador/           reenvío de viajes como tiempo real
 │   └── observabilidad/      Prometheus y Grafana
 ├── parte3_chatbot/          Chainlit + Ollama
+├── parte4_frontend/         portal web: BFF de FastAPI (bff/) y SPA de React (web/)
 ├── integracion/             cliente de gestos (Windows)
 ├── scripts/                 descarga, perfilado y generación de .env
 ├── tests/                   tests de Python (los de Scala están en parte2_plataforma/spark)

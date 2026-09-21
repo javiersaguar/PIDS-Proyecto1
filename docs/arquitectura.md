@@ -54,6 +54,7 @@ flowchart LR
 | Orquestación | Airflow 3.3 (LocalExecutor) | Carga histórica: descarga → S3 → Spark → comprobación | Individuales (solo ficheros) |
 | Monitorización | Prometheus 3.1 + Grafana 11.5 | Métricas técnicas y agregados protegidos | Métricas |
 | Chatbot | Chainlit + Ollama (llama3.1:8b, GPU) | Conversación; solo usa la API de acceso | Agregados |
+| Portal web (parte 4) | FastAPI (BFF) + React | Panel, explorador, asistente, tiempo real, auditoría y operaciones en una sola aplicación; el BFF guarda las claves y el navegador entra con una contraseña única | Agregados y auditoría |
 
 Airflow usa además un PostgreSQL interno solo para sus metadatos; no guarda datos del proyecto.
 
@@ -67,6 +68,9 @@ Airflow usa además un PostgreSQL interno solo para sus metadatos; no guarda dat
 3. **Consulta:** chatbot → herramienta → `POST /consultas` → filtro → MongoDB → enmascarado →
    respuesta + registro en `auditoria.decisiones`.
 4. **Gestos (último):** demo → `POST /gestos` → `gestos` → SSE → chatbot.
+5. **Portal web:** navegador → BFF (`/api/*`, cookie de sesión) → `POST /consultas` de la API de acceso como cliente
+   `frontend` (mismo filtro y misma auditoría); estado y frescura desde Prometheus; auditoría con `pids_auditor`;
+   cargas por la API de Airflow; el chat ejecuta el mismo agente de la parte 3 dentro del BFF (`parte4_frontend/README.md`).
 
 ## Monitorización y alertas
 
@@ -99,6 +103,7 @@ en `127.0.0.1`:
 | API de captura | http://localhost:8001/docs |
 | API de acceso | http://localhost:8002/docs |
 | Chatbot | http://localhost:8010 |
+| Portal web | http://localhost:8020 |
 | Spark (máster) | http://localhost:8090 |
 | Airflow | http://localhost:8085 |
 | Grafana | http://localhost:3000 |

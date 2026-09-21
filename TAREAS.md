@@ -118,9 +118,30 @@ primera que esté libre.
 - **Hecha cuando:** ninguna respuesta afirma `"<10"` de un grupo que puede tener más.
 - **Dónde:** `parte2_plataforma/comun/privacidad.py`, `tests/`, `docs/`
 
+## T13 · Portal web (parte 4): llevarlo a `main` y a la demo
+
+- **Estado:** en curso · **Responsable:** Javier Saguar · **Estimación:** 2 h · **Dificultad:** baja
+- **Por qué:** el portal ya funciona en la rama `tarea/frontend` (bitácora del 21/09), pero no está en `main` ni levantado
+  desde la carpeta principal, que es la única que ejecuta `docker compose`.
+- **Qué hay que hacer:**
+  1. *Pull request* `tarea/frontend` → `main` (conflictos aditivos con `tarea/rag-base` en README, bitácora, tareas y
+     `pyproject.toml`).
+  2. Añadir a `.env` `ACCESO_CLAVE_FRONTEND`, `FRONTEND_CLAVE`, `FRONTEND_SECRETO` y `PUERTO_FRONTEND` (con
+     `scripts/generar_env.py --completar` de `tarea/rag-base`, o a mano), recrear `acceso` (`docker compose up -d --no-deps
+     acceso`) y `make frontend`.
+  3. Repasar en el navegador las siete secciones con datos reales y añadir las capturas a `docs/capturas/`.
+  4. Cuando el chatbot RAG esté en `main`, construir la imagen con `GRUPOS="frontend chatbot rag"` para activar el motor
+     RAG del asistente.
+- **Hecha cuando:** `make frontend` desde la carpeta principal levanta el portal en http://localhost:8020, la auditoría
+  muestra el cliente `frontend` y las capturas están en `docs/`.
+- **Dónde:** `parte4_frontend/`, `docker-compose.yml`, `.env`, `docs/capturas/`
+
 ---
 
 ## Ideas y trabajo futuro
+
+- Portal web: usuarios y roles (hoy una contraseña única), exportar a CSV la tabla del explorador, persistir en la URL el
+  selector de horas del tiempo real, y modo oscuro con las variables del tema.
 
 - Privacidad diferencial (OpenDP) sobre los agregados, además del umbral k.
 - Detectar patrones de consultas sospechosos por cliente (muchas consultas solapadas).
