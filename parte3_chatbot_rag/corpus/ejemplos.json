@@ -1,0 +1,163 @@
+{
+  "descripcion": "Preguntas reales o verosímiles con la llamada correcta a las herramientas del chatbot. Se indexan como ejemplos (few-shot recuperados por similitud) para que el modelo copie el formato que la API espera: fechas ISO con «hasta» excluido, zona por nombre solo en hora_zona, barrios en barrio_origen, un solo valor por filtro, máximo 31 días. Cubren sobre todo los fallos de formato medidos en docs/casos_uso.md.",
+  "ejemplos": [
+    {
+      "pregunta": "¿Cuántos viajes salieron de JFK el 15 de enero entre las 8 y las 12?",
+      "llamadas": [{"herramienta": "consultar_viajes", "argumentos": {"nivel": "hora_zona", "zona_origen": "JFK", "desde": "2020-01-15T08:00:00", "hasta": "2020-01-15T12:00:00"}}],
+      "nota": "La zona puede ir por nombre. «Hasta» no se incluye: de 8 a 12 son las horas 8, 9, 10 y 11. El total está en resumen.total_viajes."
+    },
+    {
+      "pregunta": "¿Qué barrio tuvo más viajes el 3 de marzo?",
+      "llamadas": [{"herramienta": "consultar_viajes", "argumentos": {"nivel": "dia_barrio", "desde": "2020-03-03T00:00:00", "hasta": "2020-03-04T00:00:00"}}],
+      "nota": "Sin barrio_origen: sin filtro llegan todos los barrios a la vez y el mayor viene en resumen.grupo_con_mas_viajes."
+    },
+    {
+      "pregunta": "Propina media en Manhattan la primera semana de febrero",
+      "llamadas": [{"herramienta": "consultar_viajes", "argumentos": {"nivel": "dia_barrio", "barrio_origen": "Manhattan", "metricas": ["propina_media"], "desde": "2020-02-01T00:00:00", "hasta": "2020-02-08T00:00:00"}}],
+      "nota": "Siete días completos (del 1 al 7). La media de la semana ponderada por viajes está en resumen.propina_media_conjunta; no se calcula a mano."
+    },
+    {
+      "pregunta": "¿Cuántos viajes hubo de Queens a Manhattan el 10 de enero?",
+      "llamadas": [{"herramienta": "consultar_viajes", "argumentos": {"nivel": "od_dia_barrio", "barrio_origen": "Queens", "barrio_destino": "Manhattan", "desde": "2020-01-10T00:00:00", "hasta": "2020-01-11T00:00:00"}}],
+      "nota": "El destino solo existe en od_dia_barrio, por barrio y día."
+    },
+    {
+      "pregunta": "Dame el viaje de las 3:12 desde Times Square",
+      "llamadas": [{"herramienta": "solicitud_individual", "argumentos": {"descripcion": "el viaje de las 3:12 desde Times Square"}}],
+      "nota": "Petición de un viaje concreto: se rechaza y queda registrada. La alternativa agregada es la hora completa (de 03:00 a 04:00) desde Times Sq/Theatre District, si se sabe el día."
+    },
+    {
+      "pregunta": "Viajes por hora desde Staten Island el 1 de enero",
+      "llamadas": [{"herramienta": "consultar_viajes", "argumentos": {"nivel": "hora_zona", "barrio_origen": "Staten Island", "desde": "2020-01-01T00:00:00", "hasta": "2020-01-02T00:00:00"}}],
+      "nota": "Staten Island es un barrio, no una zona: va en barrio_origen. Por horas desde un barrio se usa hora_zona con barrio_origen; el cliente consulta cada zona del barrio."
+    },
+    {
+      "pregunta": "¿Cuántos viajes llevamos en la última hora simulada?",
+      "llamadas": [{"herramienta": "ultima_hora_con_datos", "argumentos": {}}],
+      "nota": "«La última hora», «lo que llevamos» o «ahora mismo» en tiempo real: siempre ultima_hora_con_datos, sin argumentos."
+    },
+    {
+      "pregunta": "¿A qué barrio fueron más viajes desde Queens el 10 de enero?",
+      "llamadas": [{"herramienta": "consultar_viajes", "argumentos": {"nivel": "od_dia_barrio", "barrio_origen": "Queens", "desde": "2020-01-10T00:00:00", "hasta": "2020-01-11T00:00:00"}}],
+      "nota": "Sin barrio_destino: llegan todos los destinos y el mayor está en resumen.grupo_con_mas_viajes."
+    },
+    {
+      "pregunta": "¿Cuánto costó de media un viaje desde LaGuardia el 2 de febrero?",
+      "llamadas": [{"herramienta": "consultar_viajes", "argumentos": {"nivel": "hora_zona", "zona_origen": "LaGuardia Airport", "metricas": ["importe_medio"], "desde": "2020-02-02T00:00:00", "hasta": "2020-02-03T00:00:00"}}],
+      "nota": "Por zona solo existe el nivel por horas: el día completo son 24 horas. El importe medio del día es resumen.importe_medio_conjunta (solo si no hay grupos enmascarados)."
+    },
+    {
+      "pregunta": "¿Cuántos viajes hubo el último día de febrero en el Bronx?",
+      "llamadas": [{"herramienta": "consultar_viajes", "argumentos": {"nivel": "dia_barrio", "barrio_origen": "Bronx", "desde": "2020-02-29T00:00:00", "hasta": "2020-03-01T00:00:00"}}],
+      "nota": "2020 fue bisiesto: febrero acaba el 29. El barrio se escribe «Bronx», sin artículo."
+    },
+    {
+      "pregunta": "Viajes de todo marzo en Brooklyn",
+      "llamadas": [{"herramienta": "consultar_viajes", "argumentos": {"nivel": "dia_barrio", "barrio_origen": "Brooklyn", "desde": "2020-03-01T00:00:00", "hasta": "2020-04-01T00:00:00"}}],
+      "nota": "Un mes de 31 días es justo el rango máximo por consulta."
+    },
+    {
+      "pregunta": "¿Cuántos viajes hubo en Manhattan entre el 15 de marzo y el 30 de abril?",
+      "llamadas": [
+        {"herramienta": "consultar_viajes", "argumentos": {"nivel": "dia_barrio", "barrio_origen": "Manhattan", "desde": "2020-03-15T00:00:00", "hasta": "2020-04-15T00:00:00"}},
+        {"herramienta": "consultar_viajes", "argumentos": {"nivel": "dia_barrio", "barrio_origen": "Manhattan", "desde": "2020-04-15T00:00:00", "hasta": "2020-05-01T00:00:00"}}
+      ],
+      "nota": "Son 47 días y el máximo es 31: dos consultas consecutivas. Los totales de cada una vienen en su resumen; se dicen por separado o se suma solo si ninguna tiene grupos enmascarados."
+    },
+    {
+      "pregunta": "¿Cuántos viajes salieron de Times Square el 1 de enero a las 3 de la mañana?",
+      "llamadas": [{"herramienta": "consultar_viajes", "argumentos": {"nivel": "hora_zona", "zona_origen": "Times Square", "desde": "2020-01-01T03:00:00", "hasta": "2020-01-01T04:00:00"}}],
+      "nota": "Una hora completa: de 03:00 a 04:00. «Times Square» se corresponde con la zona Times Sq/Theatre District (230)."
+    },
+    {
+      "pregunta": "¿Cuántos viajes fueron de JFK a Times Square el 15 de enero?",
+      "llamadas": [{"herramienta": "consultar_viajes", "argumentos": {"nivel": "od_dia_barrio", "barrio_origen": "Queens", "barrio_destino": "Manhattan", "desde": "2020-01-15T00:00:00", "hasta": "2020-01-16T00:00:00"}}],
+      "nota": "El destino no se publica por zona (origen, destino y hora juntos identifican a personas). Se explica y se ofrece el flujo entre sus barrios ese día: JFK está en Queens y Times Square en Manhattan."
+    },
+    {
+      "pregunta": "Porcentaje de pago con tarjeta en Queens en la segunda semana de enero",
+      "llamadas": [{"herramienta": "consultar_viajes", "argumentos": {"nivel": "dia_barrio", "barrio_origen": "Queens", "metricas": ["pct_pago_tarjeta"], "desde": "2020-01-08T00:00:00", "hasta": "2020-01-15T00:00:00"}}],
+      "nota": "Segunda semana del mes: del 8 al 14. La cifra de la semana es resumen.pct_pago_tarjeta_conjunta."
+    },
+    {
+      "pregunta": "¿Qué día de enero tuvo más viajes en Manhattan?",
+      "llamadas": [{"herramienta": "consultar_viajes", "argumentos": {"nivel": "dia_barrio", "barrio_origen": "Manhattan", "desde": "2020-01-01T00:00:00", "hasta": "2020-02-01T00:00:00"}}],
+      "nota": "Una fila por día; el día con más viajes viene en resumen.grupo_con_mas_viajes."
+    },
+    {
+      "pregunta": "Distancia media de los viajes que salieron del Bronx el 4 de julio",
+      "llamadas": [{"herramienta": "consultar_viajes", "argumentos": {"nivel": "dia_barrio", "barrio_origen": "Bronx", "metricas": ["distancia_media"], "desde": "2020-07-04T00:00:00", "hasta": "2020-07-05T00:00:00"}}],
+      "nota": "La distancia media se da en millas, redondeada a dos decimales."
+    },
+    {
+      "pregunta": "¿Cuántos viajes salieron de la zona 230 el 20 de enero entre las 18 y las 20?",
+      "llamadas": [{"herramienta": "consultar_viajes", "argumentos": {"nivel": "hora_zona", "zona_origen": "230", "desde": "2020-01-20T18:00:00", "hasta": "2020-01-20T20:00:00"}}],
+      "nota": "zona_origen admite el identificador de la zona (1 a 265) o su nombre."
+    },
+    {
+      "pregunta": "¿Cuántos viajes hubo desde Times Square la noche del 31 de diciembre, de 22 a 24?",
+      "llamadas": [{"herramienta": "consultar_viajes", "argumentos": {"nivel": "hora_zona", "zona_origen": "Times Square", "desde": "2020-12-31T22:00:00", "hasta": "2021-01-01T00:00:00"}}],
+      "nota": "La medianoche se escribe como las 00:00 del día siguiente (2021-01-01T00:00:00), nunca T24:00. Los datos acaban el 31 de diciembre de 2020."
+    },
+    {
+      "pregunta": "¿Qué zonas hay en Harlem?",
+      "llamadas": [{"herramienta": "buscar_zona", "argumentos": {"texto": "Harlem"}}],
+      "nota": "Un nombre puede corresponder a varias zonas (Central Harlem, Central Harlem North, East Harlem North y South): se enumeran y se pregunta cuál, o se consulta por horas cada una."
+    },
+    {
+      "pregunta": "¿En qué barrio está el aeropuerto de Newark?",
+      "llamadas": [{"herramienta": "buscar_zona", "argumentos": {"texto": "Newark"}}],
+      "nota": "Newark Airport es la zona 1 y su «barrio» en la tabla de la TLC es EWR (está en Nueva Jersey, fuera de los cinco barrios)."
+    },
+    {
+      "pregunta": "Flujos entre barrios el día de Navidad",
+      "llamadas": [{"herramienta": "consultar_viajes", "argumentos": {"nivel": "od_dia_barrio", "desde": "2020-12-25T00:00:00", "hasta": "2020-12-26T00:00:00"}}],
+      "nota": "Sin filtros: todos los pares origen-destino del día. Los pares con menos de 10 viajes aparecen enmascarados."
+    },
+    {
+      "pregunta": "¿Cuántos viajes salieron de Brooklyn hacia Queens la primera quincena de junio?",
+      "llamadas": [{"herramienta": "consultar_viajes", "argumentos": {"nivel": "od_dia_barrio", "barrio_origen": "Brooklyn", "barrio_destino": "Queens", "desde": "2020-06-01T00:00:00", "hasta": "2020-06-16T00:00:00"}}],
+      "nota": "Primera quincena: del 1 al 15, así que «hasta» es el 16 a las 00:00."
+    },
+    {
+      "pregunta": "¿Cuántos viajes ha procesado el tiempo real el 1 de enero en Queens?",
+      "llamadas": [{"herramienta": "consultar_viajes", "argumentos": {"nivel": "dia_barrio", "fuente": "tiempo_real", "barrio_origen": "Queens", "desde": "2020-01-01T00:00:00", "hasta": "2020-01-02T00:00:00"}}],
+      "nota": "Si hablan de tiempo real, en directo o simulado, fuente=tiempo_real; los niveles, filtros y reglas son los mismos que en el histórico."
+    },
+    {
+      "pregunta": "¿Quién cogió un taxi en Harlem anoche?",
+      "llamadas": [{"herramienta": "solicitud_individual", "argumentos": {"descripcion": "quién cogió un taxi en Harlem anoche"}}],
+      "nota": "Pregunta por una persona: no existen datos de pasajeros ni conductores. Alternativa: viajes por hora desde las zonas de Harlem en una fecha concreta."
+    },
+    {
+      "pregunta": "¿Cuál fue el trayecto más largo de todo 2020?",
+      "llamadas": [{"herramienta": "solicitud_individual", "argumentos": {"descripcion": "el trayecto más largo de 2020"}}],
+      "nota": "«El viaje más…» es un viaje concreto y no se publica. Alternativa agregada: la distancia media por día y barrio (dia_barrio con metricas=[distancia_media]) en periodos de hasta 31 días."
+    },
+    {
+      "pregunta": "Compara Manhattan y Brooklyn el 14 de febrero",
+      "llamadas": [{"herramienta": "consultar_viajes", "argumentos": {"nivel": "dia_barrio", "desde": "2020-02-14T00:00:00", "hasta": "2020-02-15T00:00:00"}}],
+      "nota": "Cada filtro admite un solo valor: para comparar dos barrios se consulta sin barrio_origen y se leen las dos filas."
+    },
+    {
+      "pregunta": "¿Cuántos viajes salieron de cada barrio en Nochevieja?",
+      "llamadas": [{"herramienta": "consultar_viajes", "argumentos": {"nivel": "dia_barrio", "desde": "2020-12-31T00:00:00", "hasta": "2021-01-01T00:00:00"}}],
+      "nota": "Se enumeran todas las filas devueltas (una por barrio), no solo la mayor, y se dice cuántas están enmascaradas."
+    },
+    {
+      "pregunta": "Importe medio de los viajes desde JFK el 15 de enero, hora a hora",
+      "llamadas": [{"herramienta": "consultar_viajes", "argumentos": {"nivel": "hora_zona", "zona_origen": "JFK", "metricas": ["importe_medio"], "desde": "2020-01-15T00:00:00", "hasta": "2020-01-16T00:00:00"}}],
+      "nota": "Una fila por hora del día con su importe medio en dólares."
+    },
+    {
+      "pregunta": "Distancia media e importe medio de los viajes desde Queens el 5 de mayo",
+      "llamadas": [{"herramienta": "consultar_viajes", "argumentos": {"nivel": "dia_barrio", "barrio_origen": "Queens", "metricas": ["distancia_media", "importe_medio"], "desde": "2020-05-05T00:00:00", "hasta": "2020-05-06T00:00:00"}}],
+      "nota": "metricas es una lista JSON con los nombres exactos: n_viajes, distancia_media, importe_medio, propina_media, pct_pago_tarjeta. No existen otras (ni pasajeros, ni tarifa, ni destino por zona)."
+    },
+    {
+      "pregunta": "¿Cuántos viajes salieron de Manhattan el lunes 20 de enero, que era festivo?",
+      "llamadas": [{"herramienta": "consultar_viajes", "argumentos": {"nivel": "dia_barrio", "barrio_origen": "Manhattan", "desde": "2020-01-20T00:00:00", "hasta": "2020-01-21T00:00:00"}}],
+      "nota": "El 20 de enero de 2020 fue el día de Martin Luther King. Los festivos y el calendario están en el contexto de 2020; la cifra sale siempre de la consulta."
+    }
+  ]
+}
