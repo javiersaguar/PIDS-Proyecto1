@@ -55,7 +55,10 @@ object TiempoReal {
       .foreachBatch(archivar)
       .start()
 
-    // 2) agregados protegidos, uno por nivel
+    // 2) agregados protegidos, uno por nivel.
+    // Sin supresión complementaria: necesita el día completo y aquí cada micro-lote trae solo los grupos
+    // que cambian (además, Spark no admite ventanas por partición en streaming). Riesgo documentado en
+    // docs/escenario_E3.md.
     val validos = Esquema.tipar(validado.filter(size(col(Esquema.Motivos)) === 0).drop(Esquema.Motivos), cfg.esquema)
       .withWatermark("recogida", "2 hours")
     val conZonas = Privacidad.conZonas(validos, zonas)

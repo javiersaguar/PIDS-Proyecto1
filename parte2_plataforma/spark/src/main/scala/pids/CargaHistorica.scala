@@ -23,6 +23,7 @@ object CargaHistorica {
       motivos: Map[String, Long],
       grupos_publicados: Map[String, Long],
       grupos_suprimidos: Map[String, Long],
+      grupos_complementarios: Map[String, Long],   // suprimidos solo por la supresión complementaria
       version_reglas: Int,
       instante: Timestamp)
 
@@ -38,7 +39,8 @@ object CargaHistorica {
       import spark.implicits._
       Publicacion.mongoInsertar(Seq(resumen).toDF(), "auditoria", "cargas")
       println(s"[pids] carga $lote: ${resumen.validos} válidos, ${resumen.rechazados} rechazados, " +
-        s"grupos publicados ${resumen.grupos_publicados}, suprimidos ${resumen.grupos_suprimidos}")
+        s"grupos publicados ${resumen.grupos_publicados}, suprimidos ${resumen.grupos_suprimidos} " +
+        s"(complementarios ${resumen.grupos_complementarios})")
     } finally spark.stop()
   }
 
@@ -60,14 +62,23 @@ object CargaHistorica {
     rechazados.write.mode("overwrite").json(s"$destinoCrudo/rechazos/historico/lote=$lote")
 
     val conZonas = Privacidad.conZonas(validos, zonas).persist()
-    val grupos = cfg.privacidad.niveles.keys.toSeq.sorted.map { nivel =>
-      val doc = Privacidad.publicable(Privacidad.agregar(conZonas, nivel), nivel, cfg.privacidad).persist()
+    // Todos los niveles a la vez: la supresión complementaria de un nivel puede obligar a ocultar el
+    // total día-barrio de otro (docs/escenario_E3.md, ataque por diferencia)
+    val agregados = cfg.privacidad.niveles.keys.toSeq.map(n => n -> Privacidad.agregar(conZonas, n).persist()).toMap
+    val marcados = Privacidad.suprimirComplementariosTodos(agregados, cfg.privacidad.kMinimo)
+    val grupos = marcados.toSeq.sortBy(_._1).map { case (nivel, sinPersistir) =>
+      val marcado = sinPersistir.persist()
+      // solo los que se suprimen POR la complementaria (un total ya pequeño puede venir marcado también)
+      val complementarios = marcado.filter(col("complementario") && col("n_viajes") >= cfg.privacidad.kMinimo).count()
+      val doc = Privacidad.publicable(marcado, nivel, cfg.privacidad).persist()
       publicar(doc, "publico", cfg.privacidad.coleccion(nivel, "historico"))
       val total = doc.count()
       val suprimidos = doc.filter(col("suprimido")).count()
       doc.unpersist()
-      (nivel, total, suprimidos)
+      marcado.unpersist()
+      (nivel, total, suprimidos, complementarios)
     }
+    agregados.values.foreach(_.unpersist())
 
     val motivos = rechazados.select(explode(col(Esquema.Motivos)).as("m")).groupBy("m").count()
       .collect().map(r => r.getString(0) -> r.getLong(1)).toMap
@@ -81,6 +92,7 @@ object CargaHistorica {
       motivos = motivos,
       grupos_publicados = grupos.map(g => g._1 -> g._2).toMap,
       grupos_suprimidos = grupos.map(g => g._1 -> g._3).toMap,
+      grupos_complementarios = grupos.map(g => g._1 -> g._4).toMap,
       version_reglas = cfg.privacidad.version,
       instante = Timestamp.from(Instant.now()))
     conZonas.unpersist()
