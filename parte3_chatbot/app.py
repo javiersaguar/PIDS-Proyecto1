@@ -1,17 +1,16 @@
 """Chatbot de la plataforma (Chainlit + LLM local con Ollama).
 
-Flujo de cada mensaje:
-  1. Filtro previo: si parece una petición de datos individuales, se rechaza sin pasar por el LLM.
-  2. El LLM decide qué herramienta usar; las herramientas llaman a la API de acceso (nunca a la base).
-  3. Si la API rechaza, se muestra el motivo y un botón para lanzar la alternativa agregada.
-     Con la integración de gestos activa, 👍 confirma y ✋ cancela.
+La lógica de cada mensaje está en agente.py (filtro previo, herramientas y barreras sobre las cifras),
+la misma que usan las pruebas. Aquí solo va la interfaz:
+  - cada llamada a una herramienta se muestra como un paso;
+  - si la API rechaza la consulta, se muestra el motivo y un botón para lanzar la alternativa agregada.
+    Con la integración de gestos activa, 👍 confirma y ✋ cancela.
 
 Arranque: chainlit run app.py --host 0.0.0.0 --port 8000 --headless
 """
 from __future__ import annotations
 
 import asyncio
-import json
 import os
 import sys
 from pathlib import Path
@@ -22,13 +21,11 @@ from ollama import AsyncClient
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import gestos  # noqa: E402
-from herramientas import (  # noqa: E402
-    ESQUEMAS, INSTRUCCION_RECHAZO, ClienteAcceso, hay_datos, parece_individual, tiene_cifras)
-from prompts import BIENVENIDA, SISTEMA  # noqa: E402
+from agente import Agente, Turno  # noqa: E402
+from herramientas import ClienteAcceso  # noqa: E402
+from prompts import BIENVENIDA  # noqa: E402
 
 OLLAMA_URL = os.environ.get('OLLAMA_URL', 'http://ollama:11434')
-MODELO = os.environ.get('OLLAMA_MODELO', 'llama3.1:8b')
-MAX_PASOS = 5
 
 
 def _acciones(alternativa: dict) -> list[cl.Action]:
@@ -38,58 +35,20 @@ def _acciones(alternativa: dict) -> list[cl.Action]:
     ]
 
 
-async def _mostrar_rechazo(resultado: dict) -> None:
-    motivos = '\n'.join(f'- {m}' for m in resultado.get('motivos', []))
-    alternativa = resultado.get('alternativa')
-    texto = f'🔒 **Consulta rechazada por privacidad**\n{motivos}'
-    if alternativa:
-        cl.user_session.set('alternativa', alternativa)
-        texto += f'\n\nPuedo responder esta alternativa agregada:\n```json\n{json.dumps(alternativa, indent=2)}\n```'
-        await cl.Message(content=texto, actions=_acciones(alternativa)).send()
-    else:
-        await cl.Message(content=texto + '\n\nPrueba con volúmenes por hora y zona, o por día y barrio.').send()
-
-
-async def _conversar(texto: str) -> None:
+async def _con_paso(nombre: str, argumentos: dict):
+    """Ejecuta la herramienta mostrándola en la interfaz como un paso."""
     acceso: ClienteAcceso = cl.user_session.get('acceso')
-    llm: AsyncClient = cl.user_session.get('llm')
-    mensajes: list = cl.user_session.get('mensajes')
-    mensajes.append({'role': 'user', 'content': texto})
-    datos = False              # ¿alguna herramienta ha devuelto datos en este turno?
-    ultimo_rechazo: dict | None = None
+    async with cl.Step(name=nombre, type='tool') as paso:
+        paso.input = argumentos
+        resultado = await acceso.ejecutar(nombre, argumentos)
+        paso.output = resultado
+    return resultado
 
-    for _ in range(MAX_PASOS):
-        respuesta = await llm.chat(model=MODELO, messages=mensajes, tools=ESQUEMAS)
-        mensajes.append(respuesta.message)
-        llamadas = respuesta.message.tool_calls or []
-        if not llamadas:
-            contenido = respuesta.message.content or '(sin respuesta)'
-            # Barrera: sin datos no se dejan pasar cifras (los modelos pequeños se las inventan)
-            if not datos and tiene_cifras(contenido):
-                if ultimo_rechazo:
-                    await _mostrar_rechazo(ultimo_rechazo)
-                else:
-                    await cl.Message(content='No tengo datos publicados para esa consulta, así que no te '
-                                             'doy cifras. Prueba con otro día, barrio o nivel de agregación.').send()
-                return
-            await cl.Message(content=contenido).send()
-            return
-        for llamada in llamadas:
-            nombre, argumentos = llamada.function.name, dict(llamada.function.arguments or {})
-            async with cl.Step(name=nombre, type='tool') as paso:
-                paso.input = argumentos
-                resultado = await acceso.ejecutar(nombre, argumentos)
-                paso.output = resultado
-            datos = datos or hay_datos(resultado)
-            aviso = ''
-            if isinstance(resultado, dict) and resultado.get('resultado') == 'rechazada':
-                ultimo_rechazo = resultado
-                aviso = INSTRUCCION_RECHAZO
-                if resultado.get('alternativa'):
-                    cl.user_session.set('alternativa', resultado['alternativa'])
-            mensajes.append({'role': 'tool', 'tool_name': nombre,
-                             'content': json.dumps(resultado, ensure_ascii=False, default=str)[:12000] + aviso})
-    await cl.Message(content='No he podido completar la consulta en pocos pasos; ¿puedes concretarla?').send()
+
+async def _mostrar(turno: Turno) -> None:
+    cl.user_session.set('alternativa', turno.alternativa)
+    acciones = _acciones(turno.alternativa) if turno.alternativa else []
+    await cl.Message(content=turno.respuesta, actions=acciones).send()
 
 
 async def _ejecutar_alternativa() -> None:
@@ -98,15 +57,15 @@ async def _ejecutar_alternativa() -> None:
         await cl.Message(content='No hay ninguna consulta pendiente.').send()
         return
     cl.user_session.set('alternativa', None)
-    await _conversar('Ejecuta exactamente esta consulta agregada y resume el resultado: '
-                     + json.dumps(alternativa, ensure_ascii=False))
+    agente: Agente = cl.user_session.get('agente')
+    await _mostrar(await agente.responder_alternativa(alternativa, ejecutar=_con_paso))
 
 
 @cl.on_chat_start
 async def inicio() -> None:
-    cl.user_session.set('acceso', ClienteAcceso())
-    cl.user_session.set('llm', AsyncClient(host=OLLAMA_URL))
-    cl.user_session.set('mensajes', [{'role': 'system', 'content': SISTEMA}])
+    acceso = ClienteAcceso()
+    cl.user_session.set('acceso', acceso)
+    cl.user_session.set('agente', Agente(acceso, AsyncClient(host=OLLAMA_URL)))
     cl.user_session.set('alternativa', None)
     if gestos.ACTIVOS:
         async def al_recibir(accion: str, evento: dict) -> None:
@@ -121,11 +80,8 @@ async def inicio() -> None:
 
 @cl.on_message
 async def mensaje(mensaje: cl.Message) -> None:
-    if parece_individual(mensaje.content):
-        acceso: ClienteAcceso = cl.user_session.get('acceso')
-        await _mostrar_rechazo(await acceso.solicitud_individual(mensaje.content))
-        return
-    await _conversar(mensaje.content)
+    agente: Agente = cl.user_session.get('agente')
+    await _mostrar(await agente.responder(mensaje.content, ejecutar=_con_paso))
 
 
 @cl.action_callback('aceptar_alternativa')
