@@ -49,6 +49,17 @@ from prompts_rag import SISTEMA_RAG, formatear_contexto
 if TYPE_CHECKING:  # recuperador.py: `async def recuperar(self, pregunta: str, k: int = 6) -> list[Document]`
     from recuperador import Recuperador
 
+try:
+    from salida import FugaSalida             # la define salida.py (guardia de salida); aquí solo se captura
+except ModuleNotFoundError as _error:
+    if _error.name != 'salida':
+        raise
+
+    class FugaSalida(RuntimeError):  # type: ignore[no-redef]
+        """La guardia ha encontrado algo que no debe salir del equipo (campos individuales, claves…).
+
+        Sustituto con la misma firma mientras no exista salida.py (pruebas y ramas en paralelo)."""
+
 log = logging.getLogger('pids.chatbot_rag')
 
 K_POR_DEFECTO = int(os.environ.get('RAG_K', '6'))
@@ -64,10 +75,6 @@ CAMPOS_FICHA = ('dia', 'barrio_origen', 'barrio_destino', 'suprimido', 'n_viajes
                 'importe_medio', 'propina_media', 'pct_pago_tarjeta')
 MARCA_ENMASCARADO = '<10'          # lo que hoy devuelve la API para un grupo suprimido (privacidad.enmascarar)
 RAZONAMIENTO = re.compile(r'<think>.*?(?:</think>|$)', re.DOTALL)
-
-
-class FugaSalida(Exception):
-    """La guardia ha encontrado algo que no debe salir del equipo (campos individuales, claves…)."""
 
 
 class Guardia(Protocol):
@@ -173,11 +180,11 @@ def cita_fichas(contenido: str, fichas: list[dict]) -> bool:
 
 class AgenteRAG:
     def __init__(self, acceso: ClienteAcceso, llm: BaseChatModel, recuperador: Recuperador,
-                 guardia: Guardia | None = None, k: int = K_POR_DEFECTO, max_pasos: int = MAX_PASOS):
+                 guardia: Guardia | None = None, k: int | None = None, max_pasos: int = MAX_PASOS):
         self.acceso = acceso
         self.recuperador = recuperador
         self.guardia = guardia
-        self.k = k
+        self.k = k if k is not None else K_POR_DEFECTO      # None: el valor de RAG_K (6 si no está)
         self.max_pasos = max_pasos
         self.llm = llm.bind_tools(herramientas_langchain(acceso))
         # Sin el mensaje de sistema: se construye en cada llamada con el contexto del turno

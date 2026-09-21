@@ -182,6 +182,11 @@ def test_el_agente_vincula_las_cuatro_herramientas_al_modelo():
     assert [h.name for h in llm.herramientas] == HL.NOMBRES
 
 
+def test_k_sin_valor_toma_el_de_rag_k(monkeypatch):
+    monkeypatch.setattr(R, 'K_POR_DEFECTO', 4)
+    assert _agente(k=None).k == 4 and _agente().k == 4 and _agente(k=9).k == 9
+
+
 # --- prompt y contexto ---------------------------------------------------------------------------------------
 
 def test_el_prompt_rag_conserva_las_instrucciones_de_privacidad_del_chatbot():
