@@ -16,6 +16,7 @@ class Repositorio(Protocol):
     async def zonas(self, texto: str | None) -> list[dict]: ...
     async def barrios(self) -> list[str]: ...
     async def ultimo_dia_por_barrio(self, fuente: str) -> tuple[datetime | None, dict[str, int]]: ...
+    async def ultima_actualizacion_tiempo_real(self) -> datetime | None: ...
     async def auditar(self, decision: dict[str, Any]) -> None: ...
     async def cerrar(self) -> None: ...
 
@@ -70,6 +71,13 @@ class RepositorioMongo:
 
     async def auditar(self, decision: dict[str, Any]) -> None:
         await self.auditoria['decisiones'].insert_one(decision)
+
+    async def ultima_actualizacion_tiempo_real(self) -> datetime | None:
+        # Solo streaming: evita ordenar los cientos de miles de documentos del histórico.
+        ultimo = await self.publico['tr_viajes_hora_zona'].find_one(
+            {'actualizado_en': {'$type': 'date'}}, {'_id': 0, 'actualizado_en': 1},
+            sort=[('actualizado_en', -1)], max_time_ms=5000)
+        return ultimo['actualizado_en'] if ultimo else None
 
     async def cerrar(self) -> None:
         await self.cliente.close()

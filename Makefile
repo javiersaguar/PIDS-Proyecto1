@@ -93,6 +93,13 @@ historico-fichero: ## Carga con Spark un fichero ya subido a S3 (RUTA=s3a://crud
 datos-muestra: ## Perfila y valida el CSV de muestra
 	uv run python scripts/perfilar_datos.py data/muestra/yellow_tripdata_2020_muestra.csv
 
+.PHONY: auditoria latencia
+auditoria: _env ## Informe de auditoría de las últimas 24 h (ARGS='--horas 8 --comprobar-permisos')
+	uv run python scripts/informe_auditoria.py $(ARGS)
+
+latencia: _env ## Mide captura → agregado (20 lotes; requiere un único TiempoReal activo; ARGS='--zona 265')
+	uv run python scripts/medir_latencia_tiempo_real.py $(ARGS)
+
 descargar: ## Descarga un mes a data/crudo (MES=2020-01 FUENTE=parquet|api)
 	uv run python scripts/descargar_datos.py --fuente $(FUENTE) --meses $(MES)
 

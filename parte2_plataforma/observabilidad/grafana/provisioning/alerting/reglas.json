@@ -1,0 +1,250 @@
+{
+  "apiVersion": 1,
+  "groups": [
+    {
+      "orgId": 1,
+      "name": "pids-plataforma",
+      "folder": "PIDS",
+      "interval": "30s",
+      "rules": [
+        {
+          "uid": "pids-rechazos",
+          "title": "PIDS · Exceso de consultas rechazadas",
+          "condition": "B",
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "labels": {
+            "proyecto": "pids",
+            "severidad": "aviso"
+          },
+          "annotations": {
+            "summary": "Más de 20 rechazos en 5 minutos durante un minuto. Revisar auditoría; las baterías de pruebas también lo provocan.",
+            "__dashboardUid__": "pids-plataforma",
+            "__panelId__": "8"
+          },
+          "data": [
+            {
+              "refId": "A",
+              "datasourceUid": "prometheus",
+              "relativeTimeRange": {
+                "from": 300,
+                "to": 0
+              },
+              "model": {
+                "refId": "A",
+                "expr": "sum(increase(acceso_consultas_total{resultado=\"rechazada\"}[5m])) or vector(0)",
+                "instant": true,
+                "range": false,
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "prometheus"
+                },
+                "intervalMs": 1000,
+                "maxDataPoints": 43200
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "model": {
+                "refId": "B",
+                "type": "threshold",
+                "expression": "A",
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                },
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [
+                        20
+                      ]
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "query": {
+                      "params": [
+                        "B"
+                      ]
+                    },
+                    "reducer": {
+                      "type": "last",
+                      "params": []
+                    },
+                    "type": "query"
+                  }
+                ]
+              }
+            }
+          ],
+          "for": "1m"
+        },
+        {
+          "uid": "pids-frescura",
+          "title": "PIDS · Tiempo real sin publicar con tráfico",
+          "condition": "B",
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "labels": {
+            "proyecto": "pids",
+            "severidad": "aviso"
+          },
+          "annotations": {
+            "summary": "Entran viajes pero Spark no ha escrito agregados en más de 5 minutos. Sin tráfico la alerta permanece normal.",
+            "__dashboardUid__": "pids-plataforma",
+            "__panelId__": "8"
+          },
+          "data": [
+            {
+              "refId": "A",
+              "datasourceUid": "prometheus",
+              "relativeTimeRange": {
+                "from": 300,
+                "to": 0
+              },
+              "model": {
+                "refId": "A",
+                "expr": "((time() - (max(publico_ultima_actualizacion_timestamp_segundos{fuente=\"tiempo_real\"}) or vector(0))) > bool 300) * ((sum(rate(captura_eventos_total{tipo=\"viaje\"}[5m])) or vector(0)) > bool 0)",
+                "instant": true,
+                "range": false,
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "prometheus"
+                },
+                "intervalMs": 1000,
+                "maxDataPoints": 43200
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "model": {
+                "refId": "B",
+                "type": "threshold",
+                "expression": "A",
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                },
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [
+                        0
+                      ]
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "query": {
+                      "params": [
+                        "B"
+                      ]
+                    },
+                    "reducer": {
+                      "type": "last",
+                      "params": []
+                    },
+                    "type": "query"
+                  }
+                ]
+              }
+            }
+          ],
+          "for": "1m"
+        },
+        {
+          "uid": "pids-servicio",
+          "title": "PIDS · Servicio no disponible",
+          "condition": "B",
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "labels": {
+            "proyecto": "pids",
+            "severidad": "aviso"
+          },
+          "annotations": {
+            "summary": "Al menos un objetivo de este servicio lleva un minuto sin responder al sondeo de Prometheus.",
+            "__dashboardUid__": "pids-plataforma",
+            "__panelId__": "8"
+          },
+          "data": [
+            {
+              "refId": "A",
+              "datasourceUid": "prometheus",
+              "relativeTimeRange": {
+                "from": 300,
+                "to": 0
+              },
+              "model": {
+                "refId": "A",
+                "expr": "1 - min by (job) (up)",
+                "instant": true,
+                "range": false,
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "prometheus"
+                },
+                "intervalMs": 1000,
+                "maxDataPoints": 43200
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "model": {
+                "refId": "B",
+                "type": "threshold",
+                "expression": "A",
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                },
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [
+                        0
+                      ]
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "query": {
+                      "params": [
+                        "B"
+                      ]
+                    },
+                    "reducer": {
+                      "type": "last",
+                      "params": []
+                    },
+                    "type": "query"
+                  }
+                ]
+              }
+            }
+          ],
+          "for": "1m"
+        }
+      ]
+    }
+  ]
+}

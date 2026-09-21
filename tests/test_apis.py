@@ -39,6 +39,9 @@ class RepoFalso:
     async def ultimo_dia_por_barrio(self, fuente):
         return None, {}
 
+    async def ultima_actualizacion_tiempo_real(self):
+        return None
+
     async def auditar(self, decision):
         self.auditoria.append(decision)
 

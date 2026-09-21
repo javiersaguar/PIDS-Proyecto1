@@ -68,6 +68,26 @@ Airflow usa además un PostgreSQL interno solo para sus metadatos; no guarda dat
    respuesta + registro en `auditoria.decisiones`.
 4. **Gestos (último):** demo → `POST /gestos` → `gestos` → SSE → chatbot.
 
+## Monitorización y alertas
+
+Prometheus sondea cada 15 s las APIs, Redpanda, SeaweedFS y Spark. Grafana solo ve esas métricas (no tiene
+credenciales de datos) y todo se provisiona por ficheros: el panel `plataforma.json` y tres alertas en
+`observabilidad/grafana/provisioning/alerting/reglas.json`, evaluadas cada 30 s.
+
+| Alerta | Condición (resumida) | Qué indica |
+|---|---|---|
+| Exceso de consultas rechazadas | `sum(increase(acceso_consultas_total{resultado="rechazada"}[5m])) > 20` durante 1 min | Posible intento de reidentificación. Las baterías de pruebas también la disparan |
+| Tiempo real sin publicar con tráfico | frescura > 300 s **y** `rate(captura_eventos_total{tipo="viaje"}[5m]) > 0`, durante 1 min | Entran viajes pero Spark no escribe agregados; con el simulador parado no salta |
+| Servicio no disponible | `up == 0` por job, durante 1 min | Un servicio no responde al sondeo de Prometheus |
+
+La **frescura** es la métrica `publico_ultima_actualizacion_timestamp_segundos{fuente="tiempo_real"}`: el
+`actualizado_en` más reciente de `tr_viajes_hora_zona`, que Spark escribe al publicar. Mide cuándo se procesó,
+no la fecha de los viajes (que es de 2020). La API de acceso la refresca cada 60 s y solo la lee de la colección
+de tiempo real, para no ordenar cada minuto los 717 000 documentos del histórico.
+
+Las alertas solo se ven en Grafana (panel «Alertas activas de PIDS» y menú *Alerting*): la política de
+notificación de `notificaciones.json` las silencia siempre, así que Grafana no intenta enviar ningún correo.
+
 ## Redes y puertos
 
 Dos redes Docker: `datos` (S3, Redpanda, MongoDB y quien los usa) y `servicios` (APIs, chatbot,
