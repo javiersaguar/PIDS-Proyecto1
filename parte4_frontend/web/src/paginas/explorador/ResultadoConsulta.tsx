@@ -8,15 +8,15 @@ import { LoaderCircle, Lock, Table2, TriangleAlert } from 'lucide-react'
 import { useMemo } from 'react'
 
 import { decisionDe } from '@/api/consultas'
-import type { Consulta, Respuesta } from '@/api/tipos'
+import type { Consulta, Nivel, Respuesta } from '@/api/tipos'
 import { ChipResultado, TablaAgregados } from '@/componentes/datos'
-import { ETIQUETAS_FUENTE, totalesDe } from '@/componentes/datos/agregados'
+import { ETIQUETAS_FUENTE, ETIQUETAS_METRICA, totalesDe } from '@/componentes/datos/agregados'
 import { formatearEntero, pluralizar } from '@/componentes/datos/formato'
 import { EstadoCargando, EstadoError, EstadoVacio } from '@/componentes/shell'
 import { Badge } from '@/componentes/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/componentes/ui/card'
 
-import { describirConsulta, normalizarMetricas } from './consulta'
+import { describirVentana, normalizarMetricas } from './consulta'
 import { ConsultaRechazada } from './ConsultaRechazada'
 import { GraficoResultado } from './GraficoResultado'
 
@@ -35,7 +35,7 @@ export function ResultadoConsulta({ consulta, resultado, onAlternativa }: Props)
         <EstadoVacio
           icono={<Table2 className="size-7" aria-hidden />}
           titulo="Sin consulta"
-          descripcion="Configura una consulta en el formulario o elige uno de los ejemplos. La consulta queda en la URL para poder compartirla."
+          descripcion="Ajusta los filtros y pulsa Consultar, o abre un ejemplo o una vista guardada. La consulta queda en la URL para poder compartirla."
           className="bg-superficie"
         />
       ) : resultado.isPending ? (
@@ -58,6 +58,28 @@ export function ResultadoConsulta({ consulta, resultado, onAlternativa }: Props)
   )
 }
 
+const TITULO_NIVEL: Record<Nivel, string> = {
+  hora_zona: 'Viajes por hora',
+  dia_barrio: 'Viajes por día',
+  od_dia_barrio: 'Flujos por día',
+}
+
+/** Origen, destino, ventana y métricas, en piezas cortas separadas. */
+function detalleResultado(consulta: Consulta, nombresZona: ReadonlyMap<number, string>): string {
+  const partes: string[] = []
+  if (consulta.zona_origen != null) {
+    const nombre = nombresZona.get(consulta.zona_origen)
+    partes.push(nombre ? `${nombre} (zona ${consulta.zona_origen})` : `Zona ${consulta.zona_origen}`)
+  }
+  if (consulta.barrio_origen && consulta.barrio_destino) partes.push(`${consulta.barrio_origen} → ${consulta.barrio_destino}`)
+  else if (consulta.barrio_origen) partes.push(consulta.barrio_origen)
+  else if (consulta.barrio_destino) partes.push(`Hacia ${consulta.barrio_destino}`)
+  partes.push(describirVentana(consulta))
+  const extras = normalizarMetricas(consulta.metricas).filter((m) => m !== 'n_viajes')
+  if (extras.length) partes.push(extras.map((m) => ETIQUETAS_METRICA[m]).join(', '))
+  return partes.join(' · ')
+}
+
 function Respuestas({ respuesta, actualizando }: { respuesta: Respuesta; actualizando: boolean }) {
   const { consulta, filas } = respuesta
   const totales = useMemo(() => totalesDe(filas), [filas])
@@ -67,34 +89,34 @@ function Respuestas({ respuesta, actualizando }: { respuesta: Respuesta; actuali
     for (const fila of filas) if (fila.zona_origen != null && fila.zona_origen_nombre) mapa.set(fila.zona_origen, fila.zona_origen_nombre)
     return mapa
   }, [filas])
-  const descripcion = describirConsulta(consulta, nombresZona)
+  const descripcion = detalleResultado(consulta, nombresZona)
+  const titulo = TITULO_NIVEL[consulta.nivel]
 
   return (
     <>
       <Card className="sombra-tarjeta">
-        <CardHeader>
-          <div className="flex flex-wrap items-center gap-2">
-            <ChipResultado resultado={respuesta.resultado} />
-            <Badge variant="outline">{ETIQUETAS_FUENTE[consulta.fuente ?? 'historico']}</Badge>
-            {actualizando && (
-              <span className="flex items-center gap-1 text-xs text-texto-suave">
-                <LoaderCircle className="size-3 animate-spin" aria-hidden /> Actualizando…
-              </span>
-            )}
+        <CardHeader className="gap-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0 space-y-1">
+              <h2 className="text-[15px] font-semibold text-slate-900">{titulo}</h2>
+              <p className="text-sm text-slate-500">{descripcion}</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <ChipResultado resultado={respuesta.resultado} />
+              <Badge variant="outline">{ETIQUETAS_FUENTE[consulta.fuente ?? 'historico']}</Badge>
+              {actualizando && (
+                <span className="flex items-center gap-1 text-xs text-texto-suave">
+                  <LoaderCircle className="size-3 animate-spin" aria-hidden /> Actualizando…
+                </span>
+              )}
+            </div>
           </div>
-          <CardTitle className="text-xl text-primario first-letter:uppercase">{descripcion}</CardTitle>
-          <CardDescription>
-            <span className="cifra">{pluralizar(filas.length, 'fila')}</span> · <span className="cifra">{pluralizar(totales.visibles, 'grupo visible', 'grupos visibles')}</span> ·{' '}
-            <span className={totales.enmascarados > 0 ? 'cifra font-medium text-enmascarado' : 'cifra'}>
-              {pluralizar(respuesta.grupos_enmascarados, 'grupo enmascarado', 'grupos enmascarados')}
-            </span>
-            {totales.visibles > 0 && (
-              <>
-                {' '}
-                · total de los grupos visibles <span className="cifra font-medium text-foreground">{formatearEntero(totales.total)}</span> viajes
-              </>
-            )}
-          </CardDescription>
+          <div className="flex flex-wrap gap-2">
+            <Dato etiqueta={pluralizar(filas.length, 'fila')} />
+            <Dato etiqueta={pluralizar(totales.visibles, 'grupo visible', 'grupos visibles')} />
+            <Dato etiqueta={pluralizar(respuesta.grupos_enmascarados, 'grupo enmascarado', 'grupos enmascarados')} aviso={respuesta.grupos_enmascarados > 0} />
+            {totales.visibles > 0 && <Dato etiqueta={`${formatearEntero(totales.total)} viajes visibles`} />}
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {respuesta.truncada && (
@@ -132,5 +154,13 @@ function Respuestas({ respuesta, actualizando }: { respuesta: Respuesta; actuali
         </p>
       )}
     </>
+  )
+}
+
+function Dato({ etiqueta, aviso = false }: { etiqueta: string; aviso?: boolean }) {
+  return (
+    <div className={aviso ? 'rounded-lg bg-enmascarado-suave px-2.5 py-1 text-xs font-medium text-enmascarado' : 'rounded-lg bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600'}>
+      {etiqueta}
+    </div>
   )
 }

@@ -37,8 +37,9 @@ describe('PaginaTiempoReal', () => {
     expect(within(indicadores).getByText('al día')).toBeInTheDocument()
     expect(within(indicadores).getByText('30/12/2020')).toBeInTheDocument()
     expect(within(indicadores).getByText('15')).toBeInTheDocument()
-    expect(within(indicadores).getByText(/Viajes visibles de las 20:00 del 30\/12\/2020 · 1 zona · 3 grupos enmascarados/)).toBeInTheDocument()
-    expect(screen.getByRole('note')).toHaveTextContent('Los datos simulados son de 2020.')
+    expect(within(indicadores).getByText('20:00')).toBeInTheDocument()
+    expect(screen.queryByRole('note')).not.toBeInTheDocument()
+    expect(screen.queryByText(/datos simulados/i)).not.toBeInTheDocument()
   })
 
   it('pinta las barras por hora y la tabla de la última hora con los enmascarados marcados', async () => {

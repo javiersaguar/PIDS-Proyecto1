@@ -47,37 +47,37 @@ export default function PaginaAcceso() {
 
   return (
     <div className="grid min-h-svh lg:grid-cols-[minmax(0,5fr)_minmax(0,4fr)]">
-      <section className="fondo-marino hidden flex-col justify-between p-10 text-sidebar-foreground lg:flex">
+      <section className="fondo-marino hidden flex-col justify-between p-10 text-white lg:flex">
         <div className="flex items-center gap-3">
-          <span className="flex size-10 items-center justify-center rounded-lg bg-acento text-primario" aria-hidden>
+          <span className="flex size-10 items-center justify-center rounded-xl bg-white text-[#1d4ed8]" aria-hidden>
             <CarTaxiFront className="size-6" strokeWidth={2.25} />
           </span>
           <div className="leading-tight">
             <p className="text-lg font-semibold text-white">PIDS · Taxis NYC</p>
-            <p className="text-sm text-sidebar-foreground/70">Plataforma de datos · Portal interno</p>
+            <p className="text-sm text-white/75">Plataforma de datos · Portal interno</p>
           </div>
         </div>
         <div className="max-w-lg space-y-6">
           <h1 className="text-3xl leading-tight text-white">
-            Los datos de la flota, <span className="text-acento">sin exponer a nadie</span>.
+            Los datos de la flota, <span className="text-emerald-200">sin exponer a nadie</span>.
           </h1>
           <ul className="space-y-3">
             {ARGUMENTOS.map(({ icono: Icono, texto }) => (
-              <li key={texto} className="flex items-start gap-3 text-sm text-sidebar-foreground/90">
-                <Icono className="mt-0.5 size-4 shrink-0 text-acento" aria-hidden />
+              <li key={texto} className="flex items-start gap-3 text-sm text-white/90">
+                <Icono className="mt-0.5 size-4 shrink-0 text-emerald-200" aria-hidden />
                 <span>{texto}</span>
               </li>
             ))}
           </ul>
         </div>
-        <p className="text-xs text-sidebar-foreground/60">{AVISO_E3} · Escenario E3, privacidad total</p>
+        <p className="text-xs text-white/70">{AVISO_E3} · Escenario E3, privacidad total</p>
       </section>
 
       <section className="flex items-center justify-center bg-fondo p-6">
         <Card className="w-full max-w-sm sombra-tarjeta">
           <CardHeader>
             <div className="mb-2 flex items-center gap-2 lg:hidden">
-              <span className="flex size-8 items-center justify-center rounded-md bg-acento text-primario" aria-hidden>
+              <span className="flex size-8 items-center justify-center rounded-lg bg-[#2563eb] text-white" aria-hidden>
                 <CarTaxiFront className="size-4" strokeWidth={2.25} />
               </span>
               <span className="font-semibold text-primario">PIDS · Taxis NYC</span>

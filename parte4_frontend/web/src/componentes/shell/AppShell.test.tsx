@@ -27,17 +27,42 @@ describe('AppShell', () => {
 
     expect(screen.getByText('PIDS · Taxis NYC')).toBeInTheDocument()
     expect(screen.getByRole('heading', { level: 1, name: 'Explorador' })).toBeInTheDocument()
-    expect(screen.getByText('Solo agregados protegidos · k = 10')).toBeInTheDocument()
+    expect(screen.queryByText('Solo agregados protegidos · k = 10')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Cerrar sesión' })).toBeInTheDocument()
   })
 
   it('muestra los chips de estado de los servicios cuando /api/panel responde', async () => {
     simularApi({ 'GET /api/sesion': { autenticado: true }, 'GET /api/panel': PANEL })
-    renderizarRutas('/')
+    renderizarRutas('/no-existe')
 
     const lista = await screen.findByRole('list', { name: 'Estado de los servicios' })
     expect(within(lista).getByText('API de acceso')).toBeInTheDocument()
     expect(within(lista).getByText('Prometheus')).toBeInTheDocument()
+  })
+
+  it('en operaciones no pinta la cabecera de servicios', async () => {
+    simularApi({
+      'GET /api/sesion': { autenticado: true },
+      'GET /api/panel': PANEL,
+      'GET /api/operaciones/airflow/ejecuciones': [],
+      'GET /api/operaciones/simulacion': { activa: false, lote: null, fichero: null, enviados: 0, total: 0, ritmo: 50, inicio: null, fin: null, error: null },
+      'GET /api/operaciones/simulacion/ficheros': [],
+    })
+    renderizarRutas('/operaciones')
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Operaciones' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 2, name: 'Carga histórica' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 2, name: 'Simulador de tiempo real' })).toBeInTheDocument()
+    expect(screen.queryByRole('list', { name: 'Estado de los servicios' })).not.toBeInTheDocument()
+  })
+
+  it('en tiempo real no pinta la cabecera de servicios', async () => {
+    simularApi({ 'GET /api/sesion': { autenticado: true }, 'GET /api/panel': PANEL, 'GET /api/tiempo-real': { frescura: { instante: null, segundos: null }, ultimo_dia: null, por_hora: [], por_zona_ultima_hora: [] } })
+    renderizarRutas('/tiempo-real')
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Tiempo real' })).toBeInTheDocument()
+    expect(screen.queryByRole('list', { name: 'Estado de los servicios' })).not.toBeInTheDocument()
+    expect(screen.queryByText('Solo agregados protegidos · k = 10')).not.toBeInTheDocument()
   })
 
   it('no muestra chips ni rompe si /api/panel todavía no existe', async () => {

@@ -1,10 +1,9 @@
 /**
- * Tarjeta «Carga histórica»: elige un mes de 2020 (o solo la muestra), confirma en un diálogo lo que va a pasar
- * (descarga de ~90 MB, minutos de Spark) y lanza el DAG `pids_carga_historica` en Airflow. Debajo, las últimas
- * ejecuciones del DAG con su estado, refrescadas cada 15 s, y el enlace a la interfaz de Airflow.
+ * Tarjeta «Carga histórica»: elige un mes de 2020 (o solo la muestra de 999 viajes), confirma lo que va a pasar
+ * y pide la carga. Debajo, las últimas cargas con su resultado, refrescadas cada 15 s.
  */
 import { differenceInSeconds, parseISO } from 'date-fns'
-import { ExternalLink, LoaderCircle, Play, RefreshCw } from 'lucide-react'
+import { CalendarDays, ExternalLink, LoaderCircle, Play, RefreshCw } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
@@ -15,7 +14,7 @@ import { formatearFechaHora, formatearSegundos } from '@/componentes/chat/format
 import { EstadoCargando, EstadoError, EstadoVacio } from '@/componentes/shell'
 import { Badge } from '@/componentes/ui/badge'
 import { Button } from '@/componentes/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/componentes/ui/card'
+import { Card, CardContent, CardHeader } from '@/componentes/ui/card'
 import {
   Dialog,
   DialogClose,
@@ -56,7 +55,7 @@ const TEXTO_ESTADO: Record<string, string> = {
 export function ChipEstadoAirflow({ estado }: { estado: string }) {
   const enMarcha = estado === 'running' || estado === 'queued'
   return (
-    <Badge variant="outline" className={cn('h-5 gap-1 px-1.5 font-medium', CLASE_ESTADO[estado] ?? 'bg-muted text-texto-suave')}>
+    <Badge variant="outline" className={cn('gap-1 font-medium', CLASE_ESTADO[estado] ?? 'bg-muted text-texto-suave')}>
       {enMarcha && <LoaderCircle className="animate-spin" aria-hidden />}
       {TEXTO_ESTADO[estado] ?? estado}
     </Badge>
@@ -71,17 +70,17 @@ function duracion(ejecucion: EjecucionAirflow): string {
 function descripcionConf(conf: Record<string, unknown>): string {
   const mes = typeof conf.mes === 'string' ? etiquetaMes(conf.mes) : null
   const muestra = conf.muestra === true
-  if (muestra) return mes ? `muestra (${mes})` : 'muestra'
+  if (muestra) return mes ? `Muestra de prueba, ${mes}` : 'Muestra de prueba'
   return mes ?? '—'
 }
 
 function TablaEjecuciones() {
   const ejecuciones = useEjecucionesAirflow()
-  if (ejecuciones.isPending) return <EstadoCargando lineas={4} etiqueta="Cargando las ejecuciones de Airflow…" />
+  if (ejecuciones.isPending) return <EstadoCargando lineas={4} etiqueta="Cargando las cargas anteriores…" />
   if (ejecuciones.isError) {
     return (
       <EstadoError
-        titulo="No se han podido leer las ejecuciones de Airflow"
+        titulo="No se han podido ver las cargas anteriores"
         error={ejecuciones.error}
         alReintentar={() => void ejecuciones.refetch()}
         reintentando={ejecuciones.isFetching}
@@ -89,35 +88,48 @@ function TablaEjecuciones() {
     )
   }
   if (ejecuciones.data.length === 0) {
-    return <EstadoVacio titulo="Sin ejecuciones" descripcion="El DAG pids_carga_historica todavía no se ha lanzado nunca." />
+    return (
+      <EstadoVacio
+        titulo="Todavía no hay cargas"
+        descripcion="Elige un mes arriba y pulsa Cargar viajes. Cuando termine, aparecerá en esta lista."
+      />
+    )
   }
   return (
-    <Table>
+    <Table className="min-w-[44rem]">
       <TableHeader>
-        <TableRow className="bg-superficie-alterna/60 hover:bg-superficie-alterna/60">
-          <TableHead scope="col">Ejecución</TableHead>
-          <TableHead scope="col">Estado</TableHead>
-          <TableHead scope="col">Carga</TableHead>
-          <TableHead scope="col">Inicio</TableHead>
-          <TableHead scope="col">Fin</TableHead>
-          <TableHead scope="col" className="text-right">
-            Duración
+        <TableRow className="bg-slate-50 hover:bg-slate-50">
+          <TableHead scope="col" className="px-4 text-xs font-medium text-slate-500">
+            Qué se cargó
+          </TableHead>
+          <TableHead scope="col" className="px-4 text-xs font-medium text-slate-500">
+            Cómo va
+          </TableHead>
+          <TableHead scope="col" className="px-4 text-xs font-medium text-slate-500">
+            Empezó
+          </TableHead>
+          <TableHead scope="col" className="px-4 text-xs font-medium text-slate-500">
+            Terminó
+          </TableHead>
+          <TableHead scope="col" className="px-4 text-right text-xs font-medium text-slate-500">
+            Cuánto tardó
           </TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {ejecuciones.data.map((ejecucion) => (
           <TableRow key={ejecucion.dag_run_id}>
-            <TableCell className="max-w-64 truncate font-mono text-xs" title={ejecucion.dag_run_id}>
-              {ejecucion.dag_run_id}
-            </TableCell>
-            <TableCell>
+            <TableCell className="px-4 py-3">{descripcionConf(ejecucion.conf ?? {})}</TableCell>
+            <TableCell className="px-4 py-3">
               <ChipEstadoAirflow estado={ejecucion.estado} />
             </TableCell>
-            <TableCell>{descripcionConf(ejecucion.conf ?? {})}</TableCell>
-            <TableCell className="cifra text-texto-suave">{formatearFechaHora(ejecucion.inicio)}</TableCell>
-            <TableCell className="cifra text-texto-suave">{formatearFechaHora(ejecucion.fin)}</TableCell>
-            <TableCell className="cifra text-right">{duracion(ejecucion)}</TableCell>
+            <TableCell className="cifra px-4 py-3 whitespace-nowrap text-slate-600">
+              {formatearFechaHora(ejecucion.inicio)}
+            </TableCell>
+            <TableCell className="cifra px-4 py-3 whitespace-nowrap text-slate-600">
+              {formatearFechaHora(ejecucion.fin)}
+            </TableCell>
+            <TableCell className="cifra px-4 py-3 text-right whitespace-nowrap">{duracion(ejecucion)}</TableCell>
           </TableRow>
         ))}
       </TableBody>
@@ -137,38 +149,46 @@ export function CargaHistorica() {
     lanzar.mutate(
       { mes, muestra },
       {
-        onSuccess: (ejecucion) => {
+        onSuccess: () => {
           setConfirmando(false)
-          toast.success('Carga lanzada en Airflow', { description: `Ejecución ${ejecucion.dag_run_id}` })
+          toast.success('La carga ya ha empezado', {
+            description: muestra ? 'Se están usando los 999 viajes de prueba.' : `Se está cargando ${etiquetaMes(mes)}.`,
+          })
         },
         onError: (error) => {
-          toast.error('No se ha podido lanzar la carga', { description: mensajeDeError(error) })
+          toast.error('No se ha podido empezar la carga', { description: mensajeDeError(error) })
         },
       },
     )
   }
 
   return (
-    <Card className="sombra-tarjeta">
-      <CardHeader>
-        <CardTitle>Carga histórica</CardTitle>
-        <CardDescription>
-          Lanza el DAG <code className="font-mono text-[11px]">pids_carga_historica</code>: Airflow descarga el mes de la TLC a S3, Spark
-          valida, archiva y publica los agregados protegidos, y el resumen queda en <code className="font-mono text-[11px]">auditoria.cargas</code>.
-        </CardDescription>
+    <Card className="sombra-tarjeta gap-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-white py-0 text-slate-900 ring-0">
+      <CardHeader className="gap-0 px-5 pt-4 pb-0">
+        <div className="flex items-start gap-2.5">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-600" aria-hidden>
+            <CalendarDays className="size-4" strokeWidth={2.25} />
+          </span>
+          <div className="min-w-0 space-y-1">
+            <h2 className="text-[15px] leading-none text-slate-900">Carga histórica</h2>
+            <p className="max-w-3xl text-sm text-slate-500">
+              Guarda los viajes de taxi de un mes de 2020 para poder consultarlos después. Tú eliges el mes; el sistema los descarga, los resume por barrio y por hora, y los deja listos en el portal.
+            </p>
+          </div>
+        </div>
       </CardHeader>
-      <CardContent className="space-y-5">
-        <div className="flex flex-wrap items-end gap-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="mes-carga">Mes de 2020</Label>
+      <CardContent className="space-y-5 px-5 pt-4 pb-5">
+        <div className="flex flex-col gap-3 rounded-xl bg-slate-50 p-3 sm:flex-row sm:items-end">
+          <div className="w-full space-y-1.5 sm:w-56">
+            <Label htmlFor="mes-carga">Mes</Label>
             <Select value={mes} onValueChange={setMes} disabled={muestra}>
-              <SelectTrigger id="mes-carga" className="min-w-44" aria-label="Mes de 2020">
+              <SelectTrigger id="mes-carga" className="w-full bg-white" aria-label="Mes de 2020">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {MESES_2020.map((m) => (
                   <SelectItem key={m} value={m}>
-                    {etiquetaMes(m)} <span className="font-mono text-xs text-texto-suave">({m})</span>
+                    {etiquetaMes(m)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -176,28 +196,28 @@ export function CargaHistorica() {
           </div>
           <div className="flex h-8 items-center gap-2">
             <Switch id="solo-muestra" checked={muestra} onCheckedChange={setMuestra} />
-            <Label htmlFor="solo-muestra" className="font-normal">
-              Solo la muestra <span className="text-texto-suave">(999 viajes de data/muestra, sin descargar nada)</span>
+            <Label htmlFor="solo-muestra" className="font-normal text-slate-600">
+              Solo 999 viajes de prueba
             </Label>
           </div>
-          <Button className="ml-auto" onClick={() => setConfirmando(true)} disabled={lanzar.isPending}>
+          <Button className="sm:ml-auto" onClick={() => setConfirmando(true)} disabled={lanzar.isPending}>
             <Play aria-hidden />
-            Lanzar en Airflow
+            Cargar viajes
           </Button>
         </div>
 
         <Dialog open={confirmando} onOpenChange={(abierto) => !lanzar.isPending && setConfirmando(abierto)}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>{muestra ? 'Cargar la muestra' : `Cargar ${etiquetaMes(mes)}`}</DialogTitle>
+              <DialogTitle>{muestra ? '¿Cargar los 999 viajes de prueba?' : `¿Cargar ${etiquetaMes(mes)}?`}</DialogTitle>
               <DialogDescription>
                 {muestra
-                  ? 'Airflow lanzará el trabajo de Spark con los 999 viajes de data/muestra, sin descargar nada. Tarda alrededor de un minuto y vuelve a publicar los agregados de esa muestra.'
-                  : `Airflow descargará el fichero Parquet de ${etiquetaMes(mes)} de la web de la TLC (~90 MB), lo dejará en S3 y lanzará el trabajo de Spark en modo cluster. Suele tardar varios minutos y ocupa la CPU y la memoria de la plataforma mientras dura.`}
+                  ? 'Se usarán los 999 viajes de prueba que ya están guardados. No se descarga nada. Tarda alrededor de un minuto y se vuelven a calcular los resúmenes de esa muestra.'
+                  : `Se descargarán los viajes de ${etiquetaMes(mes)} (unos 90 MB) y se prepararán los resúmenes por barrio y por hora. Suele tardar varios minutos. Mientras tanto, el ordenador de la plataforma estará ocupado.`}
               </DialogDescription>
             </DialogHeader>
-            <p className="text-texto-suave">
-              La ejecución quedará registrada en Airflow y, al terminar, el resumen de la carga aparecerá en Privacidad → Cargas.
+            <p className="text-sm text-slate-600">
+              Cuando termine, el resumen se podrá ver en Privacidad, en la pestaña Cargas.
             </p>
             <DialogFooter>
               <DialogClose asChild>
@@ -207,21 +227,26 @@ export function CargaHistorica() {
               </DialogClose>
               <Button onClick={confirmar} disabled={lanzar.isPending}>
                 {lanzar.isPending ? <LoaderCircle className="animate-spin" aria-hidden /> : <Play aria-hidden />}
-                {lanzar.isPending ? 'Lanzando…' : 'Confirmar y lanzar'}
+                {lanzar.isPending ? 'Cargando…' : 'Sí, cargar'}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
-        <div className="space-y-2">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h3 className="text-sm font-semibold">Últimas ejecuciones</h3>
-            <div className="flex items-center gap-1">
-              <Button variant="ghost" size="sm" onClick={() => void ejecuciones.refetch()} disabled={ejecuciones.isFetching}>
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div className="min-w-0 space-y-1">
+              <h3 className="text-[15px] leading-none text-slate-900">Cargas anteriores</h3>
+              <p className="text-sm text-slate-500">
+                Cada fila es una vez que pediste cargar viajes. Airflow es el programa que las ejecuta; ábrelo si quieres ver más detalle.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" onClick={() => void ejecuciones.refetch()} disabled={ejecuciones.isFetching}>
                 <RefreshCw className={cn(ejecuciones.isFetching && 'animate-spin')} aria-hidden />
                 Actualizar
               </Button>
-              <Button asChild variant="outline" size="sm">
+              <Button asChild variant="outline">
                 <a href={enlaces.airflow} target="_blank" rel="noreferrer">
                   <ExternalLink aria-hidden />
                   Abrir Airflow
@@ -229,7 +254,9 @@ export function CargaHistorica() {
               </Button>
             </div>
           </div>
-          <TablaEjecuciones />
+          <div className="overflow-hidden rounded-xl border border-slate-200">
+            <TablaEjecuciones />
+          </div>
         </div>
       </CardContent>
     </Card>

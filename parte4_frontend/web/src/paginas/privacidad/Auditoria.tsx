@@ -1,14 +1,14 @@
 /**
  * Pestaña «Auditoría»: `auditoria.decisiones` leída por el BFF con `pids_auditor`. Selector de horas, KPIs por
- * resultado, barras de decisiones por cliente y de motivos de rechazo, y la tabla de decisiones con filtros y
- * filas expandibles (consulta, motivos y alternativa como JSON legible).
+ * resultado, barras de decisiones por cliente y de motivos de rechazo, y la tabla de decisiones. Cada fila
+ * dice en una frase qué ocurrió; al abrirla, el detalle sale en dos capas por delante de la fila.
  */
-import { ChevronDown, ChevronRight, Filter } from 'lucide-react'
-import { Fragment, useState } from 'react'
+import { ChevronDown, ChevronLeft, ChevronRight, Filter } from 'lucide-react'
+import { Fragment, useState, type ReactNode } from 'react'
 
-import { HORAS_AUDITORIA, useAuditoriaResumen, useDecisiones } from '@/api/auditoria'
+import { useAuditoriaResumen, useDecisiones } from '@/api/auditoria'
 import type { AuditoriaResumen, DecisionAuditada } from '@/api/tipos'
-import { abreviar, formatearFechaHora, formatearNumero, jsonLegible } from '@/componentes/chat/formato'
+import { formatearFechaHora, formatearNumero } from '@/componentes/chat/formato'
 import { EstadoCargando, EstadoError, EstadoNoDisponible, EstadoVacio } from '@/componentes/shell'
 import { Badge } from '@/componentes/ui/badge'
 import { Button } from '@/componentes/ui/button'
@@ -18,16 +18,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/componentes/ui/table'
 import { cn } from '@/lib/utils'
 
+import { CapasDetalle } from './CapasDetalle'
+import { describirAlternativa, describirConsulta, humanizarMotivo, nombreCliente, resumenDecision } from './explicar'
 import { CLASE_RESULTADO, RESULTADOS, TEXTO_RESULTADO } from './etiquetas'
 import { Segmentado } from './Segmentado'
 
-const OPCIONES_HORAS = HORAS_AUDITORIA.map((h) => ({ valor: h, etiqueta: h === 168 ? '7 días' : `${h} h` }))
 const OPCIONES_RESULTADO = [{ valor: '', etiqueta: 'Todas' }, ...RESULTADOS.map((r) => ({ valor: r, etiqueta: `${TEXTO_RESULTADO[r]}s` }))]
 const TODOS_LOS_CLIENTES = '__todos__'
 
 export function ChipResultado({ resultado }: { resultado: string }) {
   return (
-    <Badge variant="outline" className={cn('h-5 px-1.5 font-medium capitalize', CLASE_RESULTADO[resultado] ?? 'bg-muted text-texto-suave')}>
+    <Badge variant="outline" className={cn('h-5 px-2 text-xs font-medium capitalize', CLASE_RESULTADO[resultado] ?? 'bg-muted text-texto-suave')}>
       {TEXTO_RESULTADO[resultado] ?? resultado}
     </Badge>
   )
@@ -39,9 +40,9 @@ function Kpis({ resumen }: { resumen: AuditoriaResumen }) {
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" role="group" aria-label="Resumen por resultado">
       <Card size="sm" className="sombra-tarjeta">
         <CardContent>
-          <p className="text-xs font-medium text-texto-suave uppercase">Decisiones</p>
-          <p className="cifra text-2xl font-semibold text-primario">{formatearNumero(resumen.total)}</p>
-          <p className="text-xs text-texto-suave">
+          <p className="text-sm font-medium text-texto-suave">Decisiones</p>
+          <p className="cifra text-[1.7rem] leading-none font-semibold text-primario">{formatearNumero(resumen.total)}</p>
+          <p className="text-sm text-texto-suave">
             {formatearFechaHora(resumen.desde)} → {formatearFechaHora(resumen.hasta)}
           </p>
         </CardContent>
@@ -53,11 +54,11 @@ function Kpis({ resumen }: { resumen: AuditoriaResumen }) {
           <Card key={resultado} size="sm" className="sombra-tarjeta">
             <CardContent>
               <div className="flex items-center justify-between gap-2">
-                <p className="text-xs font-medium text-texto-suave uppercase">{TEXTO_RESULTADO[resultado] ?? resultado}s</p>
+                <p className="text-sm font-medium text-texto-suave">{TEXTO_RESULTADO[resultado] ?? resultado}s</p>
                 <ChipResultado resultado={resultado} />
               </div>
-              <p className="cifra text-2xl font-semibold text-primario">{formatearNumero(cantidad)}</p>
-              <p className="cifra text-xs text-texto-suave">{porcentaje} % del total</p>
+              <p className="cifra text-[1.7rem] leading-none font-semibold text-primario">{formatearNumero(cantidad)}</p>
+              <p className="cifra text-sm text-texto-suave">{porcentaje} % del total</p>
             </CardContent>
           </Card>
         )
@@ -75,26 +76,24 @@ function Barras({ titulo, descripcion, datos, vacio, color = 'bg-primario' }: {
 }) {
   const maximo = Math.max(0, ...datos.map((d) => d.valor))
   return (
-    <Card size="sm" className="sombra-tarjeta">
+    <Card className="sombra-tarjeta">
       <CardHeader>
-        <CardTitle>{titulo}</CardTitle>
-        <CardDescription>{descripcion}</CardDescription>
+        <CardTitle className="text-sm">{titulo}</CardTitle>
+        <CardDescription className="text-sm">{descripcion}</CardDescription>
       </CardHeader>
       <CardContent>
         {datos.length === 0 ? (
-          <p className="text-xs text-texto-suave">{vacio}</p>
+          <p className="text-sm text-texto-suave">{vacio}</p>
         ) : (
-          <ul className="space-y-2" aria-label={titulo}>
-            {datos.map((dato) => (
-              <li key={dato.etiqueta} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 text-xs">
-                <span className="truncate" title={dato.etiqueta}>
-                  {dato.etiqueta}
-                </span>
-                <span className="cifra font-medium">{formatearNumero(dato.valor)}</span>
-                <div className="col-span-2 h-1.5 overflow-hidden rounded-full bg-muted">
+          <ul className="space-y-3" aria-label={titulo}>
+            {datos.map((dato, indice) => (
+              <li key={`${indice}-${dato.etiqueta}`} className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-4 gap-y-2 text-sm">
+                <span className="leading-snug">{dato.etiqueta}</span>
+                <span className="cifra text-sm font-semibold">{formatearNumero(dato.valor)}</span>
+                <div className="col-span-2 h-3 overflow-hidden rounded-full bg-muted">
                   <div
                     className={cn('h-full rounded-full', color)}
-                    style={{ width: `${maximo ? Math.max(2, (dato.valor / maximo) * 100) : 0}%` }}
+                    style={{ width: `${maximo ? Math.max(4, (dato.valor / maximo) * 100) : 0}%` }}
                     role="presentation"
                   />
                 </div>
@@ -107,68 +106,76 @@ function Barras({ titulo, descripcion, datos, vacio, color = 'bg-primario' }: {
   )
 }
 
-function ResumenDecision({ decision }: { decision: DecisionAuditada }) {
-  if (decision.resultado === 'rechazada') {
-    const motivo = decision.motivos[0] ?? '—'
-    return (
-      <span className="text-texto-suave" title={decision.motivos.join(' · ')}>
-        {abreviar(motivo, 70)}
-        {decision.motivos.length > 1 && <span> (+{decision.motivos.length - 1})</span>}
-      </span>
-    )
-  }
-  const partes: string[] = []
-  if (typeof decision.consulta.nivel === 'string') partes.push(decision.consulta.nivel)
-  if (decision.filas_devueltas !== undefined) partes.push(`${formatearNumero(decision.filas_devueltas)} filas`)
-  if (decision.grupos_enmascarados) partes.push(`${formatearNumero(decision.grupos_enmascarados)} enmascarados`)
-  return <span className="cifra text-texto-suave">{partes.join(' · ') || '—'}</span>
-}
-
-function DetalleDecision({ decision }: { decision: DecisionAuditada }) {
+function Bloque({ titulo, children }: { titulo: string; children: ReactNode }) {
   return (
-    <div className="grid gap-3 py-1 text-xs lg:grid-cols-3">
-      <div>
-        <p className="mb-1 font-medium text-texto-suave">Consulta</p>
-        <pre className="max-h-64 overflow-auto rounded-md bg-superficie p-2 font-mono text-[11px] leading-relaxed whitespace-pre-wrap">
-          {jsonLegible(decision.consulta)}
-        </pre>
-      </div>
-      <div>
-        <p className="mb-1 font-medium text-texto-suave">Motivos</p>
-        {decision.motivos.length ? (
-          <ul className="list-disc space-y-0.5 pl-4">
-            {decision.motivos.map((motivo, indice) => (
-              <li key={indice}>{motivo}</li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-texto-suave">Sin motivos: la consulta cumplía las reglas.</p>
-        )}
-        <p className="mt-2 text-texto-suave">
-          Componente: <span className="font-mono text-foreground">{decision.componente}</span>
-        </p>
-      </div>
-      <div>
-        <p className="mb-1 font-medium text-texto-suave">Alternativa propuesta</p>
-        {decision.alternativa ? (
-          <pre className="max-h-64 overflow-auto rounded-md bg-superficie p-2 font-mono text-[11px] leading-relaxed whitespace-pre-wrap">
-            {jsonLegible(decision.alternativa)}
-          </pre>
-        ) : (
-          <p className="text-texto-suave">Ninguna.</p>
-        )}
-      </div>
+    <div>
+      <p className="text-sm font-semibold text-primario">{titulo}</p>
+      <div className="mt-1.5 space-y-2 text-sm leading-relaxed">{children}</div>
     </div>
   )
 }
 
-const PAGINA = 25
+function DetalleDecision({ decision }: { decision: DecisionAuditada }) {
+  const { libre, agregada } = describirConsulta(decision.consulta)
+  return (
+    <CapasDetalle>
+      <div className="grid gap-5 lg:grid-cols-3">
+        <Bloque titulo="Qué se preguntó">
+          {libre ? <p>«{libre}»</p> : null}
+          {agregada ? <p>{agregada.charAt(0).toUpperCase() + agregada.slice(1)}.</p> : null}
+          {!libre && !agregada ? <p className="text-texto-suave">No hay más detalle de la consulta.</p> : null}
+          <p className="text-sm text-texto-suave">
+            La registró {nombreCliente(decision.cliente)}, desde {decision.componente}.
+          </p>
+        </Bloque>
+        <Bloque titulo="Por qué quedó así">
+          {decision.motivos.length ? (
+            <ul className="space-y-2">
+              {decision.motivos.map((motivo, indice) => (
+                <li key={`${indice}-${motivo}`}>
+                  <p>{humanizarMotivo(motivo)}</p>
+                  <p className="text-sm text-texto-suave">{motivo}</p>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p>Cumplía las reglas: se respondió con agregados.</p>
+          )}
+          {decision.filas_devueltas !== undefined && (
+            <p className="text-sm text-texto-suave">
+              {formatearNumero(decision.filas_devueltas)} {decision.filas_devueltas === 1 ? 'fila' : 'filas'}
+              {decision.grupos_enmascarados
+                ? `, ${formatearNumero(decision.grupos_enmascarados)} con la cifra oculta`
+                : ', ninguna con la cifra oculta'}
+              .
+            </p>
+          )}
+        </Bloque>
+        <Bloque titulo="En su lugar">
+          {decision.alternativa ? (
+            <p>{describirAlternativa(decision.alternativa)}</p>
+          ) : (
+            <p className="text-texto-suave">No hizo falta proponer otra consulta.</p>
+          )}
+        </Bloque>
+      </div>
+    </CapasDetalle>
+  )
+}
+
+const POR_PAGINA = 12
 
 function TablaDecisiones({ decisiones }: { decisiones: DecisionAuditada[] }) {
   const [abiertas, setAbiertas] = useState<Set<number>>(() => new Set())
-  const [visibles, setVisibles] = useState(PAGINA)
-  const mostradas = decisiones.slice(0, visibles)
-  const restantes = decisiones.length - mostradas.length
+  const [pagina, setPagina] = useState(0)
+  const paginas = Math.max(1, Math.ceil(decisiones.length / POR_PAGINA))
+  const actual = Math.min(pagina, paginas - 1)
+  const inicio = actual * POR_PAGINA
+  const mostradas = decisiones.slice(inicio, inicio + POR_PAGINA)
+  const ir = (siguiente: number) => {
+    setPagina(siguiente)
+    setAbiertas(new Set())
+  }
   const alternar = (indice: number) =>
     setAbiertas((previas) => {
       const siguientes = new Set(previas)
@@ -179,7 +186,7 @@ function TablaDecisiones({ decisiones }: { decisiones: DecisionAuditada[] }) {
 
   return (
     <div className="space-y-3">
-    <Table>
+    <Table className="text-sm">
       <TableHeader>
         <TableRow className="bg-superficie-alterna/60 hover:bg-superficie-alterna/60">
           <TableHead scope="col" className="w-8">
@@ -188,7 +195,7 @@ function TablaDecisiones({ decisiones }: { decisiones: DecisionAuditada[] }) {
           <TableHead scope="col">Instante</TableHead>
           <TableHead scope="col">Cliente</TableHead>
           <TableHead scope="col">Resultado</TableHead>
-          <TableHead scope="col">Consulta / motivos</TableHead>
+          <TableHead scope="col">Qué pasó</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -196,12 +203,18 @@ function TablaDecisiones({ decisiones }: { decisiones: DecisionAuditada[] }) {
           const abierta = abiertas.has(indice)
           return (
             <Fragment key={`${decision.instante}-${indice}`}>
-              <TableRow className={cn(abierta && 'bg-muted/40')}>
+              <TableRow
+                className={cn('cursor-pointer', abierta && 'bg-slate-100 hover:bg-slate-100')}
+                onClick={() => alternar(indice)}
+              >
                 <TableCell className="py-1">
                   <Button
                     variant="ghost"
                     size="icon-xs"
-                    onClick={() => alternar(indice)}
+                    onClick={(evento) => {
+                      evento.stopPropagation()
+                      alternar(indice)
+                    }}
                     aria-expanded={abierta}
                     aria-label={abierta ? 'Ocultar el detalle' : 'Ver el detalle'}
                   >
@@ -209,17 +222,15 @@ function TablaDecisiones({ decisiones }: { decisiones: DecisionAuditada[] }) {
                   </Button>
                 </TableCell>
                 <TableCell className="cifra text-texto-suave">{formatearFechaHora(decision.instante)}</TableCell>
-                <TableCell className="font-medium">{decision.cliente}</TableCell>
+                <TableCell className="font-medium">{nombreCliente(decision.cliente)}</TableCell>
                 <TableCell>
                   <ChipResultado resultado={decision.resultado} />
                 </TableCell>
-                <TableCell className="max-w-[28rem] truncate">
-                  <ResumenDecision decision={decision} />
-                </TableCell>
+                <TableCell className="max-w-xl whitespace-normal text-texto-suave">{resumenDecision(decision)}</TableCell>
               </TableRow>
               {abierta && (
-                <TableRow className="bg-muted/30 hover:bg-muted/30">
-                  <TableCell colSpan={5} className="whitespace-normal">
+                <TableRow className="bg-slate-50 hover:bg-slate-50">
+                  <TableCell colSpan={5} className="p-0 whitespace-normal">
                     <DetalleDecision decision={decision} />
                   </TableCell>
                 </TableRow>
@@ -229,61 +240,70 @@ function TablaDecisiones({ decisiones }: { decisiones: DecisionAuditada[] }) {
         })}
       </TableBody>
     </Table>
-    {restantes > 0 && (
-      <div className="flex items-center justify-between gap-3 text-xs text-texto-suave">
+    {paginas > 1 && (
+      <div className="flex items-center justify-between gap-3 text-sm text-texto-suave">
         <span>
-          Mostrando {mostradas.length} de {decisiones.length}.
+          {inicio + 1}–{inicio + mostradas.length} de {decisiones.length}
         </span>
-        <Button variant="outline" size="sm" onClick={() => setVisibles((v) => v + PAGINA)}>
-          Mostrar {Math.min(PAGINA, restantes)} más
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" disabled={actual === 0} onClick={() => ir(actual - 1)}>
+            <ChevronLeft aria-hidden />
+            Anterior
+          </Button>
+          <span className="cifra">
+            {actual + 1} / {paginas}
+          </span>
+          <Button variant="outline" size="sm" disabled={actual >= paginas - 1} onClick={() => ir(actual + 1)}>
+            Siguiente
+            <ChevronRight aria-hidden />
+          </Button>
+        </div>
       </div>
     )}
     </div>
   )
 }
 
-export function Auditoria() {
-  const [horas, setHoras] = useState<number>(24)
+/** Varios motivos crudos pueden decirse igual; se suman para que la barra y su clave sean únicas. */
+function agruparMotivos(motivos: { motivo: string; cantidad: number }[]): { etiqueta: string; valor: number }[] {
+  const acumulado = new Map<string, number>()
+  for (const item of motivos) {
+    const etiqueta = humanizarMotivo(item.motivo)
+    acumulado.set(etiqueta, (acumulado.get(etiqueta) ?? 0) + item.cantidad)
+  }
+  return [...acumulado.entries()]
+    .map(([etiqueta, valor]) => ({ etiqueta, valor }))
+    .sort((a, b) => b.valor - a.valor)
+    .slice(0, 8)
+}
+
+export function Auditoria({ horas }: { horas: number }) {
   const [resultado, setResultado] = useState('')
   const [cliente, setCliente] = useState('')
   const resumen = useAuditoriaResumen(horas)
   const disponible = resumen.data?.disponible === true
   const decisiones = useDecisiones({ horas, resultado: resultado || undefined, cliente: cliente || undefined, limite: 100 }, disponible)
 
-  const selectorHoras = <Segmentado etiqueta="Periodo" opciones={OPCIONES_HORAS} valor={horas} alCambiar={setHoras} />
-
   if (resumen.isPending) {
-    return (
-      <div className="space-y-4">
-        {selectorHoras}
-        <EstadoCargando variante="tarjeta" lineas={5} etiqueta="Cargando la auditoría…" />
-      </div>
-    )
+    return <EstadoCargando variante="tarjeta" lineas={5} etiqueta="Cargando la auditoría…" />
   }
   if (resumen.isError) {
     return (
-      <div className="space-y-4">
-        {selectorHoras}
-        <EstadoError
-          titulo="No se ha podido leer la auditoría"
-          error={resumen.error}
-          alReintentar={() => void resumen.refetch()}
-          reintentando={resumen.isFetching}
-        />
-      </div>
+      <EstadoError
+        titulo="No se ha podido leer la auditoría"
+        error={resumen.error}
+        alReintentar={() => void resumen.refetch()}
+        reintentando={resumen.isFetching}
+      />
     )
   }
   if (!resumen.data.disponible) {
     return (
-      <div className="space-y-4">
-        {selectorHoras}
-        <EstadoNoDisponible
+      <EstadoNoDisponible
           servicio="MongoDB"
           descripcion="El BFF no ha podido leer la colección auditoria.decisiones con el usuario pids_auditor. El resto del portal sigue funcionando."
           alReintentar={() => void resumen.refetch()}
         />
-      </div>
     )
   }
 
@@ -291,30 +311,23 @@ export function Auditoria() {
   const clientes = Object.entries(datos.clientes)
     .map(([etiqueta, valor]) => ({ etiqueta, valor }))
     .sort((a, b) => b.valor - a.valor)
-  const motivos = datos.motivos.slice(0, 8).map((m) => ({ etiqueta: m.motivo, valor: m.cantidad }))
+  const motivos = agruparMotivos(datos.motivos)
+  const clientesLegibles = clientes.map((c) => ({ ...c, etiqueta: nombreCliente(c.etiqueta) }))
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-texto-suave">
-          Cada consulta a la API de acceso deja una decisión (permitida, enmascarada o rechazada) en{' '}
-          <code className="font-mono text-[11px]">auditoria.decisiones</code>, que solo admite inserciones.
-        </p>
-        {selectorHoras}
-      </div>
-
       <Kpis resumen={datos} />
 
-      <div className="grid gap-3 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-2">
         <Barras
           titulo="Decisiones por cliente"
-          descripcion="Quién consulta: el chatbot, este portal (cliente «frontend»), Airflow o el equipo."
-          datos={clientes}
+          descripcion="Quién ha consultado en este periodo: el chatbot, este portal, Airflow o el equipo."
+          datos={clientesLegibles}
           vacio="Ninguna decisión en el periodo."
         />
         <Barras
           titulo="Motivos de rechazo más frecuentes"
-          descripcion="Tipo de motivo (el texto antes de «: »), como en scripts/informe_auditoria.py."
+          descripcion="Agrupados por el tipo de motivo, sin el detalle de cada consulta."
           datos={motivos}
           vacio="Ningún rechazo en el periodo."
           color="bg-peligro"
@@ -323,26 +336,26 @@ export function Auditoria() {
 
       <Card className="sombra-tarjeta">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-sm">
             <Filter className="size-4 text-texto-suave" aria-hidden />
-            Decisiones recientes
+            Consultas recientes
           </CardTitle>
-          <CardDescription>Las 100 más recientes del periodo que cumplen los filtros; cada fila se despliega para ver el detalle.</CardDescription>
-          <div className="mt-2 flex flex-wrap items-end gap-4">
+          <CardDescription className="text-sm">Doce por página. Abre una fila para leer qué se pidió y cómo se resolvió.</CardDescription>
+          <div className="mt-2 flex flex-wrap items-center gap-4">
             <Segmentado etiqueta="Resultado" opciones={OPCIONES_RESULTADO} valor={resultado} alCambiar={setResultado} />
             <div className="flex items-center gap-2">
-              <Label htmlFor="filtro-cliente" className="text-xs text-texto-suave">
+              <Label htmlFor="filtro-cliente" className="text-sm text-texto-suave">
                 Cliente
               </Label>
               <Select value={cliente || TODOS_LOS_CLIENTES} onValueChange={(v) => setCliente(v === TODOS_LOS_CLIENTES ? '' : v)}>
-                <SelectTrigger id="filtro-cliente" size="sm" className="min-w-40">
+                <SelectTrigger id="filtro-cliente" className="min-w-44 text-sm">
                   <SelectValue placeholder="Todos" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={TODOS_LOS_CLIENTES}>Todos</SelectItem>
                   {clientes.map((c) => (
                     <SelectItem key={c.etiqueta} value={c.etiqueta}>
-                      {c.etiqueta}
+                      {nombreCliente(c.etiqueta)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -363,7 +376,7 @@ export function Auditoria() {
           ) : decisiones.data.length === 0 ? (
             <EstadoVacio titulo="Sin decisiones" descripcion="Ninguna decisión cumple los filtros en este periodo." />
           ) : (
-            <TablaDecisiones decisiones={decisiones.data} />
+            <TablaDecisiones key={`${horas}|${resultado}|${cliente}`} decisiones={decisiones.data} />
           )}
         </CardContent>
       </Card>

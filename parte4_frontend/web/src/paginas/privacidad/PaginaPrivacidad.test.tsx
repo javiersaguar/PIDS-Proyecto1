@@ -84,23 +84,21 @@ function apiBase(extra: Record<string, unknown> = {}) {
 }
 
 describe('PaginaPrivacidad', () => {
-  it('«Reglas E3» enseña las reglas leídas del catálogo y la explicación', async () => {
+  it('«Reglas E3» explica las reglas en texto, con las cifras del catálogo', async () => {
     apiBase()
     renderizarRutas('/privacidad')
 
-    expect(await screen.findByText('31 días')).toBeInTheDocument()
-    expect(screen.getByText('k = 10', { selector: 'p' })).toBeInTheDocument()
-    expect(screen.getByText('Viajes por hora y zona de origen. Sin destino.')).toBeInTheDocument()
-    expect(screen.getByText('Flujos entre barrios por día')).toBeInTheDocument()
-    expect(screen.getAllByText('hora completa')).toHaveLength(1)
-    expect(screen.getAllByText('día completo')).toHaveLength(2)
-    expect(screen.getByText('Propina media (propina_media)')).toBeInTheDocument()
-    expect(screen.getByText('Barrios (5)')).toBeInTheDocument()
-    expect(screen.getByText('Staten Island')).toBeInTheDocument()
-    // La explicación no depende de la API.
-    expect(screen.getByText('La mitigación: supresión complementaria')).toBeInTheDocument()
-    expect(screen.getByText('El ataque por diferencia')).toBeInTheDocument()
-    expect(screen.getByText('zona_destino')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Qué se publica' })).toBeInTheDocument()
+    expect(screen.getByText(/como máximo 31 días/)).toBeInTheDocument()
+    expect(screen.getByText(/menos de 10 viajes/)).toBeInTheDocument()
+    expect(screen.getByText(/por hora y zona de origen/)).toBeInTheDocument()
+    expect(screen.getByText(/la propina media/)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Por qué no basta con ocultarla' })).toBeInTheDocument()
+    expect(screen.getByText(/supresión complementaria/)).toBeInTheDocument()
+    expect(screen.getByText(/una hora completa/)).toBeInTheDocument()
+    expect(screen.queryByText('Staten Island')).not.toBeInTheDocument()
+    expect(screen.queryByText(/Las reglas del escenario/)).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: 'Privacidad' })).toHaveClass('sr-only')
   })
 
   it('si el catálogo falla, muestra el error con «Reintentar» y mantiene la explicación', async () => {
@@ -110,7 +108,7 @@ describe('PaginaPrivacidad', () => {
     const alerta = await screen.findByRole('alert')
     expect(alerta).toHaveTextContent('La API de acceso no responde')
     expect(within(alerta).getByRole('button', { name: 'Reintentar' })).toBeInTheDocument()
-    expect(screen.getByText('Por qué se enmascara')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Por qué no basta con ocultarla' })).toBeInTheDocument()
   })
 
   it('«Auditoría» muestra el resumen, las barras y la tabla; el filtro por resultado se envía al BFF', async () => {
@@ -124,17 +122,18 @@ describe('PaginaPrivacidad', () => {
     expect(within(kpis).getByText('34')).toBeInTheDocument()
     expect(within(kpis).getByText('3 % del total')).toBeInTheDocument()
     const clientes = screen.getByRole('list', { name: 'Decisiones por cliente' })
-    expect(within(clientes).getAllByRole('listitem').map((li) => li.textContent)).toEqual(['chatbot900', 'frontend300', 'equipo34'])
+    expect(within(clientes).getAllByRole('listitem').map((li) => li.textContent)).toEqual(['Chatbot900', 'Este portal300', 'El equipo34'])
     const motivos = screen.getByRole('list', { name: 'Motivos de rechazo más frecuentes' })
-    expect(within(motivos).getByText('petición de datos individuales')).toBeInTheDocument()
+    expect(within(motivos).getByText('Pedía datos de un viaje concreto, y eso no se publica.')).toBeInTheDocument()
 
     // La tabla con las dos decisiones, y la fila del rechazo se expande con la consulta, los motivos y la alternativa.
     const tabla = await screen.findByRole('table')
     expect(within(tabla).getAllByRole('row')).toHaveLength(3)
-    expect(within(tabla).getByText('chatbot')).toBeInTheDocument()
+    expect(within(tabla).getByText('Chatbot')).toBeInTheDocument()
     await usuario.click(within(tabla).getAllByRole('button', { name: 'Ver el detalle' })[0])
-    expect(within(tabla).getByText('Alternativa propuesta')).toBeInTheDocument()
-    expect(within(tabla).getByText(/"zona_origen": 230/)).toBeInTheDocument()
+    expect(within(tabla).getByText('En su lugar')).toBeInTheDocument()
+    expect(within(tabla).getByText(/zona de origen 230/)).toBeInTheDocument()
+    expect(within(tabla).getAllByText(/Pedía datos de un viaje concreto/).length).toBeGreaterThan(0)
     expect(within(tabla).getByText('la plataforma solo publica agregados de al menos 10 viajes')).toBeInTheDocument()
 
     // Filtro por resultado: la petición al BFF lleva `resultado=rechazada` y la tabla se queda con una fila.
@@ -178,8 +177,10 @@ describe('PaginaPrivacidad', () => {
     expect(within(tabla).getByText('120.000')).toBeInTheDocument()
     expect(within(tabla).getByText('45.000')).toBeInTheDocument()
     expect(within(tabla).getByText('50')).toBeInTheDocument()
+    expect(within(tabla).getAllByText('publicados').length).toBeGreaterThan(0)
+    expect(within(tabla).getAllByText('sin cifra').length).toBeGreaterThan(0)
     expect(within(tabla).getAllByRole('columnheader').map((c) => c.textContent)).toEqual(
-      expect.arrayContaining([expect.stringContaining('hora_zona'), expect.stringContaining('od_dia_barrio')]),
+      expect.arrayContaining([expect.stringContaining('Por hora y zona'), expect.stringContaining('Entre barrios')]),
     )
 
     await usuario.click(within(tabla).getByRole('button', { name: 'Ver el detalle' }))

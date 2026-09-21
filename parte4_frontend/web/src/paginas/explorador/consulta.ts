@@ -338,7 +338,7 @@ export const EJEMPLOS: readonly Ejemplo[] = [
     },
   },
   {
-    titulo: 'Staten Island (Stapleton) por horas el 01/01 (enmascarado)',
+    titulo: 'Stapleton el 01/01 (enmascarado)',
     descripcion: 'Viajes por hora desde Stapleton (zona 221, Staten Island) el 01/01/2020: todos los grupos tienen menos de 10 viajes.',
     consulta: {
       nivel: 'hora_zona',

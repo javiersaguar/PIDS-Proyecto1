@@ -80,7 +80,8 @@ describe('PaginaExplorador', () => {
     renderizarRutas(URL_ENMASCARADA)
 
     const resultado = await screen.findByRole('region', { name: 'Resultado de la consulta' })
-    expect(await within(resultado).findByText('viajes por hora desde Stapleton (zona 221) el 01/01/2020 (histórico)')).toBeInTheDocument()
+    expect(await within(resultado).findByRole('heading', { name: 'Viajes por hora' })).toBeInTheDocument()
+    expect(within(resultado).getByText(/Stapleton \(zona 221\)/)).toBeInTheDocument()
     expect(within(resultado).getByText('enmascarada')).toBeInTheDocument()
     expect(within(resultado).getByText('3 filas')).toBeInTheDocument()
     expect(within(resultado).getByText('2 grupos enmascarados')).toBeInTheDocument()
@@ -110,7 +111,7 @@ describe('PaginaExplorador', () => {
     })
 
     // El formulario se ha rellenado con la consulta de la URL.
-    expect(screen.getByRole('radio', { name: /Por hora y zona de origen/ })).toHaveAttribute('aria-checked', 'true')
+    expect(screen.getByRole('combobox', { name: 'Nivel de agregación' })).toHaveTextContent('Hora y zona')
     expect(await screen.findByDisplayValue('Stapleton')).toBeInTheDocument()
   })
 
@@ -135,7 +136,8 @@ describe('PaginaExplorador', () => {
 
     await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument())
     const resultado = screen.getByRole('region', { name: 'Resultado de la consulta' })
-    expect(await within(resultado).findByText('viajes por día desde Staten Island el 01/01/2020 (histórico)')).toBeInTheDocument()
+    expect(await within(resultado).findByRole('heading', { name: 'Viajes por día' })).toBeInTheDocument()
+    expect(within(resultado).getByText('Staten Island · 1 día (el 01/01/2020)')).toBeInTheDocument()
     expect(within(resultado).getByRole('table', { name: /^Filas:/ })).toBeInTheDocument()
     expect(cuerpoEnviado(espia)).toEqual({
       nivel: 'dia_barrio',
@@ -146,7 +148,7 @@ describe('PaginaExplorador', () => {
       barrio_origen: 'Staten Island',
     })
     // El formulario se ha rellenado con la alternativa.
-    expect(screen.getByRole('radio', { name: /Por día y barrio de origen/ })).toHaveAttribute('aria-checked', 'true')
+    expect(screen.getByRole('combobox', { name: 'Nivel de agregación' })).toHaveTextContent('Día y barrio')
     expect(screen.getByRole('combobox', { name: 'Barrio de origen' })).toHaveTextContent('Staten Island')
   })
 
@@ -169,7 +171,8 @@ describe('PaginaExplorador', () => {
 
     fireEvent.change(hasta, { target: { value: '2020-02-01' } })
     await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument())
-    expect(screen.getByText(/Ventana:/)).toHaveTextContent('31 días (del 01/01/2020 al 31/01/2020)')
+    expect(screen.queryByText(/Ventana:/)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Consultar' })).toBeEnabled()
 
     const posts = espia.mock.calls.filter(([, init]) => (init as RequestInit | undefined)?.method === 'POST')
     expect(posts).toHaveLength(0)
@@ -182,7 +185,9 @@ describe('PaginaExplorador', () => {
 
     fireEvent.change(await screen.findByLabelText('Desde'), { target: { value: '2020-03-03' } })
     fireEvent.change(screen.getByLabelText('Hasta (no incluido)'), { target: { value: '2020-03-04' } })
-    await usuario.click(screen.getByRole('switch', { name: 'Métrica Importe medio' }))
+    await usuario.click(screen.getByRole('button', { name: 'Métricas' }))
+    await usuario.click(await screen.findByRole('menuitemcheckbox', { name: 'Importe medio' }))
+    await usuario.keyboard('{Escape}')
     await usuario.click(screen.getByRole('button', { name: 'Consultar' }))
 
     expect(await screen.findByRole('img', { name: 'Viajes por barrio de origen' })).toBeInTheDocument()
@@ -200,6 +205,28 @@ describe('PaginaExplorador', () => {
     expect(within(tabla).getByText('78,1 %')).toBeInTheDocument()
     // Selector de métrica del gráfico, porque la respuesta trae varias.
     expect(screen.getByRole('combobox', { name: 'Métrica del gráfico' })).toBeInTheDocument()
+  })
+
+  it('guarda la consulta actual como vista y la vuelve a lanzar', async () => {
+    localStorage.clear()
+    const espia = simularApi({ ...BASE, 'POST /api/consultas': RESPUESTA_BARRIOS })
+    renderizarRutas('/explorador')
+    const usuario = userEvent.setup()
+
+    await usuario.click(await screen.findByRole('button', { name: 'Guardar esta consulta' }))
+    const nombre = screen.getByLabelText('Nombre de la vista')
+    await usuario.clear(nombre)
+    await usuario.type(nombre, 'Mi día de enero')
+    await usuario.click(screen.getByRole('button', { name: 'Guardar' }))
+
+    await usuario.click(screen.getByRole('button', { name: 'Mi día de enero' }))
+
+    expect(await screen.findByRole('img', { name: 'Viajes por barrio de origen' })).toBeInTheDocument()
+    expect(cuerpoEnviado(espia)).toMatchObject({ nivel: 'dia_barrio', desde: '2020-01-01T00:00:00', hasta: '2020-01-02T00:00:00' })
+
+    await usuario.click(screen.getByRole('button', { name: 'Quitar Mi día de enero' }))
+    expect(screen.queryByRole('button', { name: 'Mi día de enero' })).not.toBeInTheDocument()
+    localStorage.clear()
   })
 
   it('los ejemplos rápidos rellenan y lanzan la consulta', async () => {
@@ -230,9 +257,12 @@ describe('PaginaExplorador', () => {
   it('si el catálogo no está disponible, el formulario sigue funcionando con los valores por defecto', async () => {
     simularApi({ 'GET /api/sesion': { autenticado: true }, 'GET /api/zonas': ZONAS, 'POST /api/consultas': RESPUESTA_BARRIOS })
     renderizarRutas('/explorador')
+    const usuario = userEvent.setup()
 
     expect(await screen.findByText(/El catálogo no está disponible/)).toBeInTheDocument()
-    expect(screen.getByRole('radio', { name: /Flujos entre barrios por día/ })).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'Nivel de agregación' })).toHaveTextContent('Día y barrio')
     expect(screen.getByRole('button', { name: 'Consultar' })).toBeEnabled()
+    await usuario.click(screen.getByRole('combobox', { name: 'Nivel de agregación' }))
+    expect(await screen.findByRole('option', { name: 'Flujos entre barrios por día' })).toBeInTheDocument()
   })
 })

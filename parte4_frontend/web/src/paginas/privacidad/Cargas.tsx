@@ -1,6 +1,6 @@
 /**
- * Pestaña «Cargas»: los resúmenes que `pids.CargaHistorica` escribe en `auditoria.cargas` al terminar cada carga:
- * viajes leídos, válidos y rechazados, y por nivel los grupos publicados, suprimidos y complementarios.
+ * Pestaña «Cargas»: cada carga histórica en una fila legible. Los viajes y cada agrupación
+ * se leen con su etiqueta (publicados, sin cifra, de más), y el detalle abre el fichero y los descartes.
  */
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import { Fragment, useState } from 'react'
@@ -10,13 +10,23 @@ import type { Carga, Nivel } from '@/api/tipos'
 import { formatearFechaHora, formatearNumero } from '@/componentes/chat/formato'
 import { EstadoCargando, EstadoError, EstadoVacio } from '@/componentes/shell'
 import { Button } from '@/componentes/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/componentes/ui/card'
+import { Card, CardContent } from '@/componentes/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/componentes/ui/table'
 import { cn } from '@/lib/utils'
 
 import { NOMBRE_NIVEL } from './etiquetas'
 
 const NIVELES: Nivel[] = ['hora_zona', 'dia_barrio', 'od_dia_barrio']
+
+const TITULO_NIVEL: Record<string, string> = {
+  hora_zona: 'Por hora y zona',
+  dia_barrio: 'Por día y barrio',
+  od_dia_barrio: 'Entre barrios',
+}
+
+function tituloNivel(nivel: string): string {
+  return TITULO_NIVEL[nivel] ?? NOMBRE_NIVEL[nivel as Nivel] ?? nivel.replaceAll('_', ' ')
+}
 
 function nivelesDe(cargas: Carga[]): string[] {
   const vistos = new Set<string>(NIVELES)
@@ -26,52 +36,112 @@ function nivelesDe(cargas: Carga[]): string[] {
   return [...vistos]
 }
 
-function CeldaNivel({ carga, nivel }: { carga: Carga; nivel: string }) {
+function Linea({ valor, etiqueta, clase, titulo }: { valor: string; etiqueta: string; clase?: string; titulo?: string }) {
+  return (
+    <li className="flex items-baseline gap-1.5" title={titulo}>
+      <span className={cn('cifra font-medium', clase)}>{valor}</span>
+      <span className="text-texto-suave">{etiqueta}</span>
+    </li>
+  )
+}
+
+function CifrasViajes({ carga }: { carga: Carga }) {
+  return (
+    <ul className="space-y-1 text-sm">
+      <Linea valor={formatearNumero(carga.filas)} etiqueta="leídos" />
+      <Linea valor={formatearNumero(carga.validos)} etiqueta="válidos" clase="text-ok" />
+      <Linea
+        valor={formatearNumero(carga.rechazados)}
+        etiqueta="descartados"
+        clase={carga.rechazados > 0 ? 'text-aviso' : 'text-texto-suave'}
+      />
+    </ul>
+  )
+}
+
+function CifrasNivel({ carga, nivel }: { carga: Carga; nivel: string }) {
   const publicados = carga.grupos_publicados?.[nivel]
   const suprimidos = carga.grupos_suprimidos?.[nivel]
   const complementarios = carga.grupos_complementarios?.[nivel]
-  if (publicados === undefined && suprimidos === undefined) return <span className="text-texto-suave">—</span>
+  if (publicados === undefined && suprimidos === undefined) {
+    return <span className="text-sm text-texto-suave">Sin datos</span>
+  }
   return (
-    <span className="cifra inline-flex items-baseline gap-1.5">
-      <span title="Grupos publicados (incluidos los suprimidos, que van sin cifras)">{formatearNumero(publicados)}</span>
-      <span className="text-texto-suave">/</span>
-      <span className="text-enmascarado" title="Grupos suprimidos (menos de 10 viajes o complementarios)">
-        {formatearNumero(suprimidos)}
-      </span>
-      <span className="text-texto-suave">/</span>
-      <span className="text-texto-suave" title="Suprimidos solo por la supresión complementaria">
-        {complementarios === undefined ? '—' : formatearNumero(complementarios)}
-      </span>
-    </span>
+    <ul className="space-y-1 text-sm">
+      <Linea valor={formatearNumero(publicados)} etiqueta="publicados" titulo="Grupos que se guardaron, incluidos los que van sin cifra" />
+      <Linea
+        valor={formatearNumero(suprimidos)}
+        etiqueta="sin cifra"
+        clase="text-enmascarado"
+        titulo="Grupos con menos de 10 viajes, o ocultos de más, que se publican vacíos"
+      />
+      <Linea
+        valor={complementarios === undefined ? '—' : formatearNumero(complementarios)}
+        etiqueta="de más"
+        clase="text-texto-suave"
+        titulo="Grupos visibles que también se ocultan para que no se pueda calcular el resto restando"
+      />
+    </ul>
   )
+}
+
+function nombreOrigen(origen: string): string {
+  if (origen === 'historico') return 'Histórico'
+  if (origen === 'tiempo_real') return 'Tiempo real'
+  return origen
 }
 
 function DetalleCarga({ carga }: { carga: Carga }) {
   const motivos = Object.entries(carga.motivos ?? {}).sort((a, b) => b[1] - a[1])
+  const maximo = Math.max(1, ...motivos.map(([, cantidad]) => cantidad))
   return (
-    <div className="grid gap-3 py-1 text-xs lg:grid-cols-2">
-      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
-        <dt className="text-texto-suave">Entrada</dt>
-        <dd className="font-mono break-all">{carga.entrada}</dd>
-        <dt className="text-texto-suave">Origen</dt>
-        <dd>{carga.origen}</dd>
-        <dt className="text-texto-suave">Versión de las reglas</dt>
-        <dd className="cifra">{carga.version_reglas}</dd>
-      </dl>
-      <div>
-        <p className="mb-1 font-medium text-texto-suave">Motivos de rechazo de viajes</p>
-        {motivos.length ? (
-          <ul className="space-y-0.5">
-            {motivos.map(([motivo, cantidad]) => (
-              <li key={motivo} className="flex justify-between gap-3">
-                <span>{motivo}</span>
-                <span className="cifra font-medium">{formatearNumero(cantidad)}</span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-texto-suave">Ningún viaje rechazado.</p>
-        )}
+    <div className="border-t border-borde bg-[#f8fafc] px-4 py-4 sm:px-5">
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)]">
+        <div>
+          <p className="text-sm font-semibold text-primario">De dónde salió</p>
+          <dl className="mt-2 space-y-2.5 text-sm">
+            <div>
+              <dt className="text-texto-suave">Fichero</dt>
+              <dd className="mt-0.5 font-mono text-[13px] leading-snug break-all text-slate-700">{carga.entrada}</dd>
+            </div>
+            <div className="flex flex-wrap gap-x-8 gap-y-2">
+              <div>
+                <dt className="text-texto-suave">Origen</dt>
+                <dd className="mt-0.5 font-medium text-slate-800">{nombreOrigen(carga.origen)}</dd>
+              </div>
+              <div>
+                <dt className="text-texto-suave">Reglas</dt>
+                <dd className="mt-0.5 font-medium text-slate-800">Versión {carga.version_reglas}</dd>
+              </div>
+            </div>
+          </dl>
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-primario">Por qué se descartaron</p>
+          {motivos.length === 0 ? (
+            <p className="mt-2 text-sm text-texto-suave">Ningún viaje se descartó.</p>
+          ) : (
+            <ul className="mt-2 space-y-2.5" aria-label="Motivos de descarte">
+              {motivos.map(([motivo, cantidad]) => {
+                const parte = carga.rechazados > 0 ? Math.round((cantidad / carga.rechazados) * 100) : 0
+                return (
+                  <li key={motivo}>
+                    <div className="flex items-baseline justify-between gap-3 text-sm">
+                      <span className="text-slate-800">{motivo}</span>
+                      <span className="cifra shrink-0 text-texto-suave">
+                        <span className="font-medium text-slate-800">{formatearNumero(cantidad)}</span>
+                        {parte > 0 ? ` · ${parte} %` : ''}
+                      </span>
+                    </div>
+                    <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white ring-1 ring-borde">
+                      <div className="h-full rounded-full bg-aviso" style={{ width: `${Math.max(6, (cantidad / maximo) * 100)}%` }} />
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -87,30 +157,21 @@ function TablaCargas({ cargas }: { cargas: Carga[] }) {
       else siguientes.add(indice)
       return siguientes
     })
-  const columnas = 6 + niveles.length
+  const columnas = 4 + niveles.length
 
   return (
-    <Table>
+    <Table className="text-sm">
       <TableHeader>
         <TableRow className="bg-superficie-alterna/60 hover:bg-superficie-alterna/60">
           <TableHead scope="col" className="w-8">
             <span className="sr-only">Detalle</span>
           </TableHead>
-          <TableHead scope="col">Instante</TableHead>
+          <TableHead scope="col">Cuándo</TableHead>
           <TableHead scope="col">Lote</TableHead>
-          <TableHead scope="col" className="text-right">
-            Leídos
-          </TableHead>
-          <TableHead scope="col" className="text-right">
-            Válidos
-          </TableHead>
-          <TableHead scope="col" className="text-right">
-            Rechazados
-          </TableHead>
+          <TableHead scope="col">Viajes del fichero</TableHead>
           {niveles.map((nivel) => (
-            <TableHead key={nivel} scope="col" title={NOMBRE_NIVEL[nivel as Nivel] ?? nivel}>
-              <span className="font-mono text-[11px]">{nivel}</span>
-              <span className="block text-[10px] font-normal text-texto-suave">publicados / suprimidos / complementarios</span>
+            <TableHead key={nivel} scope="col" className="align-bottom">
+              {tituloNivel(nivel)}
             </TableHead>
           ))}
         </TableRow>
@@ -120,34 +181,38 @@ function TablaCargas({ cargas }: { cargas: Carga[] }) {
           const abierta = abiertas.has(indice)
           return (
             <Fragment key={`${carga.lote}-${carga.instante}`}>
-              <TableRow className={cn(abierta && 'bg-muted/40')}>
-                <TableCell className="py-1">
+              <TableRow
+                className={cn('cursor-pointer', abierta && 'bg-slate-100 hover:bg-slate-100')}
+                onClick={() => alternar(indice)}
+              >
+                <TableCell className="py-1 align-top">
                   <Button
                     variant="ghost"
                     size="icon-xs"
-                    onClick={() => alternar(indice)}
+                    onClick={(evento) => {
+                      evento.stopPropagation()
+                      alternar(indice)
+                    }}
                     aria-expanded={abierta}
                     aria-label={abierta ? 'Ocultar el detalle' : 'Ver el detalle'}
                   >
                     {abierta ? <ChevronDown aria-hidden /> : <ChevronRight aria-hidden />}
                   </Button>
                 </TableCell>
-                <TableCell className="cifra text-texto-suave">{formatearFechaHora(carga.instante)}</TableCell>
-                <TableCell className="font-medium">{carga.lote}</TableCell>
-                <TableCell className="cifra text-right">{formatearNumero(carga.filas)}</TableCell>
-                <TableCell className="cifra text-right text-ok">{formatearNumero(carga.validos)}</TableCell>
-                <TableCell className={cn('cifra text-right', carga.rechazados > 0 ? 'text-aviso' : 'text-texto-suave')}>
-                  {formatearNumero(carga.rechazados)}
+                <TableCell className="cifra align-top text-texto-suave">{formatearFechaHora(carga.instante)}</TableCell>
+                <TableCell className="align-top font-medium">{carga.lote}</TableCell>
+                <TableCell className="align-top whitespace-normal">
+                  <CifrasViajes carga={carga} />
                 </TableCell>
                 {niveles.map((nivel) => (
-                  <TableCell key={nivel}>
-                    <CeldaNivel carga={carga} nivel={nivel} />
+                  <TableCell key={nivel} className="align-top whitespace-normal">
+                    <CifrasNivel carga={carga} nivel={nivel} />
                   </TableCell>
                 ))}
               </TableRow>
               {abierta && (
-                <TableRow className="bg-muted/30 hover:bg-muted/30">
-                  <TableCell colSpan={columnas} className="whitespace-normal">
+                <TableRow className="bg-slate-50 hover:bg-slate-50">
+                  <TableCell colSpan={columnas} className="p-0 whitespace-normal">
                     <DetalleCarga carga={carga} />
                   </TableCell>
                 </TableRow>
@@ -164,14 +229,6 @@ export function Cargas() {
   const cargas = useCargas()
   return (
     <Card className="sombra-tarjeta">
-      <CardHeader>
-        <CardTitle>Cargas históricas</CardTitle>
-        <CardDescription>
-          Resumen que Spark escribe en <code className="font-mono text-[11px]">auditoria.cargas</code> al terminar cada carga: los viajes
-          leídos del fichero de la TLC, los que pasaron la validación y, por nivel, cuántos grupos se publicaron y cuántos quedaron
-          suprimidos (por tener menos de 10 viajes o por la supresión complementaria).
-        </CardDescription>
-      </CardHeader>
       <CardContent>
         {cargas.isPending ? (
           <EstadoCargando lineas={6} etiqueta="Cargando las cargas históricas…" />

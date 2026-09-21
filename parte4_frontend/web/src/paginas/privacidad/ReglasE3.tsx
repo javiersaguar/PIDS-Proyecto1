@@ -1,259 +1,168 @@
 /**
- * Pestaña «Reglas E3»: las reglas de privacidad leídas del catálogo de la API de acceso (`GET /api/catalogo`)
- * en tarjetas, más una explicación en lenguaje claro de por qué se enmascara, qué es la supresión
- * complementaria y el ataque por diferencia (resumen de `docs/escenario_E3.md`).
+ * Pestaña «Reglas E3»: las reglas de `GET /api/catalogo` en cuatro tarjetas
+ * (qué se publica, cuándo se oculta una cifra, por qué no basta y qué se rechaza).
+ * El texto va en lenguaje llano, con un ejemplo corto, y en dos columnas para no dejar hueco a la derecha.
  */
-import { Ban, CalendarRange, Clock3, Layers3, Lock, ShieldCheck, Sigma } from 'lucide-react'
+import { Ban, EyeOff, Layers, type LucideIcon, Scale } from 'lucide-react'
 import type { ReactNode } from 'react'
 
 import { useCatalogo } from '@/api/auditoria'
-import type { Catalogo, Nivel } from '@/api/tipos'
+import type { Catalogo, Fuente, Metrica, Nivel } from '@/api/tipos'
 import { formatearNumero } from '@/componentes/chat/formato'
 import { EstadoCargando, EstadoError } from '@/componentes/shell'
-import { Badge } from '@/componentes/ui/badge'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/componentes/ui/card'
+import { cn } from '@/lib/utils'
 
-import { CAMPOS_INDIVIDUALES, granularidadDe, NOMBRE_DIMENSION, NOMBRE_FUENTE, NOMBRE_METRICA, NOMBRE_NIVEL } from './etiquetas'
+import { NOMBRE_METRICA, NOMBRE_NIVEL } from './etiquetas'
 
-function Cifra({ icono, valor, etiqueta, detalle }: { icono: ReactNode; valor: ReactNode; etiqueta: string; detalle: string }) {
+function unir(partes: string[]): string {
+  if (partes.length <= 1) return partes[0] ?? ''
+  return `${partes.slice(0, -1).join(', ')} y ${partes[partes.length - 1]}`
+}
+
+const FRASE_NIVEL: Record<Nivel, string> = {
+  hora_zona: 'por hora y zona de origen (los taxis que salieron de un mismo sitio durante esa hora)',
+  dia_barrio: 'por día y barrio de origen (los de un barrio durante un día entero)',
+  od_dia_barrio: 'por flujos entre barrios en un mismo día (cuántos fueron de un barrio a otro)',
+}
+
+const FRASE_METRICA: Record<Metrica, string> = {
+  n_viajes: 'cuántos viajes hubo',
+  distancia_media: 'la distancia media',
+  importe_medio: 'el importe medio',
+  propina_media: 'la propina media',
+  pct_pago_tarjeta: 'el porcentaje de pago con tarjeta',
+}
+
+const FRASE_FUENTE: Record<Fuente, string> = {
+  historico: 'el histórico',
+  tiempo_real: 'el tiempo real',
+}
+
+function fraseNiveles(catalogo: Catalogo | null): string {
+  const claves = catalogo ? (Object.keys(catalogo.niveles) as Nivel[]) : (Object.keys(FRASE_NIVEL) as Nivel[])
+  const frases = claves.map((nivel) => FRASE_NIVEL[nivel] ?? (NOMBRE_NIVEL[nivel] ?? nivel).toLowerCase())
+  return unir(frases)
+}
+
+function fraseMetricas(catalogo: Catalogo | null): string {
+  const metricas = catalogo?.metricas ?? (Object.keys(FRASE_METRICA) as Metrica[])
+  const frases = metricas.map((metrica) => FRASE_METRICA[metrica] ?? NOMBRE_METRICA[metrica] ?? metrica)
+  if (!frases.length) return 'recuentos y medias, redondeadas'
+  return unir(frases)
+}
+
+function fraseFuentes(catalogo: Catalogo | null): string {
+  const fuentes = catalogo?.fuentes ?? (Object.keys(FRASE_FUENTE) as Fuente[])
+  const frases = fuentes.map((fuente) => FRASE_FUENTE[fuente] ?? fuente)
+  if (!frases.length) return 'el histórico y el tiempo real'
+  return unir(frases)
+}
+
+function Tarjeta({
+  titulo,
+  icono: Icono,
+  tono,
+  children,
+  ejemplo,
+}: {
+  titulo: string
+  icono: LucideIcon
+  tono: string
+  children: ReactNode
+  ejemplo: string
+}) {
   return (
-    <Card size="sm" className="sombra-tarjeta">
-      <CardContent className="flex items-start gap-3">
-        <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-acento-suave text-primario" aria-hidden>
-          {icono}
+    <section className="flex h-full flex-col rounded-2xl border border-borde bg-white px-4 py-3 sombra-tarjeta">
+      <div className="flex items-center gap-2">
+        <span className={cn('flex size-7 shrink-0 items-center justify-center rounded-lg', tono)} aria-hidden>
+          <Icono className="size-3.5" strokeWidth={2.25} />
         </span>
-        <div className="min-w-0">
-          <p className="text-xs font-medium text-texto-suave uppercase">{etiqueta}</p>
-          <p className="cifra text-2xl font-semibold text-primario">{valor}</p>
-          <p className="text-xs text-texto-suave">{detalle}</p>
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
-
-function Chips({ valores, className }: { valores: string[]; className?: string }) {
-  return (
-    <ul className={`flex flex-wrap gap-1.5 ${className ?? ''}`}>
-      {valores.map((valor) => (
-        <li key={valor}>
-          <Badge variant="outline" className="h-6 bg-superficie px-2 font-normal">
-            {valor}
-          </Badge>
-        </li>
-      ))}
-    </ul>
-  )
-}
-
-function TarjetasDelCatalogo({ catalogo }: { catalogo: Catalogo }) {
-  const niveles = Object.entries(catalogo.niveles) as [Nivel, Catalogo['niveles'][Nivel]][]
-  return (
-    <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Cifra
-          icono={<Lock className="size-4" />}
-          etiqueta="k mínimo"
-          valor={`k = ${formatearNumero(catalogo.k_minimo)}`}
-          detalle="Un grupo con menos viajes se publica sin cifras («<10») y nunca se suma a un total."
-        />
-        <Cifra
-          icono={<CalendarRange className="size-4" />}
-          etiqueta="Rango máximo"
-          valor={`${formatearNumero(catalogo.max_dias_por_consulta)} días`}
-          detalle="Por consulta: evita descargar en masa los agregados finos."
-        />
-        <Cifra
-          icono={<Layers3 className="size-4" />}
-          etiqueta="Niveles publicados"
-          valor={niveles.length}
-          detalle="Solo estas combinaciones de dimensiones existen en MongoDB."
-        />
-        <Cifra
-          icono={<Sigma className="size-4" />}
-          etiqueta="Métricas"
-          valor={catalogo.metricas.length}
-          detalle="Recuentos y medias redondeadas a dos decimales."
-        />
+        <h2 className="text-sm leading-tight">{titulo}</h2>
       </div>
-
-      <section aria-labelledby="niveles-titulo" className="space-y-3">
-        <h3 id="niveles-titulo" className="text-base">
-          Los tres niveles de agregación
-        </h3>
-        <div className="grid gap-3 lg:grid-cols-3">
-          {niveles.map(([nivel, definicion]) => (
-            <Card key={nivel} size="sm" className="sombra-tarjeta">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between gap-2">
-                  <span>{NOMBRE_NIVEL[nivel] ?? nivel}</span>
-                  <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] font-normal text-texto-suave">{nivel}</code>
-                </CardTitle>
-                <CardDescription>{definicion.descripcion}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-2 text-xs">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="text-texto-suave">Dimensiones:</span>
-                  {definicion.dimensiones.map((d) => (
-                    <Badge key={d} variant="secondary" className="h-5 font-normal">
-                      {NOMBRE_DIMENSION[d] ?? d}
-                    </Badge>
-                  ))}
-                </div>
-                <p className="flex items-center gap-1.5 text-texto-suave">
-                  <Clock3 className="size-3.5" aria-hidden />
-                  Granularidad mínima: <span className="font-medium text-foreground">{granularidadDe(definicion.dimensiones)}</span>
-                </p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </section>
-
-      <div className="grid gap-3 lg:grid-cols-2">
-        <Card size="sm" className="sombra-tarjeta">
-          <CardHeader>
-            <CardTitle>Métricas publicadas</CardTitle>
-            <CardDescription>Lo único que se puede pedir de cada grupo; las medias van redondeadas a 2 decimales.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Chips valores={catalogo.metricas.map((m) => `${NOMBRE_METRICA[m] ?? m} (${m})`)} />
-          </CardContent>
-        </Card>
-        <Card size="sm" className="sombra-tarjeta">
-          <CardHeader>
-            <CardTitle>Fuentes</CardTitle>
-            <CardDescription>Las mismas reglas para el histórico y para el tiempo real.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Chips valores={catalogo.fuentes.map((f) => NOMBRE_FUENTE[f] ?? f)} />
-          </CardContent>
-        </Card>
-        <Card size="sm" className="sombra-tarjeta lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Barrios ({catalogo.barrios.length})</CardTitle>
-            <CardDescription>Los barrios (boroughs) por los que se puede filtrar el origen y, en los flujos, el destino.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Chips valores={catalogo.barrios} />
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+      <div className="mt-2 space-y-1.5 text-sm leading-snug text-slate-600">{children}</div>
+      <p className="mt-auto pt-2 text-sm leading-snug text-slate-700">
+        <span className="font-medium text-primario">Por ejemplo. </span>
+        {ejemplo}
+      </p>
+    </section>
   )
 }
 
-function Explicacion() {
+function Texto({ catalogo }: { catalogo: Catalogo | null }) {
+  const k = catalogo ? formatearNumero(catalogo.k_minimo) : '10'
+  const dias = catalogo ? formatearNumero(catalogo.max_dias_por_consulta) : '31'
   return (
-    <div className="grid gap-3 lg:grid-cols-2">
-      <Card size="sm" className="sombra-tarjeta">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Ban className="size-4 text-peligro" aria-hidden />
-            Campos individuales prohibidos
-          </CardTitle>
-          <CardDescription>
-            De <code className="font-mono text-[11px]">config/privacidad.json</code>: pedir cualquiera de ellos rechaza la consulta y la
-            API propone una alternativa agregada. También se rechazan los instantes con minutos (la granularidad mínima es la hora) y
-            el destino por zona (solo existe por barrio y día).
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Chips valores={CAMPOS_INDIVIDUALES} />
-        </CardContent>
-      </Card>
-
-      <Card size="sm" className="sombra-tarjeta">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Lock className="size-4 text-enmascarado" aria-hidden />
-            Por qué se enmascara
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2 leading-relaxed">
-          <p>
-            Un grupo con pocos viajes (una zona a una hora concreta con tres viajes, por ejemplo) es casi un viaje individual: quien sepa
-            que alguien cogió un taxi allí a esa hora puede reconocerlo. Por eso los grupos con menos de <strong>k = 10</strong> viajes se
-            publican con <code className="font-mono text-[11px]">suprimido: true</code> y <strong>sin cifras</strong>; la API los devuelve como{' '}
-            <span className="font-medium text-enmascarado">«&lt;10»</span> y nunca los suma a ningún total.
-          </p>
-          <p className="text-texto-suave">
-            Se publican vacíos, en vez de no publicarse, para poder distinguir «no hubo viajes» de «hubo muy pocos y no se muestran», que es
-            lo que pide E3: informar de la decisión de privacidad.
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card size="sm" className="sombra-tarjeta">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Sigma className="size-4 text-primario" aria-hidden />
-            El ataque por diferencia
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2 leading-relaxed">
-          <p>
-            Ocultar la cifra de un grupo pequeño no basta si se puede <strong>deducir restando</strong>: los grupos de un día y barrio
-            suman el total de ese día y barrio, que también se publica.
-          </p>
-          <pre className="cifra overflow-x-auto rounded-lg bg-muted px-3 py-2 text-xs">
-            grupo oculto = total del día y barrio − suma de los grupos visibles
-          </pre>
-          <p className="text-texto-suave">
-            Medido contra la plataforma real con 9 516 consultas permitidas sobre los 366 días de 2020: antes de mitigar, 431 grupos
-            ocultos se despejaban con valor exacto (sobre todo días de Staten Island con todos los grupos suprimidos).
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card size="sm" className="sombra-tarjeta">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ShieldCheck className="size-4 text-ok" aria-hidden />
-            La mitigación: supresión complementaria
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2 leading-relaxed">
-          <ol className="list-decimal space-y-1 pl-5">
-            <li>
-              En cada partición (día, barrio) expuesta se suprime además el <strong>grupo visible más pequeño</strong>: como tiene 10 o
-              más viajes, la suma oculta ya no se puede repartir.
-            </li>
-            <li>Si la partición no tiene ningún grupo visible, se oculta su total del día y barrio.</li>
-            <li>La marca que distingue un suprimido complementario de uno pequeño no se publica.</li>
-          </ol>
-          <p className="text-texto-suave">
-            Cuesta menos del 0,04 % de los viajes publicados y, repetido el ataque, ningún grupo se despeja. Se aplica en la carga
-            histórica; el tiempo real sigue expuesto mientras dura el día (riesgo conocido, en la documentación).
-          </p>
-        </CardContent>
-      </Card>
+    <div className="grid items-stretch gap-3 lg:grid-cols-2">
+      <Tarjeta titulo="Qué se publica" icono={Layers} tono="bg-acento-suave text-acento" ejemplo="«¿Cuántos taxis salieron de Manhattan ese día?» sí. «¿Quién cogió el de las 15:12?» no.">
+        <p>No contamos un viaje suelto. Contamos el montón, como decir cuántos hay en la clase y no el nombre de cada niño.</p>
+        <p>
+          Los montones se hacen así: {fraseNiveles(catalogo)}. De cada montón se puede preguntar {fraseMetricas(catalogo)}. Las medias
+          se redondean para que no quede un céntimo exacto. Pasa igual con {fraseFuentes(catalogo)}.
+        </p>
+      </Tarjeta>
+      <Tarjeta
+        titulo="Cuándo se oculta una cifra"
+        icono={EyeOff}
+        tono="bg-enmascarado-suave text-enmascarado"
+        ejemplo={`Siete viajes a las 4 no se ven como 7: se ven como «<${k}», y esos siete no entran en ninguna suma.`}
+      >
+        <p>
+          Si el montón es muy pequeño, tapamos el número. Con pocos viajes se podría adivinar quién iba, igual que en un grupo de tres
+          se nota quién falta.
+        </p>
+        <p>
+          Si un grupo tiene menos de {k} viajes, ponemos «&lt;{k}» y no lo sumamos a ningún total. El grupo se deja en la lista, vacío,
+          para distinguir «no hubo viajes» de «hubo tan pocos que no se muestran».
+        </p>
+      </Tarjeta>
+      <Tarjeta
+        titulo="Por qué no basta con ocultarla"
+        icono={Scale}
+        tono="bg-aviso/10 text-aviso"
+        ejemplo="Había 100. Se ven 40, 35 y 18. 100 − 93 = 7, así que también tapamos el 18."
+      >
+        <p>
+          Tapar el pequeño no basta. Si sabes el total y ves el resto, la resta dice el que faltaba: como una hucha de la que ya
+          conoces cuánto había.
+        </p>
+        <p>
+          Los grupos de un día y un barrio suman el total de ese día y barrio, que también se publica. Por eso se tapa también el
+          grupo visible más pequeño. Si no queda ninguno a la vista, se tapa el total. A ese tapar de más se le llama supresión
+          complementaria, y hace que la resta ya no dé un número exacto.
+        </p>
+      </Tarjeta>
+      <Tarjeta
+        titulo="Qué se rechaza"
+        icono={Ban}
+        tono="bg-peligro/10 text-peligro"
+        ejemplo="«A las 3:12» no se contesta. En su lugar proponemos «de las 3 a las 4»."
+      >
+        <p>Si preguntas por una sola persona, no contestamos. Te proponemos la pregunta de montón más parecida.</p>
+        <p>
+          Una matrícula, una tarifa suelta, una hora con minutos o el destino de una zona no se responden. Lo más fino que se puede
+          pedir es una hora completa, o el día entero cuando el montón es por día. Cada consulta abarca como máximo {dias} días.
+        </p>
+      </Tarjeta>
     </div>
   )
 }
 
 export function ReglasE3() {
   const catalogo = useCatalogo()
+  if (catalogo.isPending) {
+    return <EstadoCargando variante="tarjeta" lineas={5} etiqueta="Cargando las reglas de la API de acceso…" />
+  }
   return (
-    <div className="space-y-6">
-      {catalogo.isPending ? (
-        <EstadoCargando variante="tarjeta" lineas={5} etiqueta="Cargando el catálogo de la API de acceso…" />
-      ) : catalogo.isError ? (
+    <div className="space-y-4">
+      {catalogo.isError && (
         <EstadoError
           titulo="No se ha podido leer el catálogo de la API de acceso"
           error={catalogo.error}
           alReintentar={() => void catalogo.refetch()}
           reintentando={catalogo.isFetching}
         />
-      ) : (
-        <TarjetasDelCatalogo catalogo={catalogo.data} />
       )}
-      <section aria-labelledby="explicacion-titulo" className="space-y-3">
-        <h3 id="explicacion-titulo" className="text-base">
-          Cómo funciona la protección
-        </h3>
-        <Explicacion />
-      </section>
+      <Texto catalogo={catalogo.data ?? null} />
     </div>
   )
 }

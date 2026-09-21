@@ -20,17 +20,17 @@
 
 /* --- 1. Tokens de la marca ------------------------------------------------------------------------------ */
 :root {
-  --primario: #0b1f3a;          /* azul marino: barra lateral, títulos, botones primarios */
-  --primario-claro: #14305a;    /* marino un punto más claro: elementos activos sobre la barra */
-  --acento: #f5b400;            /* amarillo taxi: elemento activo del menú, indicadores, serie principal */
-  --acento-suave: #fff4cc;      /* amarillo muy diluido: fondos de realce pequeños */
-  --fondo: #f4f6f9;             /* fondo de la aplicación */
+  --primario: #1e3a8a;          /* azul tinta: títulos y controles llenos */
+  --primario-claro: #e8f0fe;    /* azul muy diluido: realces sobre fondo claro */
+  --acento: #2563eb;            /* azul vivo: foco, indicadores, serie principal */
+  --acento-suave: #e8f1ff;      /* azul pálido: fondos de realce pequeños */
+  --fondo: #f4f7fb;             /* fondo de la aplicación */
   --superficie: #ffffff;        /* tarjetas y paneles */
-  --superficie-alterna: #eef1f5;/* cabeceras de tabla, filas alternas, skeletons */
-  --texto: #111827;
-  --texto-suave: #6b7280;
-  --borde: #e5e7eb;
-  --ok: #15803d;
+  --superficie-alterna: #f1f5f9;/* cabeceras de tabla, filas alternas, skeletons */
+  --texto: #1e293b;
+  --texto-suave: #64748b;
+  --borde: #e6edf5;
+  --ok: #047857;
   --aviso: #b45309;
   --peligro: #b91c1c;
   --enmascarado: #7c3aed;       /* grupos «<10»: chip «enmascarado por privacidad» */
@@ -43,7 +43,7 @@
   --card-foreground: var(--texto);
   --popover: var(--superficie);
   --popover-foreground: var(--texto);
-  --primary: var(--primario);
+  --primary: #2563eb;
   --primary-foreground: #ffffff;
   --secondary: var(--superficie-alterna);
   --secondary-foreground: var(--primario);
@@ -54,22 +54,22 @@
   --destructive: var(--peligro);
   --border: var(--borde);
   --input: var(--borde);
-  --ring: var(--primario);
-  --chart-1: var(--acento);
-  --chart-2: #1e3a8a;
-  --chart-3: #3b82f6;
-  --chart-4: #93c5fd;
-  --chart-5: var(--enmascarado);
-  --radius: 0.5rem;             /* 8 px */
-  --sidebar: var(--primario);
-  --sidebar-foreground: #dbe2ee;
-  --sidebar-primary: var(--acento);
-  --sidebar-primary-foreground: var(--primario);
-  --sidebar-accent: rgb(255 255 255 / 0.08);
-  --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: rgb(255 255 255 / 0.12);
-  --sidebar-ring: var(--acento);
-  --sombra-tarjeta: 0 1px 2px rgb(11 31 58 / 0.06), 0 1px 3px rgb(11 31 58 / 0.04);
+  --ring: #2563eb;
+  --chart-1: #3b82f6;
+  --chart-2: #10b981;
+  --chart-3: #8b5cf6;
+  --chart-4: #38bdf8;
+  --chart-5: #f59e0b;
+  --radius: 0.75rem;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #334155;
+  --sidebar-primary: #2563eb;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e8f1ff;
+  --sidebar-accent-foreground: #1d4ed8;
+  --sidebar-border: #e6edf5;
+  --sidebar-ring: #2563eb;
+  --sombra-tarjeta: 0 1px 2px rgb(15 23 42 / 0.04), 0 10px 28px rgb(15 23 42 / 0.06);
 }
 
 /* --- 3. Tokens como utilidades de Tailwind --------------------------------------------------------------- */
@@ -171,10 +171,99 @@
 @utility sombra-tarjeta {
   box-shadow: var(--sombra-tarjeta);
 }
-/* Fondo de la barra lateral y de la página de acceso: marino con una trama muy sutil. */
+/* Panel de acceso: azul con un lavado verde, al estilo de un producto claro. */
 @utility fondo-marino {
-  background-color: var(--primario);
+  background-color: #1d4ed8;
   background-image:
-    radial-gradient(at 0% 0%, rgb(245 180 0 / 0.10) 0, transparent 45%),
-    radial-gradient(at 100% 100%, rgb(255 255 255 / 0.06) 0, transparent 50%);
+    radial-gradient(at 0% 0%, rgb(125 211 252 / 0.55) 0, transparent 46%),
+    radial-gradient(at 100% 100%, rgb(52 211 153 / 0.38) 0, transparent 44%),
+    linear-gradient(165deg, #3b82f6 0%, #1d4ed8 55%, #0f766e 130%);
+}
+
+/* Lienzo: el color se desplaza y unas manchas lo cruzan. Los puntos van por encima. */
+@keyframes marea-color {
+  0% { background-position: 0% 40%; }
+  50% { background-position: 100% 60%; }
+  100% { background-position: 0% 40%; }
+}
+@keyframes deriva-puntos {
+  from { background-position: 0 0; }
+  to { background-position: 22px 22px; }
+}
+@keyframes orbita-a {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  40% { transform: translate3d(28%, 18%, 0) scale(1.18); }
+  75% { transform: translate3d(8%, 32%, 0) scale(0.9); }
+  100% { transform: translate3d(0, 0, 0) scale(1); }
+}
+@keyframes orbita-b {
+  0% { transform: translate3d(0, 0, 0) scale(1.05); }
+  50% { transform: translate3d(-26%, -20%, 0) scale(0.82); }
+  100% { transform: translate3d(0, 0, 0) scale(1.05); }
+}
+@keyframes orbita-c {
+  0% { transform: translate3d(0, 0, 0) scale(0.95); }
+  35% { transform: translate3d(-18%, 24%, 0) scale(1.2); }
+  70% { transform: translate3d(12%, 8%, 0) scale(1); }
+  100% { transform: translate3d(0, 0, 0) scale(0.95); }
+}
+.fondo-marea {
+  background-color: #f7f9fc;
+  background-image: linear-gradient(
+    120deg,
+    #f8fbff 0%,
+    #ffffff 22%,
+    #f3f8ff 42%,
+    #f7fcf9 62%,
+    #ffffff 80%,
+    #eef4fc 100%
+  );
+  background-size: 320% 320%;
+  animation: marea-color 18s ease-in-out infinite;
+}
+.fondo-puntos {
+  background-image: radial-gradient(circle, rgb(148 163 184 / 0.35) 1.1px, transparent 1.2px);
+  background-size: 22px 22px;
+  animation: deriva-puntos 16s linear infinite;
+}
+.orbita {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(80px);
+  pointer-events: none;
+  will-change: transform;
+}
+.orbita-azul {
+  top: -14%;
+  left: -10%;
+  width: 46%;
+  height: 46%;
+  background: #dbeafe;
+  opacity: 0.85;
+  animation: orbita-a 18s ease-in-out infinite;
+}
+.orbita-verde {
+  right: -12%;
+  bottom: -16%;
+  width: 42%;
+  height: 42%;
+  background: #ecfdf5;
+  opacity: 0.9;
+  animation: orbita-b 22s ease-in-out infinite;
+}
+.orbita-cielo {
+  top: 30%;
+  left: 36%;
+  width: 34%;
+  height: 34%;
+  background: #f0f7ff;
+  opacity: 0.95;
+  animation: orbita-c 20s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fondo-marea,
+  .fondo-puntos,
+  .orbita {
+    animation: none;
+  }
 }
