@@ -38,6 +38,8 @@ ENMASCARADOS = Counter('acceso_grupos_enmascarados_total', 'Grupos devueltos sin
 VIAJES_BARRIO = Gauge('publico_viajes_ultimo_dia', 'Viajes del último día publicado, por barrio (agregado protegido)',
                       ['barrio', 'fuente'])
 ULTIMO_DIA = Gauge('publico_ultimo_dia_timestamp_segundos', 'Último día con datos publicados', ['fuente'])
+ULTIMA_ACTUALIZACION = Gauge('publico_ultima_actualizacion_timestamp_segundos',
+                             'Última escritura de Spark en los agregados de tiempo real; 0 si no hay datos', ['fuente'])
 INTERVALO_METRICAS = int(os.environ.get('ACCESO_INTERVALO_METRICAS', '60'))
 
 
@@ -56,6 +58,7 @@ async def cliente(x_api_key: Annotated[str | None, Header()] = None) -> str:
 
 async def _refrescar_metricas(repo: Repositorio) -> None:
     while True:
+        await _refrescar_frescura(repo)
         for fuente in P.config()['fuentes']:
             with contextlib.suppress(Exception):
                 dia, por_barrio = await repo.ultimo_dia_por_barrio(fuente)
@@ -64,6 +67,19 @@ async def _refrescar_metricas(repo: Repositorio) -> None:
                     for barrio, n in por_barrio.items():
                         VIAJES_BARRIO.labels(barrio, fuente).set(n)
         await asyncio.sleep(INTERVALO_METRICAS)
+
+
+async def _refrescar_frescura(repo: Repositorio) -> None:
+    try:
+        instante = await repo.ultima_actualizacion_tiempo_real()
+    except Exception:
+        # No conservar un valor antiguo como si la lectura siguiera funcionando.
+        ULTIMA_ACTUALIZACION.labels('tiempo_real').set(float('nan'))
+        log.warning('No se pudo leer la frescura del tiempo real')
+        return
+    if instante is not None:
+        instante = instante.replace(tzinfo=timezone.utc) if instante.tzinfo is None else instante
+    ULTIMA_ACTUALIZACION.labels('tiempo_real').set(instante.timestamp() if instante else 0)
 
 
 @asynccontextmanager

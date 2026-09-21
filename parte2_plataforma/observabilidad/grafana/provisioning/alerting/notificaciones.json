@@ -1,0 +1,24 @@
+{
+  "apiVersion": 1,
+  "muteTimes": [
+    {
+      "orgId": 1,
+      "name": "pids-solo-panel",
+      "time_intervals": [{"times": [{"start_time": "00:00", "end_time": "24:00"}], "location": "UTC"}]
+    }
+  ],
+  "policies": [
+    {
+      "orgId": 1,
+      "receiver": "grafana-default-email",
+      "group_by": ["grafana_folder", "alertname"],
+      "routes": [
+        {
+          "receiver": "grafana-default-email",
+          "object_matchers": [["proyecto", "=", "pids"]],
+          "mute_time_intervals": ["pids-solo-panel"]
+        }
+      ]
+    }
+  ]
+}

@@ -21,6 +21,37 @@
 - Para editar el código con autocompletado: abre `parte2_plataforma/spark` en VS Code con la extensión
   Metals (instala sbt y Java por su cuenta).
 
+## Auditoría de privacidad
+
+`make auditoria` responde «¿qué se ha rechazado hoy y por qué?» con el usuario de solo lectura `pids_auditor`:
+decisiones por resultado y por cliente, motivos de rechazo más frecuentes, rechazos recientes y cargas.
+
+```bash
+make auditoria                                                     # últimas 24 h, por pantalla
+make auditoria ARGS="--horas 8 --salida informes/auditoria.md"     # también a fichero (informes/ no se versiona)
+make auditoria ARGS="--comprobar-permisos"                         # demuestra que la auditoría es de solo añadir
+```
+
+`--comprobar-permisos` intenta un insert y un delete con `pids_auditor`, y un update y un delete con
+`pids_acceso`, sobre `auditoria.decisiones`. Las cuatro operaciones están hechas para no cambiar nada aunque los
+permisos estuvieran mal (condiciones imposibles, un `_id` que ya existe) y solo se da por buena la denegación con
+el código 13 (*Unauthorized*) de MongoDB.
+
+## Latencia del tiempo real
+
+`make latencia` mide cuánto tarda un viaje en ser consultable (métrica M3): envía 20 lotes de 15 viajes por la
+API de captura, cada uno a una hora y zona nuevas (por defecto, horas del 31/12/2020 en la zona 265), y consulta
+la API de acceso cada segundo hasta que aparece el grupo con sus 15 viajes. Necesita **un único** trabajo
+`pids-tiempo-real` en marcha (se comprueba en http://localhost:8090) y deja la evidencia en `informes/latencia-*`.
+
+Los viajes sintéticos son válidos, llevan un lote `latencia-...` y se quedan en el archivo restringido
+(`s3://crudo/validos/tiempo_real`) y en `publico.tr_viajes_hora_zona`. Cuidado: al usar horas de finales de 2020
+adelantan la *watermark* del streaming (2 h por detrás del viaje más reciente). Mientras el trabajo de tiempo
+real conserve ese estado, los viajes anteriores, como los de la muestra del 1 de enero, no se agregan (sí se
+archivan). Para la demo, o se simulan viajes posteriores (por ejemplo, un fichero de diciembre), o se relanza el
+trabajo con un checkpoint nuevo cuando esos lotes hayan salido del topic (retención de 24 h), porque el trabajo
+lee el topic desde el principio.
+
 ## Probar las APIs a mano
 
 ```bash

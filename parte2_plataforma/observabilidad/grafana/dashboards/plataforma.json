@@ -4,7 +4,7 @@
   "tags": ["pids"],
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "refresh": "30s",
   "time": {"from": "now-1h", "to": "now"},
   "panels": [
@@ -75,6 +75,25 @@
       "datasource": {"type": "prometheus", "uid": "prometheus"},
       "targets": [{"refId": "A", "expr": "publico_viajes_ultimo_dia{fuente=\"historico\"}", "legendFormat": "{{barrio}}"}],
       "options": {"orientation": "horizontal", "displayMode": "gradient", "reduceOptions": {"calcs": ["lastNotNull"]}}
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "Segundos desde la última publicación de tiempo real",
+      "description": "Edad de actualizado_en en tr_viajes_hora_zona: cuándo escribió Spark, no la fecha de los viajes. La API la refresca cada 60 s.",
+      "gridPos": {"h": 6, "w": 12, "x": 0, "y": 19},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"refId": "A", "expr": "clamp_min(time() - publico_ultima_actualizacion_timestamp_segundos{fuente=\"tiempo_real\"}, 0)"}],
+      "options": {"colorMode": "value", "reduceOptions": {"calcs": ["lastNotNull"]}},
+      "fieldConfig": {"defaults": {"unit": "s", "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 300}]}}}
+    },
+    {
+      "id": 8,
+      "type": "alertlist",
+      "title": "Alertas activas de PIDS",
+      "gridPos": {"h": 6, "w": 12, "x": 12, "y": 19},
+      "options": {"viewMode": "list", "groupMode": "default", "maxItems": 20, "sortOrder": 1, "dashboardAlerts": false, "alertName": "PIDS",
+                  "stateFilter": {"firing": true, "pending": true, "error": true, "noData": true, "normal": false}}
     }
   ]
 }
