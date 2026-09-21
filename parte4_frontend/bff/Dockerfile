@@ -19,7 +19,8 @@ FROM python:3.12-slim
 
 COPY --from=ghcr.io/astral-sh/uv:0.12.15 /uv /bin/uv
 
-ARG GRUPOS="frontend chatbot"
+# Grupos de dependencias: el BFF, el agente de Ollama (parte 3) y el chatbot RAG (motor `rag` del asistente)
+ARG GRUPOS="frontend chatbot rag"
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
     UV_PYTHON_DOWNLOADS=never \
@@ -37,6 +38,7 @@ COPY config ./config
 COPY data/muestra ./data/muestra
 COPY parte2_plataforma ./parte2_plataforma
 COPY parte3_chatbot ./parte3_chatbot
+COPY parte3_chatbot_rag ./parte3_chatbot_rag
 COPY parte4_frontend/__init__.py ./parte4_frontend/__init__.py
 COPY parte4_frontend/bff ./parte4_frontend/bff
 COPY --from=spa /app/web/dist ./parte4_frontend/web/dist

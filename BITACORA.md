@@ -122,8 +122,8 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
     en `tarea/rag-base` sí hay `--completar`). Hasta entonces el BFF en el host usa la clave del equipo.
   - `README.md`, `BITACORA.md`, `TAREAS.md` y `pyproject.toml` también cambian en `tarea/rag-base`: conflictos
     pequeños y aditivos al fusionar.
-  - El motor RAG del asistente queda «no disponible» hasta que el chatbot RAG esté en `main` y la imagen se construya con
-    el grupo `rag`.
+  - El motor RAG del asistente (tras traer `main` a la rama) corre dentro del BFF con las claves del portal: probado
+    desde el host; en el contenedor necesita `LLM_API_KEY` en `.env` y Qdrant indexado.
   - La contraseña del portal es única (sin usuarios ni roles) y la sesión no caduca al cerrar el navegador (12 h).
 - **Contexto para quien siga:** cada sección de la SPA vive en su carpeta de `paginas/` y cada endpoint en su fichero de
   `bff/rutas/` + `bff/servicios/`; los tipos de la API están en `web/src/api/tipos.ts` y son el contrato. Los servicios

@@ -305,8 +305,8 @@ Dependencias que F0 instala (versiones publicadas hace ≥ 7 días, fijadas en `
 `typescript-eslint` + `eslint-plugin-react-hooks`.
 
 Python, grupo `frontend` en `pyproject.toml` (F0): `fastapi`, `uvicorn[standard]`, `httpx`, `pymongo`, `sse-starlette`,
-`pydantic`. La imagen instala además los grupos `chatbot` (agente de Ollama) y, cuando exista en `main`, `rag`
-(`ARG GRUPOS="frontend chatbot"` en el Dockerfile; Compose lo podrá ampliar sin tocar la imagen).
+`pydantic`. La imagen instala además los grupos `chatbot` (agente de Ollama) y `rag` (motor RAG del asistente):
+`ARG GRUPOS="frontend chatbot rag"` en el Dockerfile, que copia `parte3_chatbot` y `parte3_chatbot_rag`.
 
 ## 8. Comandos
 

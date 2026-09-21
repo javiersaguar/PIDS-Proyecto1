@@ -507,6 +507,16 @@ services:
       AUDITORIA_MONGO_URI: mongodb://pids_auditor:${MONGO_AUDITOR_PASSWORD}@mongo:27017/?authSource=admin
       OLLAMA_URL: http://ollama:11434
       OLLAMA_MODELO: ${OLLAMA_MODELO:-llama3.1:8b}
+      # Motor RAG del asistente: mismo proveedor, índice y reglas que el servicio chatbot-rag (sus claves de la API de
+      # acceso son las del portal, así que en la auditoría sigue apareciendo como `frontend`)
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.helmcode.com/v1}
+      LLM_API_KEY: ${LLM_API_KEY}
+      LLM_MODELO: ${LLM_MODELO:-deepseek-v4-flash}
+      LLM_MODELO_EMBEDDINGS: ${LLM_MODELO_EMBEDDINGS:-qwen3-embedding}
+      LLM_TEMPERATURA: ${LLM_TEMPERATURA:-0.2}
+      QDRANT_URL: http://qdrant:6333
+      RAG_K: ${RAG_K:-6}
+      RAG_RERANK: ${RAG_RERANK:-false}
       # Enlaces del menú: URL del navegador del usuario (puertos publicados en el anfitrión), no del contenedor
       ENLACES_GRAFANA: http://localhost:${PUERTO_GRAFANA:-3000}
       ENLACES_AIRFLOW: http://localhost:${PUERTO_AIRFLOW:-8085}

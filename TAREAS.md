@@ -147,8 +147,7 @@ decisión pendiente en T13.
      `scripts/generar_env.py --completar` de `tarea/rag-base`, o a mano), recrear `acceso` (`docker compose up -d --no-deps
      acceso`) y `make frontend`.
   3. Repasar en el navegador las siete secciones con datos reales y añadir las capturas a `docs/capturas/`.
-  4. Cuando el chatbot RAG esté en `main`, construir la imagen con `GRUPOS="frontend chatbot rag"` para activar el motor
-     RAG del asistente.
+  4. Probar el motor RAG del asistente desde el contenedor (necesita `LLM_API_KEY` y `make rag-indexar`).
 - **Hecha cuando:** `make frontend` desde la carpeta principal levanta el portal en http://localhost:8020, la auditoría
   muestra el cliente `frontend` y las capturas están en `docs/`.
 - **Dónde:** `parte4_frontend/`, `docker-compose.yml`, `.env`, `docs/capturas/`

@@ -107,8 +107,9 @@ Documentación interactiva en `http://localhost:8020/api/docs`.
   interna en `127.0.0.1`.
 - El BFF está en la red `datos` **solo** para leer la auditoría con `pids_auditor` (rol de solo lectura sobre
   `auditoria`); las cifras publicadas las pide a la API de acceso como cualquier otro cliente.
-- El motor `rag` del asistente aparece como «no disponible» si la imagen no lleva `parte3_chatbot_rag` y LangChain
-  (grupo `rag`); cuando el chatbot RAG esté en `main`, basta con construir la imagen con `GRUPOS="frontend chatbot rag"`.
+- El motor `rag` del asistente es el mismo agente del chatbot RAG (`parte3_chatbot_rag/fabrica.py`), ejecutado dentro
+  del BFF con las claves del portal; necesita `LLM_API_KEY` en `.env`, Qdrant levantado e indexado (`make rag-indexar`).
+  Si la imagen se construye sin el grupo `rag` (`GRUPOS="frontend chatbot"`), el motor aparece como «no disponible».
 - El simulador integrado solo admite los ficheros de `data/muestra` (la muestra es del 1 de enero de 2020; si el
   trabajo de tiempo real ya ha visto días posteriores, los descarta por la *watermark*: ver `parte2_plataforma/README.md`).
 - Cachés en memoria del BFF (catálogo, meses del panel, tiempo real) para que el refresco automático del portal no
