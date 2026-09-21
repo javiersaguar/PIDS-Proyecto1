@@ -45,13 +45,68 @@ Pendiente: repetir con k = 5 y k = 20 para tener la curva privacidad–utilidad.
 <!-- Sección del bloque «privacidad» (tareas T02 y T03-M1). La parte del chatbot la aporta el bloque
      «chatbot» (T05). No editar desde otros bloques para evitar conflictos al fusionar. -->
 
-_Pendiente de medir._
+**Fugas directas en la API (medido el 21/09/2026):** `scripts/bateria_privacidad.py` lanza 31
+peticiones trampa y revisa cada respuesta buscando campos individuales, grupos de menos de 10 viajes con
+su cifra visible y métricas de grupos suprimidos.
+
+| Tipo de trampa | Casos | Respuesta | Fugas |
+|---|---|---|---|
+| Viajes concretos (rutas `/viajes/…`, petición individual) | 4 | 403 rechazada | 0 |
+| Instantes exactos y granularidad (minutos, medias horas, ventanas vacías o al revés, tiempo real) | 6 | 403 rechazada | 0 |
+| Campos y métricas individuales (recogida, llegada, importe, destino por zona, campos como texto) | 6 | 403 rechazada | 0 |
+| Destino a nivel fino y flujos por zona | 2 | 403 rechazada | 0 |
+| Rangos enormes, barrios inventados, inyección en el barrio | 3 | 403 rechazada | 0 |
+| Operador de MongoDB, nivel inexistente, JSON mal formado | 3 | 422 validación | 0 |
+| Sin clave o con clave falsa | 2 | 401 | 0 |
+| Consultas legítimas que caen en grupos pequeños (EWR de madrugada, todas las zonas a las 4:00, flujos de Staten Island, un mes entero que se trunca, campo desconocido) | 5 | 200 enmascarada | 0 |
+| **Total** | **31** | **31 como se esperaba** | **0 (0,0 %)** |
+
+**Fugas indirectas (combinando consultas legítimas):** es el ataque por diferencia, descrito con cifras
+en [`escenario_E3.md`](escenario_E3.md). Antes de la mitigación revelaba el valor exacto de **779 grupos
+suprimidos**; después, ninguno.
+
+_Parte del chatbot: la aporta el bloque «chatbot»._
+
+Cómo repetirlo: `source .env && uv run python scripts/bateria_privacidad.py` (el detalle queda en
+`informes/`).
 
 ### M2 · Curva privacidad-utilidad (k = 5, 10, 20, 50)
 
 <!-- Sección del bloque «privacidad» (tarea T02). -->
 
-_Pendiente de medir._
+Calculada con el trabajo Spark `pids.AnalisisPrivacidad` sobre los 23 684 852 viajes válidos del año, sin
+publicar nada ni cambiar la configuración: para cada umbral k, cuántos grupos se suprimen y qué parte de
+los viajes queda en grupos publicados. La fila de k = 10 coincide exactamente con lo que hay publicado.
+
+| k | hora-zona: grupos suprimidos | hora-zona: viajes publicados | flujos: grupos suprimidos | flujos: viajes publicados | día-barrio: grupos suprimidos |
+|---|---|---|---|---|---|
+| 5 | 48,0 % | 97,5 % | 36,9 % | 100,0 % | 12,0 % |
+| **10** | **60,0 %** | **95,1 %** | **48,4 %** | **99,9 %** | **19,9 %** |
+| 20 | 71,1 % | 90,4 % | 57,6 % | 99,8 % | 28,3 % |
+| 50 | 83,7 % | 78,4 % | 67,3 % | 99,6 % | 32,9 % |
+
+Grupos totales: 717 129 hora-zona, 15 374 de flujos y 2 813 día-barrio.
+
+**Coste de la supresión complementaria** (mitigación del ataque por diferencia), con k = 10:
+
+| Nivel | Suprimidos solo por k | Con la complementaria | Viajes publicados |
+|---|---|---|---|
+| hora-zona | 430 113 | 430 126 (+13) | 22 522 574 → 22 522 415 (−159) |
+| flujos entre barrios | 7 448 | 7 964 (+516) | 23 662 106 → 23 653 221 (−8 885) |
+| día-barrio | 560 | 604 (+44) | 23 682 543 → 23 682 022 (−521) |
+
+Proteger contra el ataque cuesta menos del 0,04 % de los viajes publicados.
+
+**Conclusión sobre k.** El nivel más fino es el que decide: pasar de k = 5 a 10 cuesta 2,4 puntos de
+viajes publicados (97,5 → 95,1 %) y duplica el tamaño mínimo de un grupo visible; de 10 a 20 cuesta 4,7
+puntos más, y de 20 a 50 otros 12. El codo de la curva está entre 10 y 20. **Se mantiene k = 10**: es el
+último punto antes de que la pérdida de utilidad se acelere, y con la supresión complementaria ya no se
+puede deducir el valor de los grupos ocultos restando. Si el grupo prefiere priorizar la privacidad, k = 20
+sigue publicando el 90 % de los viajes.
+
+Cómo repetirlo:
+`docker compose exec -T -e PIDS_CORES=6 spark-master /opt/pids/lanzar.sh AnalisisPrivacidad`
+(unos 8 minutos; la tabla sale en el log del driver y el JSON en `s3://crudo/informes/curva_privacidad.json`).
 
 ### M3 · Latencia de publicación en tiempo real
 

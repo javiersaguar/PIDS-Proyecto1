@@ -1,5 +1,6 @@
 package pids
 
+import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{DoubleType, LongType}
 import org.apache.spark.sql.{Column, DataFrame}
@@ -9,10 +10,13 @@ import org.apache.spark.sql.{Column, DataFrame}
   *  - Solo salen agregados, nunca viajes: por hora y zona de origen, por día y barrio, y flujos
   *    entre barrios por día. El destino no se publica a nivel de hora ni de zona.
   *  - Los grupos con menos de `k_minimo` viajes se publican marcados como `suprimido`, sin cifras.
+  *  - Supresión complementaria (solo en lotes): si restando al total del día y barrio los grupos
+  *    visibles se pudiera despejar un grupo suprimido, se suprime también otro; y si no hay ninguno
+  *    visible que suprimir, se oculta el total (ver `suprimirComplementariosTodos`).
   *  - Las medias se redondean.
   *
-  * Las mismas funciones sirven para lotes y para streaming (las ventanas de `window` funcionan en
-  * los dos modos).
+  * Salvo la supresión complementaria, las mismas funciones sirven para lotes y para streaming (las
+  * ventanas de `window` funcionan en los dos modos).
   */
 object Privacidad {
 
@@ -51,9 +55,102 @@ object Privacidad {
     else agrupado.withColumn("dia", to_date(col("ventana.start"))).drop("ventana")
   }
 
-  /** Suprime los grupos pequeños y redondea. */
+  /** Partición «padre» de cada nivel: sus grupos suman un total que también se publica (viajes por día
+    * y barrio). Es lo que permite el ataque por diferencia; los niveles sin padre no lo sufren. */
+  private val particionPadre: Map[String, (Seq[String], Seq[String])] = Map(
+    // nivel -> (columnas de la partición, columnas para desempatar de forma determinista)
+    "hora_zona"     -> (Seq("_dia", "barrio_origen"), Seq("hora", "zona_origen")),
+    "od_dia_barrio" -> (Seq("dia", "barrio_origen"), Seq("barrio_destino"))
+  )
+
+  /** ¿Quedan fijados (o casi) los grupos suprimidos de una partición, sabiendo cuántos son (`c`) y cuánto
+    * suman (`oculto`)? El atacante supone que cada uno tiene entre 1 y k-1 viajes: si el rango posible
+    * de cada grupo es de uno o dos valores, la partición está expuesta. Es la misma cuenta que hace
+    * scripts/ataque_diferencia.py. */
+  private def expuesta(c: Column, oculto: Column, k: Int): Column = {
+    val minimo = greatest(lit(1L), oculto - (c - 1) * (k - 1))
+    val maximo = least(lit((k - 1).toLong), oculto - (c - 1))
+    c >= 1 && (maximo - minimo) <= 1
+  }
+
+  /** Supresión complementaria contra el ataque por diferencia (docs/escenario_E3.md).
+    *
+    * En cada partición (día, barrio), el atacante conoce el total del día y los grupos visibles, así
+    * que sabe cuánto suman los suprimidos. Si con eso el valor de cada suprimido queda fijado o casi
+    * (rango de uno o dos valores, suponiendo que todos tienen entre 1 y k-1 viajes; por ejemplo, un
+    * único suprimido, o diez que suman diez), se suprime también el grupo visible más pequeño. Como
+    * ese grupo tiene k o más viajes, la suma oculta deja de ser despejable.
+    *
+    * Añade la columna `complementario`, que respeta `proteger` y que NUNCA se publica: si el atacante
+    * supiera cuál es el grupo complementario, volvería a despejar el otro.
+    *
+    * Necesita la partición completa (el día entero), así que solo sirve para lotes; en streaming los
+    * días están a medias en cada micro-lote.
+    */
+  def suprimirComplementarios(agregado: DataFrame, nivel: String, k: Int): DataFrame =
+    particionPadre.get(nivel) match {
+      case None => agregado.withColumn("complementario", lit(false))
+      case Some((claves, desempate)) =>
+        val base = if (claves.contains("_dia")) agregado.withColumn("_dia", to_date(col("hora"))) else agregado
+        val particion = Window.partitionBy(claves.map(col): _*)
+        val pequeno = col("n_viajes") < k
+        // el más pequeño de los visibles es el primero con pequeno = false al ordenar por n_viajes
+        val orden = particion.orderBy((pequeno.asc +: col("n_viajes").asc +: desempate.map(c => col(c).asc)): _*)
+        base
+          .withColumn("_c", sum(when(pequeno, 1L).otherwise(0L)).over(particion))
+          .withColumn("_oculto", sum(when(pequeno, col("n_viajes")).otherwise(0L)).over(particion))
+          .withColumn("_expuesta", expuesta(col("_c"), col("_oculto"), k))
+          .withColumn("_orden", row_number().over(orden))
+          .withColumn("complementario", col("_expuesta") && !pequeno && col("_orden") === 1)
+          .drop("_c", "_oculto", "_expuesta", "_orden", "_dia")
+    }
+
+  /** Particiones (día, barrio) expuestas que NO tienen ningún grupo visible: la supresión complementaria
+    * no puede arreglarlas (no hay nada más que suprimir en ese nivel), así que hay que ocultar su total,
+    * que es el grupo del nivel dia_barrio. Caso típico: un día de Staten Island con once grupos
+    * hora-zona de un viaje cada uno y un total de 11. Devuelve las claves (dia, barrio_origen). */
+  def padresExpuestos(agregado: DataFrame, nivel: String, k: Int): DataFrame =
+    particionPadre.get(nivel) match {
+      case None => throw new IllegalArgumentException(s"el nivel $nivel no tiene partición padre")
+      case Some((claves, _)) =>
+        val base = if (claves.contains("_dia")) agregado.withColumn("_dia", to_date(col("hora"))) else agregado
+        val pequeno = col("n_viajes") < k
+        base.groupBy(claves.map(col): _*)
+          .agg(sum(when(pequeno, 1L).otherwise(0L)).as("_c"),
+            sum(when(pequeno, col("n_viajes")).otherwise(0L)).as("_oculto"),
+            sum(when(pequeno, 0L).otherwise(1L)).as("_visibles"))
+          .filter(expuesta(col("_c"), col("_oculto"), k) && col("_visibles") === 0)
+          .select(col(claves.head).as("dia"), col("barrio_origen"))
+    }
+
+  /** Marca como complementarios los totales día-barrio de las particiones expuestas sin visibles. */
+  def suprimirPadres(diaBarrio: DataFrame, expuestos: DataFrame): DataFrame = {
+    val base = if (diaBarrio.columns.contains("complementario")) diaBarrio
+               else diaBarrio.withColumn("complementario", lit(false))
+    val marcas = expuestos.distinct().withColumn("_padre_expuesto", lit(true))
+    base.join(broadcast(marcas), Seq("dia", "barrio_origen"), "left")
+      .withColumn("complementario", col("complementario") || coalesce(col("_padre_expuesto"), lit(false)))
+      .drop("_padre_expuesto")
+  }
+
+  /** Aplica las dos supresiones complementarias a los agregados de todos los niveles de una carga:
+    * dentro de cada nivel y, para las particiones sin arreglo, en su total día-barrio. */
+  def suprimirComplementariosTodos(agregados: Map[String, DataFrame], k: Int): Map[String, DataFrame] = {
+    val expuestos = agregados.toSeq.collect {
+      case (nivel, agregado) if particionPadre.contains(nivel) => padresExpuestos(agregado, nivel, k)
+    }.reduceOption(_ union _)
+    agregados.map { case (nivel, agregado) =>
+      val marcado = suprimirComplementarios(agregado, nivel, k)
+      nivel -> (if (nivel == "dia_barrio") expuestos.fold(marcado)(suprimirPadres(marcado, _)) else marcado)
+    }
+  }
+
+  /** Suprime los grupos pequeños (y los complementarios, si vienen marcados) y redondea. */
   def proteger(agregado: DataFrame, cfg: ConfigPrivacidad): DataFrame = {
-    val conMarca = agregado.withColumn("suprimido", col("n_viajes") < cfg.kMinimo)
+    val complementario = if (agregado.columns.contains("complementario")) col("complementario") else lit(false)
+    val conMarca = agregado
+      .withColumn("suprimido", col("n_viajes") < cfg.kMinimo || complementario)
+      .drop("complementario")
     cfg.metricas.filterNot(_ == "n_viajes")
       .foldLeft(conMarca) { (d, m) =>
         d.withColumn(m, when(col("suprimido"), lit(null).cast(DoubleType)).otherwise(round(col(m), cfg.decimales)))
