@@ -1,7 +1,8 @@
 # Próximas tareas
 
 Lista viva de las **10 tareas siguientes**, en orden de prioridad. Si te pones a trabajar, coge la
-primera que esté libre.
+primera que esté libre. Las tareas del chatbot RAG que quedaron por hacer están en «Ideas y trabajo futuro» y la
+decisión pendiente en T13.
 
 ## Cómo se usa
 
@@ -118,10 +119,30 @@ primera que esté libre.
 - **Hecha cuando:** ninguna respuesta afirma `"<10"` de un grupo que puede tener más.
 - **Dónde:** `parte2_plataforma/comun/privacidad.py`, `tests/`, `docs/`
 
+## T13 · Decidir en grupo el LLM externo del chatbot RAG
+
+- **Estado:** libre · **Responsable:** — · **Estimación:** 30 min · **Dificultad:** baja
+- **Por qué:** el chatbot RAG (`parte3_chatbot_rag/`) envía la pregunta y los agregados protegidos a Helmcode
+  (UE, sin registro de prompts). Matiza la regla 9 de E3 y está anotado en la bitácora como **propuesta**: hay que
+  confirmarla o retirarla entre todos, y decidir qué chatbot va en la demo (los dos pasan 21/21 y 0/105).
+- **Qué hay que hacer:**
+  1. Leer [`docs/chatbot_rag.md`](docs/chatbot_rag.md) («Qué sale del equipo y qué no») y la decisión del 21/09 en la
+     bitácora.
+  2. Decidir: se mantiene (y pasa a «Vigente»), se limita a la demo, o se retira (basta con no levantar el perfil
+     `rag`).
+  3. Si se mantiene, cada miembro pega su propia `LLM_API_KEY` en su `.env` (la clave no se comparte por el chat).
+- **Hecha cuando:** la decisión figura como «Vigente» o «Retirada» en la bitácora y `docs/plan.md` dice qué chatbot
+  se enseña.
+- **Dónde:** `BITACORA.md`, `docs/plan.md`
+
 ---
 
 ## Ideas y trabajo futuro
 
+- Chatbot RAG: cuando la barrera de cifras sustituye la respuesta, enseñar solo las fichas relacionadas con la
+  pregunta (hoy salen todas las recuperadas); quitar el pie «Datos históricos» duplicado cuando el modelo ya lo
+  escribe; medir el rerank (`RAG_RERANK=true`) con la suite; reindexar las fichas desde Airflow tras cada carga.
+- Chatbot RAG: probar `qwen3.6` con `LLM_RAZONAMIENTO=none` (responde en ~1 s) con la suite y la batería completas.
 - Privacidad diferencial (OpenDP) sobre los agregados, además del umbral k.
 - Detectar patrones de consultas sospechosos por cliente (muchas consultas solapadas).
 - Airflow: un DAG que cargue los 12 meses en cadena, con reintentos.
@@ -159,3 +180,4 @@ primera que esté libre.
 | 21/09/2026 | T07 Informe de auditoría (`make auditoria`) y prueba de que es de solo añadir | Javier Saguar | entrada del 21/09 |
 | 21/09/2026 | T03 Las 3 métricas medidas: M1 0 fugas (API 31, chatbot 105), M2 curva k = 5-50, M3 p95 35,4 s | Javier Saguar | entrada del 21/09 |
 | 21/09/2026 | Integración de los tres bloques en `main` y una rama por persona | Javier Saguar | entrada del 21/09 |
+| 21/09/2026 | Chatbot RAG con LLM externo (LangChain + Qdrant + Helmcode) en cinco bloques: 21/21 casos, 0/105 fugas, 340 tests | Javier Saguar | entrada del 21/09 |

@@ -13,7 +13,7 @@ PERFILES_UNA_VEZ := --profile herramientas --profile simulador --profile rag-ind
 
 .DEFAULT_GOAL := ayuda
 .PHONY: ayuda entorno entorno-completar sync test test-spark construir nucleo spark airflow observabilidad \
-	    chatbot chatbot-rag rag-indexar rag-comprobar rag-casos rag-bateria \
+	    chatbot chatbot-rag rag-indexar rag-comprobar rag-casos rag-bateria rag-comparar \
 	    herramientas todo parar estado logs tiempo-real simular historico historico-muestra \
 	    datos-muestra descargar borrar-todo
 
@@ -118,11 +118,14 @@ rag-comprobar: _env ## Comprueba el proveedor LLM: modelos, chat, llamada a herr
 rag-indexar: _env ## Indexa en Qdrant el conocimiento y las fichas de agregados (ARGS='--solo fichas')
 	$(COMPOSE) --profile rag-indexar run --rm rag-indexar python indexar.py $(ARGS)
 
-rag-casos: _env ## Suite de casos de uso contra el chatbot RAG en marcha (ARGS='--casos CU1 --detalle')
-	$(COMPOSE) --profile rag exec -T chatbot-rag python casos_de_uso_rag.py $(ARGS)
+rag-casos: _env ## Suite de casos de uso del chatbot RAG, desde el anfitrión; informe en informes/chatbot_rag (ARGS='--casos CU1 --detalle')
+	uv run python parte3_chatbot_rag/casos_de_uso_rag.py $(ARGS)
 
-rag-bateria: _env ## Batería de preguntas trampa (M1) contra el chatbot RAG en marcha (ARGS='--detalle')
-	$(COMPOSE) --profile rag exec -T chatbot-rag python bateria_trampa_rag.py --repeticiones 3 $(ARGS)
+rag-bateria: _env ## Batería de preguntas trampa (M1) del chatbot RAG, desde el anfitrión (ARGS='--detalle')
+	uv run python parte3_chatbot_rag/bateria_trampa_rag.py --repeticiones 3 $(ARGS)
+
+rag-comparar: _env ## Los dos chatbots (Ollama y RAG) sobre la misma suite y batería (ARGS='--solo casos --repeticiones 1')
+	uv run python parte3_chatbot_rag/comparar.py $(ARGS)
 
 _env:
 	@test -f .env || (echo "Falta .env: ejecuta 'make entorno'" && exit 1)

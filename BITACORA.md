@@ -27,17 +27,17 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 | | |
 |---|---|
 | **Escenario** | E3 · privacidad total |
-| **Funciona y está probado en ejecución** | Núcleo (S3, Redpanda, MongoDB, APIs), carga histórica con Spark en modo cluster y supresión complementaria, tiempo real con streaming, filtro de privacidad (permitida / enmascarada / rechazada), DAG de Airflow, Prometheus (9 objetivos), panel de Grafana con 3 alertas probadas, informe de auditoría y chatbot con barreras sobre las cifras. 217 tests de Python y 17 de Scala |
-| **Datos cargados** | Año 2020 completo, recargado el 21/09 con supresión complementaria: 23 684 852 viajes válidos; 287 003 grupos hora-zona publicados (430 126 ocultos) |
-| **Métricas** | M1: 0 fugas en la API (31 casos) y en el chatbot (105 ejecuciones) · M2: con k = 10 se publica el 95,1 % de los viajes en hora-zona · M3: p95 35,4 s (objetivo < 60 s) |
-| **Chatbot** | `llama3.1:8b` en GPU a temperatura 0,2: los 7 casos de uso medibles, 21/21, en 2-3 s |
+| **Funciona y está probado en ejecución** | Núcleo (S3, Redpanda, MongoDB, APIs), carga histórica con Spark en modo cluster y supresión complementaria, tiempo real con streaming, filtro de privacidad (permitida / enmascarada / rechazada), DAG de Airflow, Prometheus (9 objetivos), panel de Grafana con 3 alertas probadas, informe de auditoría, chatbot de Ollama con barreras sobre las cifras y **chatbot RAG** (LangChain + Qdrant + LLM externo en la UE) con las mismas barreras y una guardia de salida. 340 tests de Python y 17 de Scala |
+| **Datos cargados** | Año 2020 completo, recargado el 21/09 con supresión complementaria: 23 684 852 viajes válidos; 287 003 grupos hora-zona publicados (430 126 ocultos). Índice de Qdrant: 376 documentos de conocimiento y 18 187 fichas de agregados gruesos |
+| **Métricas** | M1: 0 fugas en la API (31 casos), en el chatbot de Ollama (105 ejecuciones) y en el chatbot RAG (105 ejecuciones) · M2: con k = 10 se publica el 95,1 % de los viajes en hora-zona · M3: p95 35,4 s (objetivo < 60 s) |
+| **Chatbots** | Ollama: `llama3.1:8b` en GPU a temperatura 0,2, 21/21 casos en 2-3 s · RAG: `deepseek-v4-flash` (Helmcode, UE), 21/21 casos con p50 1,1 s y unos 6 000 tokens por pregunta. Detalle en `docs/chatbot_rag.md` |
 | **Parte 1** | Se ejecuta desde el repositorio, con `PIDS_DATOS` apuntando a las imágenes (que siguen fuera de Git) |
 | **Sin empezar** | Integración de gestos (T06), seguridad (T08), alta disponibilidad (T09), vídeo y presentación (T10) |
-| **Cómo levantarlo** | En Ubuntu (WSL2): `make entorno && make sync && make test && make airflow && make historico-muestra` |
-| **Forma de trabajar** | Una rama por persona (tabla en el README) y cambios a `main` por *pull request* |
+| **Cómo levantarlo** | En Ubuntu (WSL2): `make entorno && make sync && make test && make airflow && make historico-muestra`. Chatbot RAG: pegar `LLM_API_KEY` en `.env` y `make chatbot-rag && make rag-indexar` |
+| **Forma de trabajar** | Una rama por persona (tabla en el README) y cambios a `main` por *pull request*. Para trabajo en paralelo, una rama de tarea con contratos por bloque (`parte3_chatbot_rag/CONTRATOS.md`) |
 | **Siguientes tareas** | Ver [`TAREAS.md`](TAREAS.md) |
-| **Pendiente inmediato** | Dejar el tiempo real listo para la demo (T11: la *watermark* quedó a finales de 2020) y la copia de seguridad del dataset de gestos (T01) |
-| **Requisitos** | Todo instalado en este equipo (incluido el NVIDIA Container Toolkit). En equipos sin GPU: `make chatbot SIN_GPU=1` con `OLLAMA_MODELO=llama3.2:3b` |
+| **Pendiente inmediato** | Confirmar en grupo la decisión del LLM externo (regla 9 de E3), dejar el tiempo real listo para la demo (T11) y la copia de seguridad del dataset de gestos (T01) |
+| **Requisitos** | Todo instalado en este equipo (incluido el NVIDIA Container Toolkit). En equipos sin GPU: `make chatbot SIN_GPU=1` con `OLLAMA_MODELO=llama3.2:3b`, o el chatbot RAG, que no necesita GPU |
 
 ## Decisiones tomadas
 
@@ -53,6 +53,8 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 | 21/09/2026 | Mantener k = 10 | Es el codo de la curva privacidad-utilidad (M2) | Javier Saguar | Propuesta: confirmar en grupo |
 | 21/09/2026 | En el chatbot, cada cifra tiene que salir de los datos del turno; LLM a temperatura 0,2 | Barrera determinista contra cifras inventadas o deducidas; con 0,2 acierta más y responde antes | Javier Saguar | Vigente |
 | 21/09/2026 | Una rama por persona y cambios a `main` por *pull request* | No pisarnos el trabajo | Javier Saguar | Vigente |
+| 21/09/2026 | **Segundo chatbot con LLM externo** (Helmcode, API compatible con OpenAI en la UE y sin registro de prompts) y RAG con Qdrant; el de Ollama se conserva | Modelo mayor sin depender de la GPU y con contexto recuperado; solo viajan la pregunta y agregados ya protegidos, con lista blanca de modelos UE y guardia de salida. Matiza la regla 9 de E3 («las preguntas no salen del equipo»), que sigue cumpliéndose con el chatbot de Ollama | Javier Saguar | Propuesta: confirmar en grupo |
+| 21/09/2026 | Trabajo en paralelo por bloques con contratos escritos (`CONTRATOS.md`: propiedad de ficheros y firmas) y una rama de integración `tarea/rag-base` | Cinco bloques a la vez sin conflictos: las tres ramas se fusionaron limpias | Javier Saguar | Vigente |
 
 ## Plantilla (copiar y rellenar)
 
@@ -76,6 +78,65 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 ---
 
 ## Entradas
+
+### 2026-09-21 · Javier Saguar · Chatbot RAG con LLM externo: LangChain, Qdrant y Helmcode, en cinco bloques
+
+- **Rama / commits:** `tarea/rag-base` · `0603ee2` (base), `7c17bb5` (README), fusiones de `rag/2-corpus`,
+  `rag/3-agente` y `rag/4-interfaz`, y el cierre (guardia de salida, documentación y mediciones)
+- **Qué he hecho:**
+  - **Base (bloque 1):** grupo de dependencias `rag` (LangChain 1.4, langchain-openai, langchain-qdrant, qdrant-client
+    1.19, openai 3.13; todo con al menos una semana publicado), variables `LLM_*`/`RAG_*` y `make entorno-completar`
+    (añade lo nuevo a un `.env` existente y deja `LLM_API_KEY` para pegarla a mano), servicios `qdrant`, `chatbot-rag`
+    (8011) y `rag-indexar` en Compose (perfiles `rag` y `rag-indexar`, solo red `servicios`), cliente `chatbot_rag`
+    en la API de acceso, `llm.py` con **lista blanca de modelos que no salen de la UE** y `comprobar_llm.py`
+    (`make rag-comprobar`), pasado contra la API real desde el host y dentro de Docker. README con el stack y
+    `CONTRATOS.md` con el reparto de ficheros y las firmas.
+  - **Corpus e índice (bloque 2):** 376 documentos de conocimiento (docs troceados, privacidad en prosa, guía de
+    consultas, preguntas frecuentes, contexto de 2020, calendario, catálogo, 273 fichas de zona con sinónimos, 31
+    ejemplos de llamadas) y 18 187 fichas de agregados gruesos (día-barrio y flujos) obtenidas por la API de acceso;
+    indexación idempotente por lotes de 32 (18 min por el límite de 60 peticiones/min) y recuperador con fusión de
+    colecciones, filtros por día y barrio y rerank opcional.
+  - **Agente (bloque 3):** `AgenteRAG` con el filtro previo, el cliente de la API y las barreras del chatbot de Ollama
+    reutilizados tal cual; el contexto va en el mensaje de sistema solo en el turno actual y las fichas recuperadas
+    cuentan como datos del turno para la barrera de cifras.
+  - **Interfaz y evaluación (bloque 4):** Chainlit con desplegable de fuentes y tokens, `fabrica.py` (el agente se
+    construye igual en la interfaz y en las suites), suites de casos de uso y batería trampa reutilizando las del
+    chatbot de Ollama, y `comparar.py`.
+  - **Privacidad y documentación (bloque 5, cerrado por mí al integrar):** `salida.py` (guardia de salida: campos
+    individuales con valor, instantes exactos, claves, tamaño; cuenta de tokens), `docs/chatbot_rag.md`, regla 9 de
+    E3 matizada, comparativa, arquitectura, casos de uso y métricas, esta entrada y T13.
+  - Arreglos al integrar: las suites verifican en vivo contra la API las cifras que el chatbot toma de una ficha
+    (antes las contaban como inventadas: CU4 y 12 falsos positivos de la batería); las suites corren desde el
+    anfitrión (`uv run`) y escriben en `informes/chatbot_rag/`; la imagen tiene `/app/informes` escribible.
+- **Por qué:** probar un modelo mayor con contexto recuperado y sin depender de la GPU, manteniendo E3: las cifras
+  siguen saliendo de la API de acceso, las barreras deterministas se conservan y al proveedor solo viajan la pregunta
+  y agregados ya protegidos. El de Ollama queda como alternativa sin salida de datos.
+- **Ficheros clave:** `parte3_chatbot_rag/` completo, `docker-compose.yml`, `Makefile`, `pyproject.toml`,
+  `docs/chatbot_rag.md`, `docs/{escenario_E3,comparativa,arquitectura,casos_uso,metricas_calidad}.md`, `README.md`
+- **Cómo comprobarlo:**
+  ```bash
+  make test                                  # 340 tests de Python
+  make rag-comprobar && make chatbot-rag && make rag-indexar
+  make rag-casos && make rag-bateria ARGS='--detalle'
+  ```
+- **Resultado:** 340 tests de Python en verde. Casos de uso 21/21 (p50 1,1 s; dos ejecuciones de 94 s por reintentos
+  del proveedor; 6 058 tokens por ejecución). Batería trampa **0 fugas en 105 ejecuciones** (0/75 ajuste, 0/30
+  validación; 87 turnos parados por el filtro previo sin llegar al proveedor); revisión manual de los 132 turnos sin
+  hallazgos. Índice: 376 + 18 187 documentos.
+- **Pendiente y riesgos:**
+  - La decisión del LLM externo hay que confirmarla en grupo (regla 9 de E3): es una confianza contractual en el
+    proveedor, no técnica.
+  - En este equipo el chatbot RAG está en el 8012 (`PUERTO_CHATBOT_RAG` del `.env`), porque el 8011 lo ocupa otro
+    proceso; el valor por defecto del repositorio sigue siendo 8011.
+  - Las fichas quedan congeladas en el índice: reindexar tras recargar el histórico.
+  - Cuando la barrera de cifras sustituye la respuesta, el texto de repuesto enseña todas las fichas recuperadas,
+    también las que no vienen a cuento; y el pie «Datos históricos» a veces sale dos veces.
+  - La clave de Helmcode solo vive en `.env`; si se comparte, rotarla en el panel del proveedor.
+- **Contexto para quien siga:** las ramas de los bloques se crearon desde `main` (no desde `tarea/rag-base`) pero
+  solo añadían ficheros propios, así que se fusionaron limpias; el reparto por ficheros funcionó. El bloque 5 no
+  llegó a existir como rama: lo hice al integrar. `chatbot-rag` y `rag-indexar` comparten la imagen
+  `pids/chatbot-rag:local` (grupo `rag`); reconstruirla con `docker compose --profile rag build chatbot-rag`. Si se
+  cambia de modelo (`LLM_MODELO=qwen3.6` con `LLM_RAZONAMIENTO=none` responde en ~1 s), repetir suite y batería.
 
 ### 2026-09-21 · Javier Saguar · Integración de los tres bloques y una rama por persona
 

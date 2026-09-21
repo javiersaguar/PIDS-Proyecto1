@@ -21,8 +21,11 @@ flowchart LR
         ACC[API de acceso<br/>FastAPI + filtro de privacidad]
         BOT[Chatbot<br/>Chainlit]
         OLL[Ollama · GPU]
+        RAG[Chatbot RAG<br/>Chainlit + LangChain]
+        QD[(Qdrant<br/>conocimiento · fichas)]
         PR[Prometheus] --> GR[Grafana]
     end
+    HC[Helmcode · LLM en la UE]
 
     AF[Airflow] -- descarga mes --> S3
     AF -- spark-submit cluster --> SM
@@ -37,6 +40,10 @@ flowchart LR
     ACC -- auditoría --> MG
     BOT -- herramientas --> ACC
     BOT --> OLL
+    RAG -- herramientas --> ACC
+    ACC -- indexador --> QD
+    QD -- contexto --> RAG
+    RAG -. guardia de salida .-> HC
     CAP -- SSE gestos --> BOT
     PR -. métricas .-> CAP & ACC & RP & SM & S3
 ```
@@ -54,8 +61,11 @@ flowchart LR
 | Orquestación | Airflow 3.3 (LocalExecutor) | Carga histórica: descarga → S3 → Spark → comprobación | Individuales (solo ficheros) |
 | Monitorización | Prometheus 3.1 + Grafana 11.5 | Métricas técnicas y agregados protegidos | Métricas |
 | Chatbot | Chainlit + Ollama (llama3.1:8b, GPU) | Conversación; solo usa la API de acceso | Agregados |
+| Chatbot RAG | Chainlit + LangChain 1.4 + Helmcode (`deepseek-v4-flash`, UE) | Conversación con recuperación de contexto; las mismas herramientas y barreras que el chatbot de Ollama; guardia de salida antes de cada llamada al proveedor | Agregados y documentación |
+| Índice vectorial | Qdrant 1.19 | Colecciones `conocimiento` (docs, catálogo, zonas, ejemplos) y `agregados_gruesos` (fichas de día-barrio y flujos, obtenidas por la API de acceso) | Agregados protegidos |
 
-Airflow usa además un PostgreSQL interno solo para sus metadatos; no guarda datos del proyecto.
+Airflow usa además un PostgreSQL interno solo para sus metadatos; no guarda datos del proyecto. El chatbot RAG
+está descrito en detalle en [`chatbot_rag.md`](chatbot_rag.md).
 
 ## Flujos
 
@@ -66,7 +76,10 @@ Airflow usa además un PostgreSQL interno solo para sus metadatos; no guarda dat
    (supervisado) → mismas reglas → `publico.tr_*` cada 30 s.
 3. **Consulta:** chatbot → herramienta → `POST /consultas` → filtro → MongoDB → enmascarado →
    respuesta + registro en `auditoria.decisiones`.
-4. **Gestos (último):** demo → `POST /gestos` → `gestos` → SSE → chatbot.
+4. **Consulta RAG:** `make rag-indexar` → API de acceso → fichas y documentación → Qdrant. En cada pregunta:
+   filtro previo → contexto de Qdrant → guardia de salida → Helmcode (herramientas sobre la misma API de acceso,
+   cliente `chatbot_rag`) → barreras sobre las cifras → respuesta con sus fuentes.
+5. **Gestos (último):** demo → `POST /gestos` → `gestos` → SSE → chatbot.
 
 ## Monitorización y alertas
 
@@ -90,15 +103,17 @@ notificación de `notificaciones.json` las silencia siempre, así que Grafana no
 
 ## Redes y puertos
 
-Dos redes Docker: `datos` (S3, Redpanda, MongoDB y quien los usa) y `servicios` (APIs, chatbot,
-Grafana). **El chatbot y Grafana no están en la red de datos.** Todos los puertos se publican solo
+Dos redes Docker: `datos` (S3, Redpanda, MongoDB y quien los usa) y `servicios` (APIs, chatbots, Qdrant,
+Grafana). **Los chatbots, Qdrant y Grafana no están en la red de datos.** Todos los puertos se publican solo
 en `127.0.0.1`:
 
 | Servicio | URL |
 |---|---|
 | API de captura | http://localhost:8001/docs |
 | API de acceso | http://localhost:8002/docs |
-| Chatbot | http://localhost:8010 |
+| Chatbot (Ollama) | http://localhost:8010 |
+| Chatbot RAG | http://localhost:8011 (`PUERTO_CHATBOT_RAG`) |
+| Qdrant | http://localhost:6333/dashboard |
 | Spark (máster) | http://localhost:8090 |
 | Airflow | http://localhost:8085 |
 | Grafana | http://localhost:3000 |

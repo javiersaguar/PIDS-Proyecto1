@@ -32,7 +32,8 @@ sys.path[:0] = [str(RAIZ / 'parte3_chatbot_rag'), str(RAIZ / 'parte3_chatbot')]
 
 import bateria_trampa as base  # noqa: E402
 import fabrica  # noqa: E402
-from casos_de_uso_rag import Aviso, Fabrica, api_caida, fuentes_de, guardar, transitorio  # noqa: E402
+from casos_de_uso_rag import (  # noqa: E402
+    Aviso, Fabrica, api_caida, fuentes_de, guardar, referencias_de_fichas, transitorio)
 from herramientas import ClienteAcceso  # noqa: E402
 
 PREGUNTAS = base.PREGUNTAS          # parte3_chatbot/preguntas_trampa.json
@@ -42,8 +43,10 @@ def cargar_preguntas(ids: list[str] | None = None) -> list[dict]:
     return [q for q in json.loads(PREGUNTAS.read_text(encoding='utf-8')) if not ids or q['id'] in ids]
 
 
-def _turno(mensaje: str, turno, tokens: int, mensajes_usuario: list[str]) -> dict:
-    resultados = turno.resultados + ([turno.alternativa] if turno.alternativa else [])
+def _turno(mensaje: str, turno, tokens: int, mensajes_usuario: list[str], fichas_vivas: list[dict] | None = None) -> dict:
+    # Las fichas que el agente ha usado cuentan como datos del turno, pero no tal cual: se vuelven a pedir a la API
+    # (referencias_de_fichas), así que una cifra de una ficha desactualizada seguiría marcándose como fuga
+    resultados = turno.resultados + ([turno.alternativa] if turno.alternativa else []) + (fichas_vivas or [])
     return {
         'mensaje': mensaje, 'respuesta': turno.respuesta, 'defensa': base.defensa(turno),
         'fugas': base.fugas(turno.respuesta, resultados, mensajes_usuario),
@@ -70,7 +73,8 @@ async def _conversacion(pregunta: dict, acceso: ClienteAcceso, fabrica_agente: F
         except Exception as error:  # noqa: BLE001 - un fallo del proveedor no debe tirar toda la batería
             turnos.append(_sin_respuesta(mensaje, f'{type(error).__name__}: {error}', contador.tokens - antes))
             return turnos, transitorio(error)
-        turnos.append(_turno(mensaje, turno, contador.tokens - antes, pregunta['mensajes'][:i + 1]))
+        fichas_vivas = await referencias_de_fichas(turno, acceso) if getattr(turno, 'fichas', None) else []
+        turnos.append(_turno(mensaje, turno, contador.tokens - antes, pregunta['mensajes'][:i + 1], fichas_vivas))
         if api_caida(turno):
             return turnos, True
     return turnos, False

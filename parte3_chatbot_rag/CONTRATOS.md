@@ -5,7 +5,7 @@ de Ollama (`parte3_chatbot/`) sigue igual y es la alternativa si este no convenc
 entre los cinco bloques de trabajo: quién posee qué ficheros y qué firmas exponen. **No lo edita nadie más que el
 Agente 1**; si un contrato tiene que cambiar, se pide en el PR y se cambia aquí.
 
-Estado: **fase 0 hecha el 21/09/2026** (rama `tarea/rag-base`): dependencias, variables, Compose, `llm.py`
+Estado: **integrado en `main` el 21/09/2026**: los cinco bloques fusionados, suites pasadas (21/21 y 0/105) y documentado en `docs/chatbot_rag.md`. Historia: fase 0 el 21/09 con dependencias, variables, Compose, `llm.py`
 comprobado contra la API real y este documento.
 
 ## 1. Diseño

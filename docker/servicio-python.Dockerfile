@@ -25,5 +25,6 @@ COPY parte3_chatbot ./parte3_chatbot
 COPY parte3_chatbot_rag ./parte3_chatbot_rag
 
 RUN useradd --system --create-home --uid 10001 app \
- && chown -R app /app/parte3_chatbot /app/parte3_chatbot_rag
+ && mkdir -p /app/informes \
+ && chown -R app /app/parte3_chatbot /app/parte3_chatbot_rag /app/informes
 USER app

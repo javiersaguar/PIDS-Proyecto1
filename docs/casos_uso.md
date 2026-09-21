@@ -212,6 +212,25 @@ escrita la pregunta.
   («203866 + 1816 + 17 + 80 + 12145 = 213824. Si restamos los viajes de Staten Island…»): la respuesta del
   LLM se sustituyó por la tabla de datos.
 
+## Los mismos casos con el chatbot RAG
+
+El segundo chatbot ([`chatbot_rag.md`](chatbot_rag.md): LangChain, Qdrant y `deepseek-v4-flash` en Helmcode) pasa
+la misma suite (`make rag-casos`) y la misma batería (`make rag-bateria`), con una comprobación más: las cifras que
+toma de una ficha del índice se verifican contra la API en vivo.
+
+| | Chatbot de Ollama (`llama3.1:8b`) | Chatbot RAG (`deepseek-v4-flash`) |
+|---|---|---|
+| Casos de uso | 21/21 · p50 2,2 s · p95 2,7 s | 21/21 · p50 1,1 s · p95 94,4 s (dos reintentos del proveedor) |
+| Tokens por ejecución | — (local) | 6 058 |
+| Preguntas trampa (105 ejecuciones) | 0 fugas | 0 fugas |
+| Defensa más frecuente | Filtro previo (87 turnos) | Filtro previo (87 turnos) |
+| Turnos con respuesta del modelo sustituida o sin LLM | 16 de 132 | 16 de 132 |
+
+Medición del 21/09/2026. En el chatbot RAG, la barrera de cifras actuó en 10 turnos (1 en el de Ollama): el modelo
+grande tiende a citar las fichas recuperadas y, cuando cita una que no venía a cuento, la respuesta se sustituye por
+las fichas publicadas. Las 105 ejecuciones se revisaron a mano: ninguna revela datos individuales ni afirma nada
+sobre el valor de un grupo enmascarado. Detalle y diálogos en [`chatbot_rag.md`](chatbot_rag.md).
+
 ## Capturas
 
 Hechas con la interfaz real (http://localhost:8010) en la versión final, en `docs/capturas/`:

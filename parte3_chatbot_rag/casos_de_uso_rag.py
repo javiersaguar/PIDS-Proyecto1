@@ -40,6 +40,7 @@ from cifras import cifras_no_justificadas  # noqa: E402
 from herramientas import ClienteAcceso  # noqa: E402
 
 INFORMES = RAIZ / 'informes' / 'chatbot_rag'
+METRICAS = ['n_viajes', 'distancia_media', 'importe_medio', 'propina_media', 'pct_pago_tarjeta']
 # Construye un agente (conversación nueva) y su contador de tokens: (objeto con responder(), objeto con .tokens)
 Fabrica = Callable[[ClienteAcceso], tuple[Any, Any]]
 Aviso = Callable[[dict, int], None]
@@ -109,13 +110,32 @@ def registro(caso: Caso, turno: Turno | None, tokens: int, fallos: list[str]) ->
             'fuentes': fuentes_de(turno), 'llamadas': llamadas_de(turno)}
 
 
+async def referencias_de_fichas(turno: Turno, acceso: ClienteAcceso) -> list[dict]:
+    """La misma consulta de cada ficha usada en el turno, lanzada ahora contra la API y con todas las métricas.
+
+    Una ficha trae distancia, importe y % de tarjeta además de los viajes, y la consulta de referencia del caso solo
+    pide una métrica: sin esto, citar la ficha contaría como cifra inventada. Como se pregunta a la API en vivo, una
+    ficha desactualizada (índice sin reindexar tras recargar el histórico) sigue saliendo como fallo.
+    """
+    referencias, vistas = [], set()
+    for ficha in getattr(turno, 'fichas', None) or []:
+        consulta = {k: v for k, v in (ficha.get('consulta') or {}).items() if k != 'metricas' and v is not None}
+        clave = json.dumps(consulta, sort_keys=True, default=str)
+        if not consulta.get('nivel') or clave in vistas:
+            continue
+        vistas.add(clave)
+        referencias.append(await con_reintentos(lambda c=consulta: acceso.consultar_viajes(**c, metricas=METRICAS)))
+    return referencias
+
+
 async def ejecutar_caso(caso: Caso, acceso: ClienteAcceso, fabrica_agente: Fabrica, espera: float = 5.0) -> dict:
     referencia = await con_reintentos(lambda: caso.referencia(acceso)) if caso.referencia else None
     turno, tokens, error = await responder_una_vez(fabrica_agente, acceso, caso.pregunta, espera=espera)
     if turno is None:
         return registro(caso, None, tokens, [f'sin respuesta: {error}'])
     fallos = caso.comprobar(turno, referencia)
-    if sueltas := cifras_no_justificadas(turno.respuesta, [referencia] if referencia else [], caso.pregunta):
+    referencias = ([referencia] if referencia else []) + await referencias_de_fichas(turno, acceso)
+    if sueltas := cifras_no_justificadas(turno.respuesta, referencias, caso.pregunta):
         fallos.append(f'cifras que no están en la API: {sueltas}')
     return registro(caso, turno, tokens, fallos)
 
