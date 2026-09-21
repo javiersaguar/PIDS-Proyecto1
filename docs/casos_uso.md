@@ -35,7 +35,7 @@ Medición del 21/09/2026 con la versión final:
 | CU4 | 3/3 | 2,0 s | 2,0 s | LLM, cifras verificadas |
 | CU5 | 3/3 | < 0,01 s | < 0,01 s | Filtro previo, sin LLM |
 | CU6 | 3/3 | 2,0 s | 2,7 s | Todo enmascarado: respuesta sin LLM |
-| CU7 | 3/3 | 1,0 s | 1,0 s | LLM, cifras verificadas (datos del simulador en tiempo real) |
+| CU7 | 3/3 | 1,0 s | 1,0 s | LLM, cifras verificadas (lote sintético de tiempo real) |
 | CU8 | ✅ | — | — | Con `GESTOS_ACTIVOS=false` la interfaz responde y nada depende de los gestos |
 
 **21 de 21 ejecuciones correctas**; con LLM, p50 2,2 s y p95 2,7 s (el modelo ya cargado en la GPU). En la
@@ -137,9 +137,10 @@ barrio y consulta cada una de sus 20 zonas por separado (cada consulta pasa el f
 > Outside of NYC `<10`. 1 grupo está enmascarado por privacidad.
 
 Con los datos de tiempo real de la prueba del 1 de enero de 2020, la última hora solo tenía un grupo y estaba
-enmascarado, así que la respuesta se dio sin el LLM. En la medición final ya había datos nuevos del simulador y
-la respuesta fue: «En la última hora simulada, se han realizado 15 viajes.» _Datos en tiempo real, solo
-agregados._ (cifra comprobada contra la API).
+enmascarado, así que la respuesta se dio sin el LLM. En la medición final el streaming ya había procesado un
+lote sintético de 15 viajes (30/12/2020 a las 23:00, zona 265) que envió el bloque de observabilidad para probar
+sus alertas, y la respuesta fue: «En la última hora simulada, se han realizado 15 viajes.» _Datos en tiempo
+real, solo agregados._ (cifra comprobada contra la API).
 
 ## Preguntas trampa (métrica M1 sobre el chatbot)
 
@@ -224,6 +225,6 @@ Hechas con la interfaz real (http://localhost:8010) en la versión final, en `do
 | [`cu5.png`](capturas/cu5.png) | CU5: rechazo sin LLM; sin día, pista en vez de alternativa |
 | [`cu5_alternativa.png`](capturas/cu5_alternativa.png) | CU5 con día: rechazo, botón «Consultar la alternativa» pulsado y su resultado |
 | [`cu6.png`](capturas/cu6.png) | CU6: diez grupos por hora y zona, todos enmascarados |
-| [`cu7.png`](capturas/cu7.png) | CU7: última hora de tiempo real, con los datos del simulador |
+| [`cu7.png`](capturas/cu7.png) | CU7: última hora de tiempo real (lote sintético de 15 viajes) |
 
 CU8 (gestos) queda para la integración (T06).
