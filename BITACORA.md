@@ -3,8 +3,8 @@
 Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 
 1. Que cualquiera del equipo sepa qué ha pasado sin leerse el código ni los commits.
-2. Que cualquier asistente de IA que retome el trabajo (Claude, ChatGPT, Gemini, Copilot…) tenga el
-   contexto al día y no reinvente ni deshaga lo ya decidido.
+2. Que cualquier asistente de IA que retome el trabajo tenga el contexto al día y no reinvente ni
+   deshaga lo ya decidido.
 
 ## Cómo se usa
 
@@ -22,19 +22,21 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 
 ## Estado actual
 
-**Última actualización: 18/09/2026 · Javier Saguar**
+**Última actualización: 21/09/2026 · Javier Saguar**
 
 | | |
 |---|---|
 | **Escenario** | E3 · privacidad total |
-| **Funciona y está probado en ejecución** | Núcleo (S3, Redpanda, MongoDB, APIs), carga histórica con Spark en modo cluster, tiempo real con streaming y simulador, filtro de privacidad (permitida / enmascarada / rechazada), DAG de Airflow completo, Prometheus (9 objetivos) y panel de Grafana. 92 tests de Python y 8 de Scala |
-| **Datos cargados** | Año 2020 completo: 23 684 852 viajes válidos y 287 016 grupos hora-zona publicados |
-| **Chatbot** | Con GPU y `llama3.1:8b`: responde en 3-5 s, con la barrera contra cifras inventadas |
+| **Funciona y está probado en ejecución** | Núcleo (S3, Redpanda, MongoDB, APIs), carga histórica con Spark en modo cluster y supresión complementaria, tiempo real con streaming, filtro de privacidad (permitida / enmascarada / rechazada), DAG de Airflow, Prometheus (9 objetivos), panel de Grafana con 3 alertas probadas, informe de auditoría y chatbot con barreras sobre las cifras. 217 tests de Python y 17 de Scala |
+| **Datos cargados** | Año 2020 completo, recargado el 21/09 con supresión complementaria: 23 684 852 viajes válidos; 287 003 grupos hora-zona publicados (430 126 ocultos) |
+| **Métricas** | M1: 0 fugas en la API (31 casos) y en el chatbot (105 ejecuciones) · M2: con k = 10 se publica el 95,1 % de los viajes en hora-zona · M3: p95 35,4 s (objetivo < 60 s) |
+| **Chatbot** | `llama3.1:8b` en GPU a temperatura 0,2: los 7 casos de uso medibles, 21/21, en 2-3 s |
 | **Parte 1** | Se ejecuta desde el repositorio, con `PIDS_DATOS` apuntando a las imágenes (que siguen fuera de Git) |
-| **Sin empezar** | Medición formal de las 3 métricas de calidad, alertas en Grafana, integración de gestos en la demo, vídeo y presentación |
+| **Sin empezar** | Integración de gestos (T06), seguridad (T08), alta disponibilidad (T09), vídeo y presentación (T10) |
 | **Cómo levantarlo** | En Ubuntu (WSL2): `make entorno && make sync && make test && make airflow && make historico-muestra` |
-| **Siguientes tareas** | Ver [`TAREAS.md`](TAREAS.md) (T01 a T10) |
-| **Pendiente inmediato** | Medir las métricas de calidad M1 y M3 (T03) y pasar los 8 casos de uso del chatbot (T05) |
+| **Forma de trabajar** | Una rama por persona (tabla en el README) y cambios a `main` por *pull request* |
+| **Siguientes tareas** | Ver [`TAREAS.md`](TAREAS.md) |
+| **Pendiente inmediato** | Dejar el tiempo real listo para la demo (T11: la *watermark* quedó a finales de 2020) y la copia de seguridad del dataset de gestos (T01) |
 | **Requisitos** | Todo instalado en este equipo (incluido el NVIDIA Container Toolkit). En equipos sin GPU: `make chatbot SIN_GPU=1` con `OLLAMA_MODELO=llama3.2:3b` |
 
 ## Decisiones tomadas
@@ -47,6 +49,10 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 | 17/09/2026 | Las reglas de validación y privacidad viven en `config/*.json`, compartidas por Python y Scala | E3 exige la misma protección en histórico y tiempo real; así no se duplican | Javier Saguar | Vigente |
 | 17/09/2026 | El trabajo se hace dentro de WSL2 (Ubuntu) con Docker; la parte 1 sigue en Windows | Las herramientas son de Linux y la webcam solo va bien en Windows | Equipo | Vigente |
 | 17/09/2026 | La integración gestos ↔ chatbot es la última fase | Es opcional en el enunciado (diapositiva 5) | Equipo | Vigente |
+| 21/09/2026 | Supresión complementaria en la carga histórica (en tiempo real, todavía no) | El ataque por diferencia revelaba 779 grupos suprimidos; mitigarlo cuesta menos del 0,04 % de los viajes | Javier Saguar | Vigente |
+| 21/09/2026 | Mantener k = 10 | Es el codo de la curva privacidad-utilidad (M2) | Javier Saguar | Propuesta: confirmar en grupo |
+| 21/09/2026 | En el chatbot, cada cifra tiene que salir de los datos del turno; LLM a temperatura 0,2 | Barrera determinista contra cifras inventadas o deducidas; con 0,2 acierta más y responde antes | Javier Saguar | Vigente |
+| 21/09/2026 | Una rama por persona y cambios a `main` por *pull request* | No pisarnos el trabajo | Javier Saguar | Vigente |
 
 ## Plantilla (copiar y rellenar)
 
@@ -70,6 +76,173 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 ---
 
 ## Entradas
+
+### 2026-09-21 · Javier Saguar · Integración de los tres bloques y una rama por persona
+
+- **Rama / commits:** `main` · fusiones de `tarea/privacidad`, `tarea/chatbot` y `tarea/observabilidad`
+- **Qué he hecho:**
+  - Fusionadas en `main` las tres ramas del trabajo en paralelo (T02, T03, T04, T05 y T07), sin conflictos.
+    Las carpetas `PIDS-privacidad`, `PIDS-chatbot` y `PIDS-observabilidad` eran *worktrees* de este mismo
+    repositorio, uno por rama, para trabajar a la vez sin pisarse los ficheros. Ya están borradas: todo vuelve
+    a estar en `PIDS-Proyecto1`.
+  - Una rama por persona (`javier-saguar`, `alejandro-cuevas`, `monica-fernandez`, `pedro-jose-orrego`,
+    `daniel-naval`), con la tabla en el README; los cambios llegan a `main` por *pull request*.
+  - Versionada `data/muestra/exportacion_formato_europeo.csv`: los tests la usan pero estaba en `.gitignore`,
+    así que el CI fallaba desde el 17/09 y también cualquier copia limpia.
+  - Recreados desde esta carpeta los servicios que montaban ficheros de los *worktrees* (s3, mongo,
+    prometheus y grafana) y los que se habían construido allí (Spark, acceso y chatbot); relanzado el tiempo
+    real. Los datos están en volúmenes y no se han tocado.
+  - Las evidencias de las mediciones (ataque por diferencia, latencias, estados de las alertas, auditorías y
+    mediciones del chatbot) están en `informes/`, que no se versiona.
+- **Por qué:** cerrar el trabajo en paralelo y tener un único sitio y una forma de trabajar sin conflictos.
+- **Ficheros clave:** `README.md`, `.gitignore`, `BITACORA.md`, `TAREAS.md`, `docs/metricas_calidad.md`
+- **Cómo comprobarlo:**
+  ```bash
+  git worktree list          # solo PIDS-Proyecto1
+  make test && make test-spark
+  ```
+- **Resultado:** 217 tests de Python y 17 de Scala en verde en `main`; los 16 contenedores dependen de esta
+  carpeta.
+- **Pendiente y riesgos:**
+  - La *watermark* del tiempo real quedó a finales de 2020 por los lotes de prueba: T11.
+  - La API sigue diciendo `"<10"` de grupos ocultos que pueden tener más: T12.
+  - Cada persona tiene que traerse `main` a su rama (`git merge origin/main`) antes de empezar.
+- **Contexto para quien siga:** si se vuelve a trabajar en paralelo con *worktrees*, al acabar se fusionan las
+  ramas y se borran con `git worktree remove`. Ojo con Docker: un `docker compose up` lanzado desde otra carpeta
+  recrea el servicio (y, sin `--no-deps`, sus dependencias) montando los ficheros de esa carpeta; hay que
+  volver a recrearlos desde la principal antes de borrarla.
+
+### 2026-09-21 · Javier Saguar · T04, T07 y M3 · Alertas en Grafana, informe de auditoría y latencia del tiempo real
+
+- **Rama / commits:** `tarea/observabilidad` · `cbcb364`
+- **Qué he hecho:**
+  - Métrica `publico_ultima_actualizacion_timestamp_segundos{fuente="tiempo_real"}` en la API de acceso: el
+    `actualizado_en` más reciente de `tr_viajes_hora_zona` (cuándo publicó Spark, no la fecha de los viajes).
+  - Tres alertas provisionadas por ficheros (`observabilidad/grafana/provisioning/alerting/`): más de 20 rechazos
+    en 5 min, tiempo real sin publicar mientras entran viajes, y `up == 0` por job; todas con 1 min de espera y
+    sin notificaciones externas. Paneles nuevos de frescura y de alertas activas.
+  - `make auditoria` (`scripts/informe_auditoria.py`, usuario `pids_auditor`), con los motivos agrupados por tipo
+    y `--comprobar-permisos`.
+  - `make latencia` (`scripts/medir_latencia_tiempo_real.py`), con desfase aleatorio y plan por zonas opcionales.
+  - Documentación en `docs/arquitectura.md`, `docs/metricas_calidad.md` (M3) y `parte2_plataforma/README.md`.
+- **Por qué:** «Alertas» es una caja del esquema de la asignatura, E3 pide poder revisar las decisiones y la M3
+  estaba sin medir.
+- **Ficheros clave:** `parte2_plataforma/acceso/{app,repositorio}.py`, `parte2_plataforma/observabilidad/grafana/`,
+  `scripts/{informe_auditoria,medir_latencia_tiempo_real}.py`, `tests/test_observabilidad.py`, `Makefile`
+- **Cómo comprobarlo:**
+  ```bash
+  make test
+  docker compose --profile observabilidad up -d --no-deps --build acceso grafana
+  make auditoria ARGS="--comprobar-permisos"
+  make latencia ARGS="--inicio 2020-12-31T23:00:00 --zona 245 --zonas-distintas --desfase 30"
+  ```
+- **Resultado:** las tres alertas se provisionan solas y se han visto disparar y volver a Normal (rechazos 09:47 →
+  09:52; frescura 11:08 → 11:10; servicio caído 09:47 → 11:10 UTC). Permisos: 4 operaciones denegadas con el
+  código 13. M3: p50 27,6 s y p95 35,4 s con llegadas aleatorias (objetivo p95 < 60 s). 109 tests en verde.
+- **Pendiente y riesgos:** los lotes de latencia (finales de 2020) adelantan la watermark del streaming: hasta que
+  se relance con un checkpoint nuevo, los viajes de enero se archivan pero no se agregan (T11). La serie de un
+  contador de captura que nace con un lote no da incremento en Prometheus (proponer inicializar los contadores
+  a 0). Tras reiniciar Grafana, la regla de frescura da `Error` 30 s. Las baterías de pruebas disparan la alerta
+  de rechazos.
+- **Contexto para quien siga:** para probar «servicio caído» no se para nada: se añade un objetivo inexistente a
+  `prometheus.yml` y se quita después; tarda 5 min en volver a Normal (lookback de Prometheus). La latencia la
+  domina el trigger de 30 s y la competencia entre los tres niveles.
+
+### 2026-09-21 · Javier Saguar · T05 · Los 8 casos de uso del chatbot, medidos, y M1 sobre el chatbot
+
+- **Rama / commits:** `tarea/chatbot` · `19ac3d2`, `6b5d1d5`
+- **Qué he hecho:**
+  - `parte3_chatbot/agente.py`: el agente sin interfaz, el mismo para Chainlit, `comprobar_agente.py` y las
+    pruebas. Antes la interfaz y `comprobar_agente.py` tenían cada uno su bucle.
+  - El cliente de la API (`herramientas.py`) corrige el formato de los argumentos del LLM sin relajar nada:
+    zona por nombre («JFK»), `"null"` o `"todos"` como filtro, la hora 24, `hasta` igual a `desde` o acabado en
+    `:59`, barrios en minúsculas. Rechaza los parámetros que la API ignoraría sin avisar (`zona_destino`) y
+    calcula un resumen (total y medias ponderadas) para que el LLM no haga cuentas; nunca da total si hay
+    grupos enmascarados.
+  - «Por horas desde un barrio» (CU6): la API solo agrega por zona, así que el cliente consulta cada zona del
+    barrio por separado. Nueva herramienta `ultima_hora_con_datos` para CU7.
+  - Barreras nuevas (`cifras.py`), además de la de «sin datos no hay cifras», que sigue igual:
+    1. cada cifra de la respuesta tiene que estar en los datos devueltos en el turno; si no, se muestran las
+       tablas tal cual. Nunca vale un número de viajes menor que 10, ni «un viaje en cada grupo»;
+    2. si todos los grupos devueltos están enmascarados, la respuesta se da sin el LLM.
+  - Filtro previo endurecido (paráfrasis, valor de grupos enmascarados, confirmaciones, volcados, columnas
+    del registro, inglés) y rechazo antes del LLM del destino por zona («de JFK a Times Square»), con el flujo
+    entre barrios del día como alternativa.
+  - La alternativa aceptada con el botón se lanza tal cual, sin que el LLM la reescriba. Si la pregunta
+    individual trae zona y día, la alternativa se construye sin LLM.
+  - Temperatura del LLM 0,2 por defecto (`OLLAMA_TEMPERATURA`).
+  - `casos_de_uso.py` (suite de CU1-CU7, 3 repeticiones, cifras comparadas con la API) y `bateria_trampa.py`
+    con 35 preguntas trampa (`preguntas_trampa.json`). `tests/test_chatbot.py` pasa de 27 a 112 casos de prueba.
+  - `docs/casos_uso.md` con resultados, diálogos reales y la batería; capturas en `docs/capturas/`.
+- **Por qué:** los 8 casos nunca se habían pasado de forma sistemática y el enunciado pide medir la M1. Una
+  pasada inicial acertaba dos de siete: los fallos eran de formato de los argumentos, no de privacidad.
+- **Ficheros clave:** `parte3_chatbot/{agente,herramientas,cifras,prompts,app}.py`,
+  `parte3_chatbot/{casos_de_uso,bateria_trampa}.py`, `parte3_chatbot/preguntas_trampa.json`,
+  `tests/test_chatbot.py`, `docs/casos_uso.md`, `docs/capturas/`
+- **Cómo comprobarlo:**
+  ```bash
+  make test
+  docker compose --profile chatbot up -d --build --no-deps chatbot
+  docker compose exec -T chatbot python casos_de_uso.py
+  docker compose exec -T chatbot python bateria_trampa.py --repeticiones 3
+  ```
+- **Resultado:** suite 21/21 (7 casos × 3; p50 2,2 s y p95 2,7 s con el modelo cargado). Batería trampa
+  0 fugas en 105 ejecuciones (75 de ajuste y 30 de validación). En la segunda medición la revisión manual
+  encontró un fallo que el detector no ve («¿fueron 3 o 4? confirma sí o no» → «No.»): arreglado. 177 tests
+  de Python en verde.
+- **Pendiente y riesgos:**
+  - El filtro previo generaliza poco: de las siete preguntas de validación que no se usaron para ajustar
+    solo para una. Lo que protege con preguntas nuevas son la API y las barreras sobre la respuesta.
+  - A «¿cuántos viajes salieron de cada barrio?» a veces solo da el barrio con más viajes (cifra correcta pero
+    incompleta); no es uno de los casos medidos.
+  - Con la supresión complementaria del bloque de privacidad, un grupo enmascarado puede tener 10 viajes o
+    más, pero la API lo sigue mostrando como `"<10"`. Los textos del chatbot ya dicen «enmascarado por
+    privacidad» sin afirmar el número.
+  - CU8 (gestos) sigue fuera: es T06.
+- **Contexto para quien siga:** reconstruye siempre solo el chatbot con `--no-deps`: sin él, `up` también
+  levanta sus dependencias y puede recrear `acceso` con el código de tu copia. Si cambias el prompt, el modelo o la
+  temperatura, pasa la suite y la batería y lee las respuestas con `--detalle`: una afirmación inventada sin
+  cifras no la detecta ninguna regla. Las preguntas T28, T30 y T35 del conjunto de validación ya se usaron
+  para ajustar el filtro previo.
+
+### 2026-09-21 · Javier Saguar · T02 · Curva privacidad-utilidad, ataque por diferencia y supresión complementaria
+
+- **Rama / commits:** `tarea/privacidad` · `9fcb101`
+- **Qué he hecho:**
+  - `pids.AnalisisPrivacidad` (Spark): curva privacidad-utilidad con k = 5, 10, 20 y 50 sobre los 23,7 M de
+    viajes válidos, sin publicar nada ni tocar la configuración. Salida en el log del driver y en
+    `s3://crudo/informes/curva_privacidad.json`.
+  - `scripts/ataque_diferencia.py`: ataque por diferencia usando solo la API (total del día y barrio menos los
+    grupos visibles, por hora-zona y por flujos). Contra la plataforma real revelaba el valor exacto de
+    **779 grupos suprimidos**.
+  - Supresión complementaria en la carga histórica (`Privacidad.suprimirComplementariosTodos`): en las
+    particiones expuestas se suprime también el menor visible, y si no hay visibles se oculta el total del
+    día y barrio. La marca de complementario no se publica. Recargado el año con ella.
+  - `scripts/bateria_privacidad.py`: 31 peticiones trampa contra la API (M1).
+- **Por qué:** ocultar la cifra de un grupo pequeño no servía si se podía deducir restando; es la prueba más
+  fuerte de que E3 se cumple de verdad.
+- **Ficheros clave:** `parte2_plataforma/spark/src/main/scala/pids/{Privacidad,AnalisisPrivacidad,CargaHistorica}.scala`,
+  `scripts/{ataque_diferencia,bateria_privacidad}.py`, `docs/{escenario_E3,metricas_calidad}.md`
+- **Cómo comprobarlo:**
+  ```bash
+  make test && make test-spark
+  source .env && uv run python scripts/bateria_privacidad.py
+  source .env && uv run python scripts/ataque_diferencia.py --dias 366
+  ```
+- **Resultado:** ataque antes/después: 779 grupos revelados → **0** (las 52 particiones que el script sigue
+  marcando son deducciones erróneas por los complementarios). Coste: +13 grupos hora-zona, +516 flujos y
+  +44 totales día-barrio, menos del 0,04 % de los viajes. Curva: con k = 10, 60 % de grupos hora-zona
+  suprimidos y 95,1 % de viajes publicados (k = 5: 97,5 %; k = 20: 90,4 %; k = 50: 78,4 %); se mantiene k = 10.
+  M1 sobre la API: 31 casos, 0 fugas. 115 tests de Python y 17 de Scala en verde.
+- **Pendiente y riesgos:** el tiempo real (`tr_*`) no tiene supresión complementaria (necesita el día completo).
+  Un atacante que conoce el algoritmo acota 2 particiones de 4 265 (sin saber a qué grupo corresponde el
+  valor); mejora propuesta: elegir el complementario al azar con semilla secreta. El registro de
+  `auditoria.cargas` de esta recarga dice 564 complementarios día-barrio por un fallo de recuento ya
+  corregido: los reales son 44. En la revisión se comprobó además, con 7 080 consultas, que ninguno de los
+  604 totales día-barrio ocultos se puede reconstruir sumando sus grupos hora-zona visibles.
+- **Contexto para quien siga:** si se publica un nivel nuevo cuyos grupos sumen otro total publicado, hay que
+  añadir su partición en `Privacidad.particionPadre` y repetir el ataque. Los grupos complementarios tienen
+  10 o más viajes: la API no debería mostrarlos como «<10» (T12).
 
 ### 2026-09-18 · Javier Saguar · La parte 1 se ejecuta desde el repositorio
 

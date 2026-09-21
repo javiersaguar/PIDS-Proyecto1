@@ -5,14 +5,14 @@
 | Fase | Contenido | Estado |
 |---|---|---|
 | 0 | Repositorio, estructura, elección de escenario (E3) y de tecnologías | ✅ |
-| 1 | Datos: descarga, esquema canónico, validación y perfilado | ✅ código base · ⏳ perfilar meses completos |
+| 1 | Datos: descarga, esquema canónico, validación y perfilado | ✅ año 2020 completo cargado |
 | 2 | Diseño: comparativa, arquitectura, reglas de privacidad, métricas | ✅ primera versión |
-| 3a | Núcleo: S3, Redpanda, MongoDB, APIs de captura y acceso | ✅ código base · ⏳ primer despliegue |
-| 3b | Spark: carga histórica y tiempo real (Scala, modo cluster) | ✅ código base · ⏳ compilar y probar en el clúster |
-| 3c | Airflow: DAG de carga histórica | ✅ código base · ⏳ probar |
-| 3d | Prometheus + Grafana: panel y alertas | ✅ panel · ⏳ alertas |
-| 3e | Medición de las 3 métricas de calidad | ⏳ |
-| 4 | Chatbot: casos de uso con LLM local | ✅ código base · ⏳ probar con Ollama y ajustar el prompt |
+| 3a | Núcleo: S3, Redpanda, MongoDB, APIs de captura y acceso | ✅ desplegado |
+| 3b | Spark: carga histórica y tiempo real (Scala, modo cluster) | ✅ en el clúster, con supresión complementaria |
+| 3c | Airflow: DAG de carga histórica | ✅ probado |
+| 3d | Prometheus + Grafana: panel y alertas | ✅ panel y 3 alertas probadas |
+| 3e | Medición de las 3 métricas de calidad | ✅ M1, M2 y M3 medidas |
+| 4 | Chatbot: casos de uso con LLM local | ✅ 7 casos medidos (21/21) y batería trampa |
 | 5 | Integración con la parte 1 (gestos) | ⏳ última (opcional) |
 | 6 | Entrega: documentación, capturas, vídeo, presentación | ⏳ |
 
@@ -30,8 +30,8 @@ Documentación y presentación, entre todos. Cada uno describe sus cambios en [`
 
 ## Forma de trabajar
 
-- Una rama por tarea y *pull request* a `main`; el CI pasa los tests de Python y de Scala y valida
-  el `docker-compose.yml`.
+- Una rama por persona (tabla en el [README](../README.md#equipo-y-ramas)) y *pull request* a `main`; el
+  CI pasa los tests de Python y de Scala y valida el `docker-compose.yml`.
 - Cambios pequeños y probados: `make test` antes de subir.
 - El trabajo del día a día se lleva en dos ficheros de la raíz: [`../TAREAS.md`](../TAREAS.md) (las 10
   tareas siguientes, con criterio de «hecha») y [`../BITACORA.md`](../BITACORA.md) (qué se hizo, por qué,
@@ -39,13 +39,13 @@ Documentación y presentación, entre todos. Cada uno describe sus cambios en [`
 
 ## Checklist de la entrega (diapositivas 6-10)
 
-- [ ] Comparativa de soluciones evaluadas → `docs/comparativa.md`
+- [x] Comparativa de soluciones evaluadas → `docs/comparativa.md`
 - [ ] Elección de tecnologías justificada por la restricción
-- [ ] Diseño de la arquitectura → `docs/arquitectura.md`
+- [x] Diseño de la arquitectura → `docs/arquitectura.md`
 - [ ] Instrucciones de ejecución y despliegue → `README.md`
-- [ ] 3 métricas de calidad medidas → `docs/metricas_calidad.md`
-- [ ] Casos de uso del chatbot con acceso a los datos → `docs/casos_uso.md`
-- [ ] Capturas o vídeo de los casos de uso
+- [x] 3 métricas de calidad medidas → `docs/metricas_calidad.md`
+- [x] Casos de uso del chatbot con acceso a los datos → `docs/casos_uso.md`
+- [ ] Capturas o vídeo de los casos de uso (capturas hechas en `docs/capturas/`; falta el vídeo)
 - [ ] Extras: varias opciones de almacenamiento ✅, visualización ✅, seguridad ✅, código propio ✅,
       despliegue automatizado ✅, nueva fuente de datos (zonas de la TLC) ✅, alta disponibilidad (parcial:
       driver supervisado)

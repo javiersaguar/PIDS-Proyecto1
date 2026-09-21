@@ -39,83 +39,17 @@ primera que esté libre.
 - **Hecha cuando:** otro miembro del grupo ha reproducido el preprocesado desde la copia.
 - **Dónde:** `parte1_gestos/README.md`
 
-## T02 · Curva privacidad-utilidad y ataque por diferencia
-
-- **Estado:** en curso · **Responsable:** bloque «privacidad» (rama `tarea/privacidad`) · **Estimación:** 4 h · **Dificultad:** media
-- **Por qué:** con el año completo cargado sabemos que k = 10 oculta el 60 % de los grupos finos pero
-  solo el 4,9 % de los viajes (`docs/metricas_calidad.md`). Falta justificar el valor de k y comprobar
-  el riesgo que ya está apuntado en `docs/escenario_E3.md`: restando niveles se puede acotar un grupo
-  suprimido.
-- **Qué hay que hacer:**
-  1. Un trabajo Spark de análisis (`pids.AnalisisPrivacidad`) que, sin publicar nada ni cambiar
-     `config/privacidad.json`, calcule grupos y viajes publicados con k = 5, 10, 20 y 50 sobre los viajes
-     válidos del año: es la curva privacidad-utilidad.
-  2. Escribir un script que intente el ataque usando solo la API: restar al total del día y barrio los
-     grupos hora-zona visibles y contar cuántos grupos suprimidos quedan revelados exactamente.
-  3. Si sale, proponer la mitigación (suprimir también el segundo grupo más pequeño, o añadir ruido) y,
-     si da tiempo, implementarla y medir su coste.
-- **Hecha cuando:** la curva está en `docs/metricas_calidad.md` y el resultado del ataque, con su
-  mitigación, en `docs/escenario_E3.md`.
-- **Dónde:** `config/privacidad.json`, `scripts/`, `docs/`
-
-## T03 · Medir las 3 métricas de calidad
-
-- **Estado:** en curso · **Responsable:** M1 bloque «privacidad» (API) y «chatbot» (chatbot); M3 bloque «observabilidad» · **Estimación:** 4 h · **Dificultad:** media
-- **Por qué:** el enunciado las pide definidas **y medidas**; están definidas en
-  `docs/metricas_calidad.md` pero sin datos.
-- **Qué hay que hacer:**
-  1. `scripts/bateria_privacidad.py`: 20-30 peticiones trampa (viajes concretos, horas con minutos,
-     destino por zona, campos prohibidos, rangos enormes) contra la API y contra el chatbot; contar
-     cuántas devuelven algo que no debería (M1).
-  2. Sacar de `auditoria.cargas` el % de viajes en grupos publicados por nivel, con k = 5, 10 y 20 (M2).
-  3. Medir la latencia del tiempo real: marca de tiempo al enviar y primera aparición del agregado;
-     percentiles 50 y 95 (M3).
-- **Hecha cuando:** `docs/metricas_calidad.md` tiene la tabla de resultados y el script está en el repo.
-- **Dónde:** `scripts/`, `docs/metricas_calidad.md`
-
-## T04 · Alertas en Grafana
-
-- **Estado:** en curso · **Responsable:** bloque «observabilidad» (rama `tarea/observabilidad`) · **Estimación:** 2 h · **Dificultad:** media
-- **Por qué:** «Alertas» es una de las cajas del esquema de la asignatura y suma en la evaluación; el
-  panel ya existe, las alertas no.
-- **Qué hay que hacer:** provisionar por ficheros (no a mano en la interfaz) al menos tres reglas:
-  1. muchas consultas rechazadas en poco tiempo (posible intento de reidentificación),
-  2. el tiempo real no publica agregados desde hace más de 5 minutos,
-  3. algún servicio caído (`up == 0`).
-- **Hecha cuando:** las alertas aparecen solas al levantar Grafana y se puede provocar una a propósito.
-- **Dónde:** `parte2_plataforma/observabilidad/grafana/provisioning/alerting/`
-
-## T05 · Probar y pulir los 8 casos de uso del chatbot
-
-- **Estado:** en curso · **Responsable:** bloque «chatbot» (rama `tarea/chatbot`) · **Estimación:** 4 h · **Dificultad:** media
-- **Por qué:** es lo que se ve en la demo y lo que evalúan en la parte 3.
-- **Qué hay que hacer:**
-  1. Pasar los 8 casos de `docs/casos_uso.md` uno por uno (con `comprobar_agente.py` o en la interfaz).
-  2. Ajustar `prompts.py` donde el modelo se equivoque (fechas, ids de zona, niveles).
-  3. Guardar capturas de cada caso en `docs/capturas/`.
-- **Hecha cuando:** los 8 casos funcionan y hay captura de cada uno.
-- **Dónde:** `parte3_chatbot/prompts.py`, `docs/casos_uso.md`, `docs/capturas/`
-
 ## T06 · Integración de los gestos (última fase del esquema)
 
-- **Estado:** bloqueada por T05 · **Responsable:** — · **Estimación:** 3 h · **Dificultad:** media
-- **Por qué:** es la caja «Integración» de la diapositiva 5 (opcional, pero puntúa).
+- **Estado:** libre (T05 ya está hecha) · **Responsable:** — · **Estimación:** 3 h · **Dificultad:** media
+- **Por qué:** es la caja «Integración» de la diapositiva 5 (opcional, pero puntúa). El chatbot ya ofrece
+  la alternativa con botón tras un rechazo y la lanza tal cual al aceptarla; el gesto 👍 hace lo mismo.
 - **Qué hay que hacer:**
   1. Llamar a `EmisorGestos.observar(pred, conf)` desde `parte1_gestos/demo/src/demo-gestures-PIDS.py`.
   2. `GESTOS_ACTIVOS=true` en `.env` y reiniciar el chatbot.
   3. Probar el ciclo completo: el bot propone una alternativa → 👍 la ejecuta, ✋ la cancela.
 - **Hecha cuando:** se graba un vídeo corto en el que un gesto confirma una consulta del chatbot.
 - **Dónde:** `integracion/`, `parte1_gestos/demo/src/`
-
-## T07 · Revisión de la auditoría de privacidad
-
-- **Estado:** en curso · **Responsable:** bloque «observabilidad» (rama `tarea/observabilidad`) · **Estimación:** 2 h · **Dificultad:** baja
-- **Por qué:** E3 pide registrar las decisiones; ya se guardan, pero no hay forma cómoda de revisarlas.
-- **Qué hay que hacer:** un panel o un pequeño informe (`scripts/informe_auditoria.py`) que use el
-  usuario `pids_auditor` (solo lectura) y muestre consultas por resultado, clientes y los rechazos
-  recientes con sus motivos.
-- **Hecha cuando:** se puede responder «¿qué se ha rechazado hoy y por qué?» en un comando.
-- **Dónde:** `scripts/`, `parte2_plataforma/observabilidad/`
 
 ## T08 · Repaso de seguridad y modelo de amenazas
 
@@ -154,6 +88,36 @@ primera que esté libre.
 - **Hecha cuando:** el vídeo y las diapositivas están listos y enlazados desde el README.
 - **Dónde:** `docs/`, README
 
+## T11 · Tiempo real listo para la demo
+
+- **Estado:** libre · **Responsable:** — · **Estimación:** 1 h · **Dificultad:** media
+- **Por qué:** las pruebas de alertas y de latencia del 21/09 enviaron viajes de finales de diciembre de 2020
+  y el trabajo de tiempo real tiene ahí su *watermark*: `make simular` con la muestra del 1 de enero archiva
+  los viajes pero no los agrega, así que en el vídeo el tiempo real no se movería.
+- **Qué hay que hacer:**
+  1. Cuando esos lotes hayan salido del topic `viajes-crudos` (retención de 24 h), parar el trabajo de tiempo
+     real, borrar su checkpoint (`/opt/spark/checkpoints/tiempo_real`, volumen `spark-checkpoints`) y
+     relanzarlo con `make tiempo-real`. Si se quiere empezar sin los lotes de prueba, vaciar también las
+     colecciones `tr_*` con el usuario administrador de MongoDB.
+  2. Sin esperar, la alternativa es simular un fichero de diciembre (`make descargar MES=2020-12` y
+     `make simular FICHERO=data/crudo/...`).
+  3. Dejar escrito el procedimiento en `parte2_plataforma/README.md`.
+- **Hecha cuando:** `make simular` hace crecer `tr_*` y el chatbot responde CU7 con esos datos.
+- **Dónde:** `parte2_plataforma/README.md`, volumen `spark-checkpoints`
+
+## T12 · Etiqueta de los grupos ocultos en la API
+
+- **Estado:** libre · **Responsable:** — · **Estimación:** 1 h · **Dificultad:** baja
+- **Por qué:** con la supresión complementaria (T02) hay grupos ocultos con 10 o más viajes, pero la API los
+  sigue mostrando todos como `"<10"`, que para esos es falso. El chatbot ya dice «enmascarado por privacidad»
+  sin dar el número.
+- **Qué hay que hacer:** en `parte2_plataforma/comun/privacidad.enmascarar`, devolver `"oculto"` para todos
+  los suprimidos (no se puede distinguir cuáles son complementarios: esa marca no se publica); actualizar sus
+  tests, `docs/escenario_E3.md` y `docs/casos_uso.md`, y pasar `casos_de_uso.py` y `bateria_trampa.py` del
+  chatbot.
+- **Hecha cuando:** ninguna respuesta afirma `"<10"` de un grupo que puede tener más.
+- **Dónde:** `parte2_plataforma/comun/privacidad.py`, `tests/`, `docs/`
+
 ---
 
 ## Ideas y trabajo futuro
@@ -163,6 +127,20 @@ primera que esté libre.
 - Airflow: un DAG que cargue los 12 meses en cadena, con reintentos.
 - Comparar la exportación completa con los Parquet mensuales de la TLC (¿mismos viajes?).
 - Committer de S3A más rápido para las escrituras de Spark.
+- Supresión complementaria también en tiempo real: un trabajo por lotes que cierre cada día cuando la
+  *watermark* lo deja atrás y reescriba sus documentos `tr_*`.
+- Elegir el grupo complementario al azar con una semilla secreta (hoy es el menor visible, lo que da una cota
+  a quien conozca el algoritmo).
+- Añadir al ataque por diferencia la reconstrucción de totales ocultos a partir de los grupos hora-zona
+  (comprobado a mano el 21/09: 0 de los 604 totales ocultos).
+- Bajar la latencia del tiempo real (M3): trigger de 10 s, `PIDS_CORES=4` o los tres niveles en una sola
+  consulta.
+- API de captura: crear los contadores a 0 al arrancar (una serie que nace con un lote no da incremento en
+  Prometheus y la alerta de frescura no lo ve).
+- API de acceso: rechazar los campos desconocidos (`extra='forbid'`) y admitir `barrio_origen` en `hora_zona`
+  (hoy el chatbot consulta zona a zona).
+- Makefile: `make curva-privacidad`, `make ataque-diferencia` y `make bateria-privacidad`.
+- Proteger `main` en GitHub para que solo cambie por *pull request*.
 
 ## Tareas terminadas
 
@@ -175,3 +153,9 @@ primera que esté libre.
 | 17/09/2026 | Dataset completo ingerido y cargado: 23,7 M de viajes válidos en 2 min | Javier Saguar | entrada del 17/09 |
 | 17/09/2026 | T01 Chatbot con GPU: toolkit de NVIDIA, `llama3.1:8b` y respuestas en 3-5 s | Javier Saguar | entrada del 17/09 |
 | 18/09/2026 | T01 Parte 1 ejecutable desde el repositorio (sin rutas fijas) | Javier Saguar | entrada del 18/09 |
+| 21/09/2026 | T02 Curva privacidad-utilidad y ataque por diferencia: 779 grupos revelados → 0 con supresión complementaria | Javier Saguar | entrada del 21/09 |
+| 21/09/2026 | T05 Casos de uso del chatbot: 7 casos medidos (21/21), batería trampa (0/105) y capturas | Javier Saguar | entrada del 21/09 |
+| 21/09/2026 | T04 Alertas en Grafana: tres reglas provisionadas y probadas | Javier Saguar | entrada del 21/09 |
+| 21/09/2026 | T07 Informe de auditoría (`make auditoria`) y prueba de que es de solo añadir | Javier Saguar | entrada del 21/09 |
+| 21/09/2026 | T03 Las 3 métricas medidas: M1 0 fugas (API 31, chatbot 105), M2 curva k = 5-50, M3 p95 35,4 s | Javier Saguar | entrada del 21/09 |
+| 21/09/2026 | Integración de los tres bloques en `main` y una rama por persona | Javier Saguar | entrada del 21/09 |

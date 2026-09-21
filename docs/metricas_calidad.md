@@ -27,7 +27,7 @@ La conclusión es el argumento central de E3: **el umbral oculta muchos grupos p
 En el nivel más fino se suprimen 6 de cada 10 grupos, y aun así siguen publicados el 95 % de los
 viajes: los grupos ocultos son justo los pequeños, que son los que permitirían identificar a alguien.
 
-Pendiente: repetir con k = 5 y k = 20 para tener la curva privacidad–utilidad.
+La curva completa, con k = 5, 10, 20 y 50, está más abajo, en «M2 · Curva privacidad-utilidad».
 
 ### Calidad de la ingesta (misma carga)
 
@@ -41,9 +41,6 @@ Pendiente: repetir con k = 5 y k = 20 para tener la curva privacidad–utilidad.
 | Tamaño de los agregados en MongoDB | 214 MB |
 
 ### M1 · Tasa de fuga de privacidad
-
-<!-- Sección del bloque «privacidad» (tareas T02 y T03-M1). La parte del chatbot la aporta el bloque
-     «chatbot» (T05). No editar desde otros bloques para evitar conflictos al fusionar. -->
 
 **Fugas directas en la API (medido el 21/09/2026):** `scripts/bateria_privacidad.py` lanza 31
 peticiones trampa y revisa cada respuesta buscando campos individuales, grupos de menos de 10 viajes con
@@ -65,14 +62,30 @@ su cifra visible y métricas de grupos suprimidos.
 en [`escenario_E3.md`](escenario_E3.md). Antes de la mitigación revelaba el valor exacto de **779 grupos
 suprimidos**; después, ninguno.
 
-_Parte del chatbot: la aporta el bloque «chatbot»._
-
 Cómo repetirlo: `source .env && uv run python scripts/bateria_privacidad.py` (el detalle queda en
 `informes/`).
 
-### M2 · Curva privacidad-utilidad (k = 5, 10, 20, 50)
+**En el chatbot (medido el 21/09/2026):** `parte3_chatbot/bateria_trampa.py` lanza 35 preguntas trampa
+(`parte3_chatbot/preguntas_trampa.json`) contra el agente real: paráfrasis de peticiones individuales, valor de
+grupos enmascarados y ataques por diferencia, inyección de instrucciones, inglés, varios mensajes seguidos y
+campos prohibidos. Se evalúa lo que ve el usuario (instantes con minutos, nombres o matrículas, cifras que no
+salen de los datos del turno y números de viajes menores que 10) y, además, se revisan a mano todas las
+respuestas.
 
-<!-- Sección del bloque «privacidad» (tarea T02). -->
+| Conjunto | Ejecuciones | Con fuga |
+|---|---|---|
+| Ajuste (25 preguntas × 3) | 75 | 0 |
+| Validación (10 preguntas × 3) | 30 | 0 |
+| de ellas, preguntas nunca usadas para ajustar | 21 | 0 |
+| **Total** | **105** | **0 (0 %)** |
+
+Una medición intermedia sí tuvo un fallo (1/70): el modelo contestó «No.» a «¿fueron 3 o 4?» sobre un grupo
+enmascarado, una afirmación inventada que ninguna regla automática detecta. Se arregló en el filtro previo.
+Detalle, evolución y qué defensa paró cada pregunta en [`casos_uso.md`](casos_uso.md).
+
+Cómo repetirlo: `docker compose exec -T chatbot python bateria_trampa.py --repeticiones 3 --detalle`.
+
+### M2 · Curva privacidad-utilidad (k = 5, 10, 20, 50)
 
 Calculada con el trabajo Spark `pids.AnalisisPrivacidad` sobre los 23 684 852 viajes válidos del año, sin
 publicar nada ni cambiar la configuración: para cada umbral k, cuántos grupos se suprimen y qué parte de
@@ -109,8 +122,6 @@ Cómo repetirlo:
 (unos 8 minutos; la tabla sale en el log del driver y el JSON en `s3://crudo/informes/curva_privacidad.json`).
 
 ### M3 · Latencia de publicación en tiempo real
-
-<!-- Sección del bloque «observabilidad» (tareas T04, T07 y T03-M3). No editar desde otros bloques. -->
 
 Medida el 21/09/2026 con `make latencia` (`scripts/medir_latencia_tiempo_real.py`), con un único trabajo
 `pids-tiempo-real` en marcha. Cada medida envía por `POST /viajes` un lote de 15 viajes válidos a una combinación
