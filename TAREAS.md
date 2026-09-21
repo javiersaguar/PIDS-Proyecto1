@@ -41,25 +41,26 @@ primera que esté libre.
 
 ## T02 · Curva privacidad-utilidad y ataque por diferencia
 
-- **Estado:** libre · **Responsable:** — · **Estimación:** 4 h · **Dificultad:** media
+- **Estado:** en curso · **Responsable:** bloque «privacidad» (rama `tarea/privacidad`) · **Estimación:** 4 h · **Dificultad:** media
 - **Por qué:** con el año completo cargado sabemos que k = 10 oculta el 60 % de los grupos finos pero
   solo el 4,9 % de los viajes (`docs/metricas_calidad.md`). Falta justificar el valor de k y comprobar
   el riesgo que ya está apuntado en `docs/escenario_E3.md`: restando niveles se puede acotar un grupo
   suprimido.
 - **Qué hay que hacer:**
-  1. Repetir la carga con k = 5 y k = 20 (se cambia en `config/privacidad.json`) y anotar grupos y
-     viajes publicados en cada caso: es la curva privacidad-utilidad.
-  2. Escribir un script que intente el ataque: coger un grupo suprimido y ver si restando el total del
-     día y barrio menos los grupos visibles se puede acotar su valor.
-  3. Si sale, proponer la mitigación (suprimir también el segundo grupo más pequeño, o añadir ruido) y
-     dejarla escrita aunque no se implemente.
+  1. Un trabajo Spark de análisis (`pids.AnalisisPrivacidad`) que, sin publicar nada ni cambiar
+     `config/privacidad.json`, calcule grupos y viajes publicados con k = 5, 10, 20 y 50 sobre los viajes
+     válidos del año: es la curva privacidad-utilidad.
+  2. Escribir un script que intente el ataque usando solo la API: restar al total del día y barrio los
+     grupos hora-zona visibles y contar cuántos grupos suprimidos quedan revelados exactamente.
+  3. Si sale, proponer la mitigación (suprimir también el segundo grupo más pequeño, o añadir ruido) y,
+     si da tiempo, implementarla y medir su coste.
 - **Hecha cuando:** la curva está en `docs/metricas_calidad.md` y el resultado del ataque, con su
   mitigación, en `docs/escenario_E3.md`.
 - **Dónde:** `config/privacidad.json`, `scripts/`, `docs/`
 
 ## T03 · Medir las 3 métricas de calidad
 
-- **Estado:** libre · **Responsable:** — · **Estimación:** 4 h · **Dificultad:** media
+- **Estado:** en curso · **Responsable:** M1 bloque «privacidad» (API) y «chatbot» (chatbot); M3 bloque «observabilidad» · **Estimación:** 4 h · **Dificultad:** media
 - **Por qué:** el enunciado las pide definidas **y medidas**; están definidas en
   `docs/metricas_calidad.md` pero sin datos.
 - **Qué hay que hacer:**
@@ -74,7 +75,7 @@ primera que esté libre.
 
 ## T04 · Alertas en Grafana
 
-- **Estado:** libre · **Responsable:** — · **Estimación:** 2 h · **Dificultad:** media
+- **Estado:** en curso · **Responsable:** bloque «observabilidad» (rama `tarea/observabilidad`) · **Estimación:** 2 h · **Dificultad:** media
 - **Por qué:** «Alertas» es una de las cajas del esquema de la asignatura y suma en la evaluación; el
   panel ya existe, las alertas no.
 - **Qué hay que hacer:** provisionar por ficheros (no a mano en la interfaz) al menos tres reglas:
@@ -86,7 +87,7 @@ primera que esté libre.
 
 ## T05 · Probar y pulir los 8 casos de uso del chatbot
 
-- **Estado:** libre · **Responsable:** — · **Estimación:** 4 h · **Dificultad:** media
+- **Estado:** en curso · **Responsable:** bloque «chatbot» (rama `tarea/chatbot`) · **Estimación:** 4 h · **Dificultad:** media
 - **Por qué:** es lo que se ve en la demo y lo que evalúan en la parte 3.
 - **Qué hay que hacer:**
   1. Pasar los 8 casos de `docs/casos_uso.md` uno por uno (con `comprobar_agente.py` o en la interfaz).
@@ -108,7 +109,7 @@ primera que esté libre.
 
 ## T07 · Revisión de la auditoría de privacidad
 
-- **Estado:** libre · **Responsable:** — · **Estimación:** 2 h · **Dificultad:** baja
+- **Estado:** en curso · **Responsable:** bloque «observabilidad» (rama `tarea/observabilidad`) · **Estimación:** 2 h · **Dificultad:** baja
 - **Por qué:** E3 pide registrar las decisiones; ya se guardan, pero no hay forma cómoda de revisarlas.
 - **Qué hay que hacer:** un panel o un pequeño informe (`scripts/informe_auditoria.py`) que use el
   usuario `pids_auditor` (solo lectura) y muestre consultas por resultado, clientes y los rechazos

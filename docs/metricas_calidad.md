@@ -40,6 +40,21 @@ Pendiente: repetir con k = 5 y k = 20 para tener la curva privacidad–utilidad.
 | Tiempo de la carga | **2 min** (Spark en modo cluster, 6 núcleos, 2 workers) |
 | Tamaño de los agregados en MongoDB | 214 MB |
 
-### M1 y M3
+### M1 · Tasa de fuga de privacidad
 
-_Pendientes: ver la tarea T03 en [`../TAREAS.md`](../TAREAS.md)._
+<!-- Sección del bloque «privacidad» (tareas T02 y T03-M1). La parte del chatbot la aporta el bloque
+     «chatbot» (T05). No editar desde otros bloques para evitar conflictos al fusionar. -->
+
+_Pendiente de medir._
+
+### M2 · Curva privacidad-utilidad (k = 5, 10, 20, 50)
+
+<!-- Sección del bloque «privacidad» (tarea T02). -->
+
+_Pendiente de medir._
+
+### M3 · Latencia de publicación en tiempo real
+
+<!-- Sección del bloque «observabilidad» (tareas T04, T07 y T03-M3). No editar desde otros bloques. -->
+
+_Pendiente de medir._
