@@ -56,11 +56,11 @@ comprobado contra la API real y este documento.
 
 | Agente | Tema | Ficheros |
 |---|---|---|
-| **1** | Infraestructura y proveedor LLM | `pyproject.toml`, `uv.lock`, `.env.example`, `scripts/generar_env.py`, `docker-compose*.yml`, `docker/servicio-python.Dockerfile`, `.dockerignore`, `Makefile`, `.github/workflows/ci.yml`, `parte3_chatbot_rag/{llm.py,comprobar_llm.py,CONTRATOS.md}`, `tests/{test_rag_llm,test_generar_env}.py` |
+| **1** | Infraestructura y proveedor LLM | `pyproject.toml`, `uv.lock`, `.env.example`, `scripts/generar_env.py`, `docker-compose*.yml`, `docker/servicio-python.Dockerfile`, `.dockerignore`, `Makefile`, `.github/workflows/ci.yml`, `README.md` (stack y puesta en marcha; pasó del Agente 5 al 1 el 21/09), `parte3_chatbot_rag/{llm.py,comprobar_llm.py,CONTRATOS.md}`, `tests/{test_rag_llm,test_generar_env}.py` |
 | **2** | Corpus, indexación y recuperación | `parte3_chatbot_rag/{corpus.py,fichas.py,indexar.py,recuperador.py}`, `parte3_chatbot_rag/corpus/` (ejemplos y glosario), `tests/{test_rag_corpus,test_rag_recuperador}.py` |
 | **3** | Agente RAG (núcleo) | `parte3_chatbot_rag/{agente_rag.py,herramientas_lc.py,prompts_rag.py}`, `tests/test_rag_agente.py` |
 | **4** | Interfaz y evaluación | `parte3_chatbot_rag/{app.py,chainlit.md,casos_de_uso_rag.py,bateria_trampa_rag.py,comparar.py}`, `tests/test_rag_evaluacion.py` |
-| **5** | Privacidad, guardia de salida y documentación | `parte3_chatbot_rag/{salida.py,README.md}`, `tests/test_rag_salida.py`, `docs/chatbot_rag.md`, `docs/{escenario_E3,comparativa,arquitectura,casos_uso,metricas_calidad}.md`, `README.md`, `BITACORA.md`, `TAREAS.md` |
+| **5** | Privacidad, guardia de salida y documentación | `parte3_chatbot_rag/{salida.py,README.md}`, `tests/test_rag_salida.py`, `docs/chatbot_rag.md`, `docs/{escenario_E3,comparativa,arquitectura,casos_uso,metricas_calidad}.md`, `BITACORA.md`, `TAREAS.md` (el `README.md` de la raíz ya no: lo lleva el Agente 1) |
 
 ## 4. Variables de entorno (ya en `.env.example`; `make entorno-completar` las añade a un `.env` existente)
 
@@ -210,6 +210,10 @@ Fase 2  Fusión en tarea/rag-base en orden 2 → 3 → 5 → 4
 
 Hasta que exista `app.py`, `make chatbot-rag` levanta Qdrant pero el contenedor `chatbot-rag` no arranca; para
 probar el proveedor vale `make rag-comprobar`.
+
+Estado el 21/09 por la tarde: `rag/3-agente` (terminada) y `rag/4-interfaz` (en curso) se crearon desde `main`, no
+desde `tarea/rag-base`, pero solo añaden ficheros propios, así que se fusionan limpias. Los agentes 2 y 5 siguen
+trabajando. El `README.md` de la raíz ya recoge el chatbot RAG (stack, puesta en marcha, puertos y estructura).
 
 ## 8. Comprobado contra la API real (21/09/2026)
 
