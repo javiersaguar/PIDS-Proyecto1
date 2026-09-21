@@ -81,39 +81,76 @@ flowchart LR
 
 ## Puesta en marcha
 
-Dentro de Ubuntu (WSL2), en la raíz del repositorio (requisitos en [`docs/herramientas.md`](docs/herramientas.md)):
+Todo se ejecuta dentro de Ubuntu (WSL2), en la raíz del repositorio; la parte 1 (gestos) va en Windows y tiene
+sus instrucciones en [`parte1_gestos/`](parte1_gestos/). Requisitos en [`docs/herramientas.md`](docs/herramientas.md):
+Docker con Compose, `uv`, Node 22 (solo para desarrollar el portal) y, para el chatbot con GPU, el NVIDIA Container
+Toolkit.
+
+### La primera vez
 
 ```bash
-make entorno              # genera .env con claves aleatorias (make entorno-completar si ya tenías uno)
+make entorno              # .env con claves y contraseñas aleatorias (con un .env antiguo: make entorno-completar)
+nano .env                 # pega LLM_API_KEY (panel de Helmcode): es la única clave que no se genera sola
 make sync && make test    # entorno Python y tests
-make nucleo               # S3, Redpanda, MongoDB y APIs
-make airflow              # + Spark y Airflow
-make historico-muestra    # carga el CSV de muestra (Airflow → Spark → MongoDB)
-make observabilidad       # + Prometheus y Grafana
-make chatbot              # + Ollama y chatbot local (SIN_GPU=1 si no hay GPU NVIDIA)
-make rag-comprobar        # comprueba el proveedor del LLM externo (pega antes LLM_API_KEY en .env)
-make chatbot-rag          # + Qdrant y chatbot RAG
-make rag-indexar          # indexa en Qdrant el conocimiento y las fichas de agregados
-make tiempo-real          # arranca el streaming en Spark
-make simular              # envía viajes a la API de captura
-make frontend             # + portal web (contraseña: FRONTEND_CLAVE de .env)
-make                      # lista de todos los comandos
+make construir            # todas las imágenes (unos minutos la primera vez)
+make todo                 # levanta toda la plataforma, portal web incluido
+make estado               # espera a que todo esté «running» o «healthy»
+make historico-muestra    # primera carga: los 999 viajes de muestra (Airflow → Spark → MongoDB)
+make rag-comprobar        # comprueba el proveedor del LLM externo
+make rag-indexar          # índice de Qdrant para el chatbot RAG (tras cada carga grande)
 ```
 
-| Servicio | URL |
-|---|---|
-| Portal web | http://localhost:8020 |
-| Chatbot (Ollama) | http://localhost:8010 |
-| Chatbot RAG | http://localhost:8011 |
-| Airflow | http://localhost:8085 |
-| Grafana | http://localhost:3000 |
-| Spark | http://localhost:8090 |
-| Qdrant | http://localhost:6333/dashboard |
-| API de acceso | http://localhost:8002/docs |
-| API de captura | http://localhost:8001/docs |
+Para datos de verdad: `make historico MES=2020-01` carga un mes desde la TLC; el año 2020 completo se cargó con
+`make subir-csv` y `make historico-fichero` (bitácora del 17/09). En un equipo sin GPU NVIDIA, añade `SIN_GPU=1`
+(`make todo SIN_GPU=1`) y pon `OLLAMA_MODELO=llama3.2:3b` en `.env`.
 
-Las contraseñas y claves están en `.env`. La única que no se genera sola es `LLM_API_KEY`, la del proveedor
-del LLM externo, que se pega a mano desde el panel de Helmcode.
+### Cada día
+
+```bash
+make todo                 # levanta lo que esté parado; los datos siguen en los volúmenes de Docker
+make estado
+make tiempo-real          # arranca el streaming en Spark (cada vez que se reinicia el clúster)
+make simular              # envía viajes a la API de captura para ver moverse el tiempo real (RITMO=50)
+make parar                # al terminar: lo para todo y conserva los datos
+```
+
+`make borrar-todo` borra además los volúmenes (datos, usuarios, modelos): solo si quieres empezar de cero.
+
+### Entrar
+
+| Servicio | URL | Usuario y contraseña |
+|---|---|---|
+| **Portal web** | http://localhost:8020 | Solo contraseña: `FRONTEND_CLAVE` de `.env` |
+| Chatbot (Ollama) | http://localhost:8010 | — |
+| Chatbot RAG | http://localhost:8011 (`PUERTO_CHATBOT_RAG`) | — |
+| Airflow | http://localhost:8085 | `AIRFLOW_ADMIN_USER` / `AIRFLOW_ADMIN_PASSWORD` |
+| Grafana | http://localhost:3000 | `admin` / `GRAFANA_ADMIN_PASSWORD` |
+| Spark | http://localhost:8090 | — |
+| Qdrant | http://localhost:6333/dashboard | — |
+| API de acceso | http://localhost:8002/docs | Cabecera `X-API-Key`: `ACCESO_CLAVE_EQUIPO` |
+| API de captura | http://localhost:8001/docs | Cabecera `X-API-Key`: `CAPTURA_CLAVE_SIMULADOR` |
+
+```bash
+grep '^FRONTEND_CLAVE=' .env      # la contraseña del portal
+```
+
+Cada `.env` es de su equipo y no se sube a Git (cada persona tiene sus propias claves). Para elegir tú la contraseña
+del portal, cambia `FRONTEND_CLAVE` en `.env` y ejecuta `make frontend`, que recrea el contenedor. Todos los puertos se
+publican solo en `127.0.0.1`; si uno está ocupado en tu equipo, cámbialo en `.env` (`PUERTO_*`). Si `.env` es de antes
+del portal, `make entorno-completar` le añade sus claves y `docker compose up -d --no-deps acceso` hace que la API de
+acceso reconozca al cliente `frontend`.
+
+### Portal web: con datos reales y en demostración
+
+- **Con datos reales** (el de arriba): `make frontend` construye y levanta solo el portal. Para desarrollarlo, `make
+  frontend-dev` (BFF con recarga) y, en otra terminal, `cd parte4_frontend/web && npm run dev` (http://localhost:5173).
+  Detalles en [`parte4_frontend/README.md`](parte4_frontend/README.md).
+- **Demostración pública:** Vercel publica `main` con [`vercel.json`](vercel.json): la misma aplicación, sin servidor,
+  con datos grabados de la plataforma (agregados ya enmascarados). En local: `cd parte4_frontend/web && npx vite build
+  --config vite.demo.config.ts && npx vite preview --config vite.demo.config.ts` (http://127.0.0.1:4190). Cómo
+  funciona y cómo regrabar sus datos: [`parte4_frontend/demo/README.md`](parte4_frontend/demo/README.md).
+
+`make` lista todos los comandos.
 
 ## Estructura
 
@@ -140,7 +177,8 @@ del LLM externo, que se pega a mano desde el panel de Helmcode.
 ├── scripts/                 descarga, perfilado, generación de .env, auditoría, latencia y ataques
 ├── tests/                   tests de Python (los de Scala están en parte2_plataforma/spark)
 ├── docker-compose.yml       perfiles: spark, airflow, observabilidad, chatbot, rag, rag-indexar,
-│                            herramientas, simulador
+│                            frontend, herramientas, simulador
+├── vercel.json              demostración pública del portal en Vercel (parte4_frontend/demo)
 └── Makefile
 ```
 

@@ -22,7 +22,7 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 
 ## Estado actual
 
-**Última actualización: 21/09/2026 · Javier Saguar**
+**Última actualización: 21/09/2026 · Javier Saguar** (portal web en `main`)
 
 | | |
 |---|---|
@@ -32,9 +32,9 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 | **Métricas** | M1: 0 fugas en la API (31 casos), en el chatbot de Ollama (105 ejecuciones) y en el chatbot RAG (105 ejecuciones) · M2: con k = 10 se publica el 95,1 % de los viajes en hora-zona · M3: p95 35,4 s (objetivo < 60 s) |
 | **Chatbots** | Ollama: `llama3.1:8b` en GPU a temperatura 0,2, 21/21 casos en 2-3 s · RAG: `deepseek-v4-flash` (Helmcode, UE), 21/21 casos con p50 1,1 s y unos 6 000 tokens por pregunta. Detalle en `docs/chatbot_rag.md` |
 | **Parte 1** | Se ejecuta desde el repositorio, con `PIDS_DATOS` apuntando a las imágenes (que siguen fuera de Git) |
-| **Portal web (parte 4)** | Rama `tarea/frontend`: SPA React + BFF FastAPI con panel, explorador, asistente, tiempo real, privacidad/auditoría, operaciones y documentación; probado de punta a punta contra la plataforma real desde el host y la imagen `pids/frontend:local` construida. Pendiente: PR a `main`, recrear `acceso` con la clave `frontend` y `make frontend` desde la carpeta principal (T14). 306 tests de Python y 98 de Vitest en esa rama |
+| **Portal web (parte 4)** | En `main` y levantado (`make frontend`, http://localhost:8020, contraseña `FRONTEND_CLAVE` de `.env`): panel, explorador, asistente (Ollama y RAG), tiempo real, privacidad y auditoría, operaciones y documentación. Demostración pública en Vercel con datos grabados (`parte4_frontend/demo`). 429 tests de Python, 17 de Scala y 132 de Vitest |
 | **Sin empezar** | Integración de gestos (T06), seguridad (T08), alta disponibilidad (T09), vídeo y presentación (T10) |
-| **Cómo levantarlo** | En Ubuntu (WSL2): `make entorno && make sync && make test && make airflow && make historico-muestra`. Chatbot RAG: pegar `LLM_API_KEY` en `.env` y `make chatbot-rag && make rag-indexar` |
+| **Cómo levantarlo** | En Ubuntu (WSL2), paso a paso en el README («Puesta en marcha»): `make entorno`, pegar `LLM_API_KEY`, `make sync && make test`, `make construir && make todo`, `make historico-muestra` y `make rag-indexar`; cada día, `make todo` y `make tiempo-real` |
 | **Forma de trabajar** | Una rama por persona (tabla en el README) y cambios a `main` por *pull request*. Para trabajo en paralelo, una rama de tarea con contratos por bloque (`parte3_chatbot_rag/CONTRATOS.md`) |
 | **Siguientes tareas** | Ver [`TAREAS.md`](TAREAS.md) |
 | **Pendiente inmediato** | Confirmar en grupo la decisión del LLM externo (regla 9 de E3), dejar el tiempo real listo para la demo (T11) y subir la copia del dataset de gestos, ya hecha y verificada (T01) |
@@ -79,6 +79,46 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 ---
 
 ## Entradas
+
+### 2026-09-21 · Javier Saguar · T14 · Portal web en `main`, levantado, y demostración pública en Vercel
+
+- **Rama / commits:** `main` · fusiones de `tarea/frontend` y `tarea/frontend-demo` y el commit de esta entrada
+- **Qué he hecho:**
+  - Fusionado el portal en `main` (solo chocaba la bitácora) y levantado desde la carpeta principal:
+    `make entorno-completar` (añade `ACCESO_CLAVE_FRONTEND`, `FRONTEND_CLAVE`, `FRONTEND_SECRETO` y `PUERTO_FRONTEND`
+    sin tocar el resto), `acceso` recreado para que conozca al cliente `frontend` y `make frontend`.
+  - **Vercel** fallaba con «No FastAPI entrypoint found»: construye la raíz, ve `pyproject.toml` y cree que es una
+    app FastAPI. Lo que proponía (`[tool.vercel] entrypoint = "parte2_plataforma.acceso.app:app"`) habría publicado en
+    internet la API de acceso, la puerta de privacidad, y además no funcionaría sin MongoDB. `vercel.json` fija el
+    *framework* en Vite y publica el portal en **modo demostración**: la misma SPA con un sustituto del BFF en el
+    navegador que contesta con una instantánea grabada de la plataforma (agregados ya enmascarados por la API, estado,
+    auditoría y conversaciones del agente de Ollama). El filtro de privacidad de la API está portado a TypeScript con
+    `config/privacidad.json` y se compara con 25 respuestas reales de la API. Detalle en `parte4_frontend/demo/README.md`.
+  - La imagen del portal no construía con el modo demostración dentro: la etapa de la SPA solo copiaba
+    `parte4_frontend/web` y `src/demo` importa `config/privacidad.json`. Ahora reproduce la estructura del repositorio
+    y quita `dist/demo`, que el portal real no necesita.
+  - README: «Puesta en marcha» reescrita (primera vez, cada día, usuarios y contraseñas de cada herramienta, portal
+    real y demostración). Capturas del portal con datos reales en `docs/capturas/portal_*.png`.
+- **Por qué:** cerrar la parte 4 (T14) y que el despliegue de Vercel deje de fallar sin exponer nada de la plataforma.
+- **Ficheros clave:** `vercel.json`, `parte4_frontend/demo/`, `parte4_frontend/web/src/demo/`,
+  `parte4_frontend/web/vite.demo.config.ts`, `parte4_frontend/bff/Dockerfile`, `README.md`
+- **Cómo comprobarlo:**
+  ```bash
+  make test && make test-frontend
+  make frontend                     # http://localhost:8020, contraseña: grep '^FRONTEND_CLAVE=' .env
+  cd parte4_frontend/web && npx vite build --config vite.demo.config.ts && npx vite preview --config vite.demo.config.ts
+  ```
+- **Resultado:** 429 tests de Python y 132 de Vitest en verde, lint y los dos *builds* limpios. Portal en el
+  contenedor: sin sesión 401, contraseña mala 401, buena 204; panel, tiempo real, auditoría, Airflow y catálogo
+  responden; una consulta con `matricula` da 403; la auditoría registra al cliente `frontend`; el asistente contesta
+  con Ollama (9,5 s) y con RAG (96 s ese momento, lentitud del proveedor). La demostración: las siete secciones sin
+  errores de consola, y el *build* de Vercel simulado desde un clon limpio con los comandos de `vercel.json`.
+- **Pendiente y riesgos:**
+  - El tiempo real del portal marca «sin datos recientes» hasta que el *streaming* vuelva a recibir viajes (T11).
+  - En pantallas de móvil la barra lateral no se pliega y estrecha el contenido.
+  - La instantánea de la demostración es del 21/09; se regraba con `uv run python -m parte4_frontend.demo.instantanea`.
+- **Contexto para quien siga:** Vercel no puede llegar a la plataforma (está en Docker en un portátil y la API no se
+  publica), por eso la demostración no tiene servidor. No añadir `[tool.vercel]` a `pyproject.toml`.
 
 ### 2026-09-21 · Javier Saguar · T01 (en curso) · Copia de seguridad del dataset de gestos
 

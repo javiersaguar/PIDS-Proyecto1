@@ -7,12 +7,15 @@
 # Por defecto `frontend chatbot`; cuando el grupo `rag` exista en main, Compose lo puede ampliar sin tocar la imagen.
 
 # --- 1. La SPA -----------------------------------------------------------------------------------------------
+# Misma estructura que el repositorio: el modo demostración (src/demo) importa ../../config/privacidad.json y
+# `tsc -b` lo comprueba. Su instantánea (dist/demo) sobra en el portal real y se quita.
 FROM node:22-alpine AS spa
-WORKDIR /app/web
+WORKDIR /app/parte4_frontend/web
 COPY parte4_frontend/web/package.json parte4_frontend/web/package-lock.json ./
 RUN npm ci --no-audit --no-fund
+COPY config /app/config
 COPY parte4_frontend/web ./
-RUN npm run build
+RUN npm run build && rm -rf dist/demo
 
 # --- 2. El BFF -----------------------------------------------------------------------------------------------
 FROM python:3.12-slim
@@ -41,7 +44,7 @@ COPY parte3_chatbot ./parte3_chatbot
 COPY parte3_chatbot_rag ./parte3_chatbot_rag
 COPY parte4_frontend/__init__.py ./parte4_frontend/__init__.py
 COPY parte4_frontend/bff ./parte4_frontend/bff
-COPY --from=spa /app/web/dist ./parte4_frontend/web/dist
+COPY --from=spa /app/parte4_frontend/web/dist ./parte4_frontend/web/dist
 
 RUN useradd --system --create-home --uid 10001 app \
  && chown -R app /app/parte3_chatbot

@@ -13,8 +13,10 @@ Las partes 2 y 3 se desarrollan y ejecutan **dentro de Ubuntu (WSL2)**; la parte
 | make | Atajos | `make` |
 | VS Code + extensiones WSL, Python, Docker y Scala (Metals) | Edición | `code .` desde Ubuntu |
 | NVIDIA Container Toolkit (solo con GPU NVIDIA) | Ollama con GPU | `docker run --rm --gpus all ubuntu nvidia-smi` |
+| Node 22 con npm (solo para desarrollar el portal web) | `npm ci`, `npm run dev` y tests de la SPA | `node --version` |
 
-No hace falta instalar Java, Scala, sbt ni Spark: se compilan dentro de Docker (`make test-spark`).
+No hace falta instalar Java, Scala, sbt ni Spark: se compilan dentro de Docker (`make test-spark`). Tampoco Node
+para usar el portal: `make frontend` construye la SPA dentro de Docker.
 Sin GPU NVIDIA, el chatbot funciona en CPU con `make chatbot SIN_GPU=1` y `OLLAMA_MODELO=llama3.2:3b`.
 
 ## NVIDIA Container Toolkit (en Ubuntu/WSL2)

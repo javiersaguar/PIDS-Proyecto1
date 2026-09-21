@@ -36,7 +36,8 @@ navegador ──► frontend (un contenedor, 8020) ─┬─ BFF FastAPI (bff/) 
 ## Puesta en marcha
 
 ```bash
-make entorno                      # si el .env es anterior a la parte 4, añade a mano las variables de abajo
+make entorno-completar            # si el .env es anterior a la parte 4: le añade las variables de abajo
+docker compose up -d --no-deps acceso   # para que la API de acceso conozca la clave del cliente `frontend`
 make frontend                     # construye la imagen (node → python) y levanta el portal en http://localhost:8020
 ```
 
@@ -52,6 +53,10 @@ Vite, que reenvía `/api` al BFF:
 make frontend-dev                                 # BFF con recarga en http://localhost:8020
 cd parte4_frontend/web && npm ci && npm run dev   # SPA en http://localhost:5173
 ```
+
+**Modo demostración** (la versión pública en Vercel): la misma SPA sin BFF, con datos grabados de la plataforma. Se
+construye con `vite.demo.config.ts` y se prueba en http://127.0.0.1:4190; todo está en
+[`demo/README.md`](demo/README.md).
 
 ## Tests
 
