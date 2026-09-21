@@ -1,37 +1,50 @@
 /**
- * Tiempo real (§6): frescura con semáforo y «hace X s», último día con datos, viajes por hora (barras, últimas
- * 6/12/24 h con datos) y la última hora por zona. `GET /api/tiempo-real?horas=` se refresca cada 30 s.
+ * Tiempo real (§6): tres indicadores, viajes por hora (barras, últimas 6/12/24 h con datos)
+ * y la última hora por zona. `GET /api/tiempo-real?horas=` se refresca cada 10 s.
  * Los datos son agregados protegidos: los grupos enmascarados se cuentan, nunca se suman.
  */
-import { Activity, CalendarDays, Clock3, Info, RefreshCw } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { Activity, CalendarDays, Clock3, type LucideIcon } from 'lucide-react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 
-import { HORAS_TIEMPO_REAL, useTiempoReal, type HorasTiempoReal } from '@/api/tiempoReal'
+import { HORAS_TIEMPO_REAL, INTERVALO_TIEMPO_REAL_MS, useTiempoReal, type HorasTiempoReal } from '@/api/tiempoReal'
 import type { TiempoReal } from '@/api/tipos'
-import { Antiguedad, Frescura, TablaAgregados, TarjetaKpi } from '@/componentes/datos'
+import { TablaAgregados } from '@/componentes/datos'
 import { totalesDe } from '@/componentes/datos/agregados'
-import { formatearEntero, formatearFecha, formatearFechaCorta, formatearFechaHora, formatearHora, pluralizar } from '@/componentes/datos/formato'
+import { describirAntiguedad, formatearEntero, formatearFecha, formatearFechaCorta, formatearFechaHora, formatearHora } from '@/componentes/datos/formato'
+import { useSegundosDesde } from '@/componentes/datos/useAhora'
 import { GraficoBarras, type Barra } from '@/componentes/graficos'
-import { EncabezadoPagina, EstadoCargando, EstadoError, EstadoNoDisponible, EstadoVacio } from '@/componentes/shell'
+import { Semaforo } from '@/componentes/graficos/Semaforo'
+import { nivelFrescura, TEXTO_FRESCURA, type NivelFrescura } from '@/componentes/graficos/frescura'
+import { EstadoError, EstadoNoDisponible, EstadoVacio } from '@/componentes/shell'
 import { Button } from '@/componentes/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/componentes/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/componentes/ui/card'
 import { Tabs, TabsList, TabsTrigger } from '@/componentes/ui/tabs'
 import { cn } from '@/lib/utils'
 
-const DESCRIPCION =
-  'Viajes de las últimas horas del flujo de captura (simulador → Kafka → Spark) y frescura de los agregados de tiempo real. Misma protección que el histórico: solo grupos con al menos 10 viajes.'
+import { MiniSerie } from '../panel/MiniSerie'
+
+const VERDE = '#34d399'
+const AZUL = '#38bdf8'
+const AMBAR = '#fbbf24'
+const CORAL = '#fb7185'
+
+const TONO: Record<NivelFrescura, { icono: string; cifra: string; serie: string }> = {
+  ok: { icono: 'bg-emerald-50 text-emerald-600', cifra: 'text-slate-900', serie: VERDE },
+  aviso: { icono: 'bg-amber-50 text-amber-600', cifra: 'text-amber-700', serie: AMBAR },
+  peligro: { icono: 'bg-rose-50 text-rose-500', cifra: 'text-rose-600', serie: CORAL },
+}
 
 function Esqueleto() {
   return (
-    <div className="space-y-6" role="status" aria-label="Cargando el tiempo real">
+    <div className="space-y-4" role="status" aria-label="Cargando el tiempo real">
       <div className="grid gap-4 sm:grid-cols-3">
         {['frescura', 'dia', 'hora'].map((clave) => (
-          <TarjetaKpi key={clave} titulo="Cargando" cargando />
+          <div key={clave} className="h-[88px] animate-pulse rounded-2xl bg-white" />
         ))}
       </div>
-      <EstadoCargando variante="tarjeta" lineas={6} />
-      <EstadoCargando variante="tarjeta" lineas={5} />
+      <div className="h-80 animate-pulse rounded-2xl bg-white" />
+      <div className="h-64 animate-pulse rounded-2xl bg-white" />
     </div>
   )
 }
@@ -40,8 +53,62 @@ function barrasPorHora(porHora: TiempoReal['por_hora']): Barra[] {
   return porHora.map((h) => ({
     etiqueta: h.hora,
     valor: h.n_viajes,
-    detalle: `${pluralizar(h.grupos, 'grupo')}${h.grupos_enmascarados > 0 ? ` · ${pluralizar(h.grupos_enmascarados, 'enmascarado')} (no incluidos)` : ''}`,
+    detalle: h.grupos_enmascarados > 0 ? `${h.grupos_enmascarados} enmascarados, no incluidos` : undefined,
   }))
+}
+
+function Indicador({
+  titulo,
+  valor,
+  icono: Icono,
+  iconoClase,
+  cifraClase = 'text-slate-900',
+  serie,
+  colorSerie,
+  detalle,
+}: {
+  titulo: string
+  valor: string
+  icono: LucideIcon
+  iconoClase: string
+  cifraClase?: string
+  serie: readonly number[]
+  colorSerie: string
+  detalle?: ReactNode
+}) {
+  return (
+    <article className="flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-white px-4 py-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)] sm:px-5">
+      <span className={cn('flex size-10 shrink-0 items-center justify-center rounded-xl', iconoClase)} aria-hidden>
+        <Icono className="size-[18px]" strokeWidth={2} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-[13px] font-medium text-slate-500">{titulo}</p>
+        <p className={cn('cifra mt-1 text-[1.65rem] leading-none font-semibold tracking-tight', cifraClase)}>{valor}</p>
+        {detalle && <div className="mt-1.5">{detalle}</div>}
+      </div>
+      <MiniSerie valores={serie} color={colorSerie} />
+    </article>
+  )
+}
+
+function IndicadorFrescura({ segundos, actualizadoEn }: { segundos: number | null; actualizadoEn: number }) {
+  const transcurridos = useSegundosDesde(actualizadoEn, INTERVALO_TIEMPO_REAL_MS)
+  const actuales = segundos == null ? null : segundos + (transcurridos ?? 0)
+  const nivel = nivelFrescura(actuales)
+  const tono = TONO[nivel]
+
+  return (
+    <Indicador
+      titulo="Frescura"
+      valor={actuales == null ? 'Sin dato' : describirAntiguedad(actuales)}
+      icono={Activity}
+      iconoClase={tono.icono}
+      cifraClase={tono.cifra}
+      serie={[]}
+      colorSerie={tono.serie}
+      detalle={<Semaforo nivel={nivel} etiqueta={TEXTO_FRESCURA[nivel]} tamano="sm" className="text-xs" />}
+    />
+  )
 }
 
 export default function PaginaTiempoReal() {
@@ -52,37 +119,14 @@ export default function PaginaTiempoReal() {
   const ultimaHora = useMemo(() => datos?.por_zona_ultima_hora?.[0]?.hora ?? datos?.por_hora?.at(-1)?.hora ?? null, [datos])
   const totalesUltimaHora = useMemo(() => totalesDe(datos?.por_zona_ultima_hora ?? []), [datos])
   const barras = useMemo(() => barrasPorHora(datos?.por_hora ?? []), [datos])
+  const serieHoras = useMemo(() => (datos?.por_hora ?? []).map((h) => h.n_viajes), [datos])
   const variosDias = useMemo(() => new Set(barras.map((b) => b.etiqueta.slice(0, 10))).size > 1, [barras])
   const sinDatos = !!datos && datos.por_hora.length === 0 && !datos.ultimo_dia
   const accesoCaido = !!datos && datos.acceso_disponible === false
 
-  const acciones = (
-    <div className="flex items-center gap-2 text-xs text-texto-suave">
-      {datos && (
-        <span className="flex items-center gap-1.5">
-          <span className={cn('size-2 rounded-full bg-ok', tiempoReal.isFetching && 'animate-pulse bg-acento')} aria-hidden />
-          <Antiguedad instante={tiempoReal.dataUpdatedAt} sufijo="· se refresca cada 30 s" />
-        </span>
-      )}
-      <Button variant="outline" size="sm" onClick={() => void tiempoReal.refetch()} disabled={tiempoReal.isFetching}>
-        <RefreshCw className={cn(tiempoReal.isFetching && 'animate-spin')} aria-hidden />
-        Actualizar
-      </Button>
-    </div>
-  )
-
   return (
     <>
-      <EncabezadoPagina titulo="Tiempo real" descripcion={DESCRIPCION} acciones={acciones} />
-
-      <p role="note" className="mb-6 flex items-start gap-2 rounded-lg border border-primario/15 bg-primario/5 px-3 py-2 text-xs text-foreground">
-        <Info className="mt-0.5 size-3.5 shrink-0 text-primario" aria-hidden />
-        <span>
-          <span className="font-medium">Los datos simulados son de 2020.</span> El simulador reenvía viajes de 2020 al ritmo configurado, así que la hora de los datos
-          no es la hora actual; la frescura mide cuándo escribió Spark por última vez en los agregados de tiempo real.
-        </span>
-      </p>
-
+      <h1 className="sr-only">Tiempo real</h1>
       {!datos ? (
         tiempoReal.isError ? (
           <EstadoError
@@ -95,7 +139,7 @@ export default function PaginaTiempoReal() {
           <Esqueleto />
         )
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-4">
           {tiempoReal.isError && (
             <EstadoError
               error={tiempoReal.error}
@@ -105,29 +149,23 @@ export default function PaginaTiempoReal() {
             />
           )}
           <section aria-label="Indicadores" className="grid gap-4 sm:grid-cols-3">
-            <TarjetaKpi
-              titulo="Frescura"
-              icono={Activity}
-              valor={<Frescura variante="grande" segundos={datos.frescura?.segundos ?? null} instante={datos.frescura?.instante ?? null} actualizadoEn={tiempoReal.dataUpdatedAt} />}
-              descripcion="Verde: menos de 2 min · ámbar: menos de 10 min · rojo: más, o sin dato."
-            />
-            <TarjetaKpi
-              titulo="Último día con datos"
-              icono={CalendarDays}
+            <IndicadorFrescura segundos={datos.frescura?.segundos ?? null} actualizadoEn={tiempoReal.dataUpdatedAt} />
+            <Indicador
+              titulo="Último día"
               valor={datos.ultimo_dia ? formatearFecha(datos.ultimo_dia) : 'Sin datos'}
-              descripcion={datos.ultimo_dia ? 'Último día presente en los agregados de tiempo real.' : 'Todavía no hay agregados de tiempo real.'}
+              icono={CalendarDays}
+              iconoClase="bg-sky-50 text-sky-600"
+              serie={serieHoras}
+              colorSerie={AZUL}
             />
-            <TarjetaKpi
-              titulo="Última hora con datos"
-              icono={Clock3}
+            <Indicador
+              titulo="Última hora"
               valor={ultimaHora ? formatearEntero(totalesUltimaHora.total) : 'Sin datos'}
-              descripcion={
-                ultimaHora
-                  ? `Viajes visibles de las ${formatearHora(ultimaHora)} del ${formatearFecha(ultimaHora)} · ${pluralizar(totalesUltimaHora.visibles, 'zona')}${
-                      totalesUltimaHora.enmascarados > 0 ? ` · ${pluralizar(totalesUltimaHora.enmascarados, 'grupo enmascarado', 'grupos enmascarados')}` : ''
-                    }`
-                  : 'Sin filas en la última hora.'
-              }
+              icono={Clock3}
+              iconoClase="bg-indigo-50 text-indigo-600"
+              serie={serieHoras}
+              colorSerie="#818cf8"
+              detalle={ultimaHora ? <p className="text-xs text-slate-500">{formatearHora(ultimaHora)}</p> : undefined}
             />
           </section>
 
@@ -151,13 +189,10 @@ export default function PaginaTiempoReal() {
             />
           ) : (
             <>
-              <Card className="sombra-tarjeta">
+              <Card className="sombra-tarjeta border-slate-200/80 bg-white">
                 <CardHeader>
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="space-y-1">
-                      <CardTitle className="text-xl text-primario">Viajes por hora (últimas {horas} h con datos)</CardTitle>
-                      <CardDescription>Suma de los grupos visibles de cada hora; los enmascarados se cuentan en el detalle, no se suman.</CardDescription>
-                    </div>
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <CardTitle className="text-xl text-primario">Viajes por hora</CardTitle>
                     <Tabs value={String(horas)} onValueChange={(v) => setHoras(Number(v) as HorasTiempoReal)}>
                       <TabsList aria-label="Horas a mostrar">
                         {HORAS_TIEMPO_REAL.map((h) => (
@@ -185,13 +220,12 @@ export default function PaginaTiempoReal() {
                 </CardContent>
               </Card>
 
-              <Card className="sombra-tarjeta">
+              <Card className="sombra-tarjeta border-slate-200/80 bg-white">
                 <CardHeader>
-                  <CardTitle className="text-xl text-primario">Última hora por zona</CardTitle>
-                  <CardDescription>
-                    {ultimaHora ? `Grupos de las ${formatearHora(ultimaHora)} del ${formatearFecha(ultimaHora)}, por zona de origen.` : 'Grupos de la última hora, por zona de origen.'} Los
-                    enmascarados llevan su chip y no muestran cifras.
-                  </CardDescription>
+                  <CardTitle className="text-xl text-primario">
+                    Última hora por zona
+                    {ultimaHora ? <span className="ml-2 text-base font-medium text-slate-500">{formatearHora(ultimaHora)}</span> : null}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <TablaAgregados

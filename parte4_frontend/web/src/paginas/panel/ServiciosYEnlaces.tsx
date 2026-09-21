@@ -1,128 +1,174 @@
 /**
- * Tarjetas laterales del panel: estado de los servicios (ok / caído / desconocido) y accesos directos a
- * Grafana, Airflow, Spark, las APIs y los dos chatbots (se abren en una pestaña nueva).
+ * Tabla inferior del panel: servicios o accesos directos, eligiendo con el control segmentado.
+ * Cada fila lleva la marca PNG del servicio, la misma que en la documentación.
  */
-import { Bot, BookOpenText, ExternalLink, Gauge, type LucideIcon, Server, Waypoints, Workflow } from 'lucide-react'
+import { ExternalLink, LayoutList } from 'lucide-react'
+import { useState } from 'react'
 
 import type { Panel, Servicio } from '@/api/tipos'
 import { EstadoVacio } from '@/componentes/shell'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/componentes/ui/card'
 import { cn } from '@/lib/utils'
 
-const COLOR_ESTADO: Record<Servicio['estado'], string> = {
-  ok: 'bg-ok',
-  caido: 'bg-peligro',
-  desconocido: 'bg-texto-suave/50',
-}
+import { MarcaServicio } from './marcas'
+import { SelectorSegmentado } from './SelectorSegmentado'
+
+type Vista = 'servicios' | 'accesos'
+
 const TEXTO_ESTADO: Record<Servicio['estado'], string> = {
-  ok: 'en marcha',
-  caido: 'caído',
-  desconocido: 'desconocido',
+  ok: 'En marcha',
+  caido: 'Caído',
+  desconocido: 'Desconocido',
 }
-const COLOR_TEXTO_ESTADO: Record<Servicio['estado'], string> = {
-  ok: 'text-ok',
-  caido: 'text-peligro',
-  desconocido: 'text-texto-suave',
+const COLOR_ESTADO: Record<Servicio['estado'], string> = {
+  ok: 'text-emerald-600',
+  caido: 'text-orange-500',
+  desconocido: 'text-sky-600',
 }
 
 interface Enlace {
   clave: keyof Panel['enlaces']
   titulo: string
   descripcion: string
-  icono: LucideIcon
 }
 
 const ENLACES: Enlace[] = [
-  { clave: 'grafana', titulo: 'Grafana', descripcion: 'Cuadros de mando y alertas', icono: Gauge },
-  { clave: 'airflow', titulo: 'Airflow', descripcion: 'Cargas históricas', icono: Workflow },
-  { clave: 'spark', titulo: 'Spark', descripcion: 'Trabajos por lotes y streaming', icono: Waypoints },
-  { clave: 'api_acceso', titulo: 'API de acceso', descripcion: 'Documentación interactiva', icono: BookOpenText },
-  { clave: 'api_captura', titulo: 'API de captura', descripcion: 'Documentación interactiva', icono: Server },
-  { clave: 'chatbot', titulo: 'Chatbot', descripcion: 'Chainlit con Ollama', icono: Bot },
-  { clave: 'chatbot_rag', titulo: 'Chatbot RAG', descripcion: 'Chainlit con documentación', icono: Bot },
+  { clave: 'grafana', titulo: 'Grafana', descripcion: 'Cuadros de mando y alertas' },
+  { clave: 'airflow', titulo: 'Airflow', descripcion: 'Cargas históricas' },
+  { clave: 'spark', titulo: 'Spark', descripcion: 'Trabajos por lotes y streaming' },
+  { clave: 'api_acceso', titulo: 'API de acceso', descripcion: 'Documentación interactiva' },
+  { clave: 'api_captura', titulo: 'API de captura', descripcion: 'Documentación interactiva' },
+  { clave: 'chatbot', titulo: 'Chatbot', descripcion: 'Chainlit con Ollama' },
+  { clave: 'chatbot_rag', titulo: 'Chatbot RAG', descripcion: 'Chainlit con documentación' },
 ]
 
-export function TarjetaServicios({ servicios }: { servicios: Servicio[] }) {
+function destinoDe(url: string): string {
+  try {
+    return new URL(url).host
+  } catch {
+    return url
+  }
+}
+
+function Cabecera({ columnas }: { columnas: readonly string[] }) {
   return (
-    <Card className="sombra-tarjeta">
-      <CardHeader>
-        <CardTitle className="text-xl text-primario">Servicios</CardTitle>
-        <CardDescription>Estado según Prometheus y las rutas de salud de las APIs.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {servicios.length === 0 ? (
-          <EstadoVacio titulo="Sin información de servicios" descripcion="El BFF no ha devuelto ningún servicio." className="py-6" />
-        ) : (
-          <ul className="divide-y" aria-label="Servicios de la plataforma">
-            {servicios.map((s, indice) => (
-              <li key={`${s.job}|${s.nombre}|${indice}`} className="flex items-center justify-between gap-3 py-2 first:pt-0 last:pb-0">
-                <span className="flex min-w-0 items-center gap-2.5">
-                  <span className={cn('size-2.5 shrink-0 rounded-full', COLOR_ESTADO[s.estado] ?? COLOR_ESTADO.desconocido)} aria-hidden />
-                  <span className="min-w-0">
-                    <span className="block truncate font-medium">{s.nombre}</span>
-                    {s.job && <span className="block truncate text-xs text-texto-suave">job {s.job}</span>}
-                  </span>
-                </span>
-                <span className="flex shrink-0 items-center gap-2">
-                  <span className={cn('text-xs font-medium', COLOR_TEXTO_ESTADO[s.estado] ?? COLOR_TEXTO_ESTADO.desconocido)}>
-                    {TEXTO_ESTADO[s.estado] ?? TEXTO_ESTADO.desconocido}
-                  </span>
-                  {s.enlace && (
-                    <a
-                      href={s.enlace}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="rounded-sm text-texto-suave hover:text-foreground"
-                      aria-label={`Abrir ${s.nombre} en una pestaña nueva`}
-                    >
-                      <ExternalLink className="size-3.5" aria-hidden />
-                    </a>
-                  )}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </CardContent>
-    </Card>
+    <thead>
+      <tr>
+        {columnas.map((columna, indice) => (
+          <th
+            key={columna || `accion-${indice}`}
+            className={cn(
+              'bg-slate-100 px-4 py-3 text-left text-xs font-medium text-slate-500',
+              indice === 0 && 'rounded-l-xl',
+              indice === columnas.length - 1 && 'rounded-r-xl text-right',
+            )}
+          >
+            {columna || <span className="sr-only">Abrir</span>}
+          </th>
+        ))}
+      </tr>
+    </thead>
   )
 }
 
-export function TarjetaEnlaces({ enlaces }: { enlaces: Panel['enlaces'] | undefined }) {
-  const disponibles = ENLACES.filter((e) => enlaces?.[e.clave])
+function Abrir({ href, nombre }: { href: string; nombre: string }) {
   return (
-    <Card className="sombra-tarjeta">
-      <CardHeader>
-        <CardTitle className="text-xl text-primario">Accesos directos</CardTitle>
-        <CardDescription>Herramientas de la plataforma; se abren en una pestaña nueva.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {disponibles.length === 0 ? (
-          <EstadoVacio titulo="Sin enlaces configurados" descripcion="Las variables ENLACES_* del BFF están vacías." className="py-6" />
-        ) : (
-          <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1" aria-label="Accesos directos">
-            {disponibles.map(({ clave, titulo, descripcion, icono: Icono }) => (
-              <li key={clave}>
-                <a
-                  href={enlaces?.[clave]}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="group flex items-center gap-3 rounded-lg border px-3 py-2 transition-colors hover:border-primario/30 hover:bg-muted"
-                >
-                  <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primario/5 text-primario" aria-hidden>
-                    <Icono className="size-4" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-medium">{titulo}</span>
-                    <span className="block truncate text-xs text-texto-suave">{descripcion}</span>
-                  </span>
-                  <ExternalLink className="size-3.5 shrink-0 text-texto-suave group-hover:text-foreground" aria-hidden />
-                </a>
-              </li>
-            ))}
-          </ul>
-        )}
-      </CardContent>
-    </Card>
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      aria-label={`Abrir ${nombre}`}
+      className="inline-flex size-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+    >
+      <ExternalLink className="size-4" aria-hidden />
+    </a>
+  )
+}
+
+function TablaServicios({ servicios }: { servicios: Servicio[] }) {
+  if (servicios.length === 0) {
+    return <EstadoVacio titulo="Sin información de servicios" descripcion="El BFF no ha devuelto ningún servicio." className="border-0 bg-transparent py-8" />
+  }
+  return (
+    <table aria-label="Servicios de la plataforma" className="w-full border-separate border-spacing-0 text-sm">
+      <Cabecera columnas={['Servicio', 'Job', 'Estado', '']} />
+      <tbody>
+        {servicios.map((servicio, indice) => {
+          const estado = servicio.estado in TEXTO_ESTADO ? servicio.estado : 'desconocido'
+          const borde = indice < servicios.length - 1 ? 'border-b border-slate-100' : ''
+          return (
+            <tr key={`${servicio.job}|${servicio.nombre}|${indice}`}>
+              <td className={cn('px-4 py-3.5', borde)}>
+                <span className="flex items-center gap-3">
+                  <MarcaServicio textos={[servicio.nombre, servicio.job]} />
+                  <span className="font-medium text-slate-900">{servicio.nombre}</span>
+                </span>
+              </td>
+              <td className={cn('px-4 py-3.5 text-slate-500', borde)}>{servicio.job || '—'}</td>
+              <td className={cn('px-4 py-3.5 font-medium', COLOR_ESTADO[estado], borde)}>{TEXTO_ESTADO[estado]}</td>
+              <td className={cn('px-4 py-3.5 text-right', borde)}>{servicio.enlace && <Abrir href={servicio.enlace} nombre={servicio.nombre} />}</td>
+            </tr>
+          )
+        })}
+      </tbody>
+    </table>
+  )
+}
+
+function TablaAccesos({ enlaces }: { enlaces: Panel['enlaces'] | undefined }) {
+  const disponibles = ENLACES.filter((enlace) => enlaces?.[enlace.clave])
+  if (disponibles.length === 0) {
+    return <EstadoVacio titulo="Sin enlaces configurados" descripcion="Las variables ENLACES_* del BFF están vacías." className="border-0 bg-transparent py-8" />
+  }
+  return (
+    <table aria-label="Accesos directos" className="w-full border-separate border-spacing-0 text-sm">
+      <Cabecera columnas={['Acceso', 'Descripción', 'Destino', '']} />
+      <tbody>
+        {disponibles.map((enlace, indice) => {
+          const href = enlaces?.[enlace.clave] ?? ''
+          const borde = indice < disponibles.length - 1 ? 'border-b border-slate-100' : ''
+          return (
+            <tr key={enlace.clave}>
+              <td className={cn('px-4 py-3.5', borde)}>
+                <span className="flex items-center gap-3">
+                  <MarcaServicio textos={[enlace.titulo, enlace.clave]} />
+                  <span className="font-medium text-slate-900">{enlace.titulo}</span>
+                </span>
+              </td>
+              <td className={cn('px-4 py-3.5 text-slate-500', borde)}>{enlace.descripcion}</td>
+              <td className={cn('cifra px-4 py-3.5 text-slate-700', borde)}>{destinoDe(href)}</td>
+              <td className={cn('px-4 py-3.5 text-right', borde)}>
+                <Abrir href={href} nombre={enlace.titulo} />
+              </td>
+            </tr>
+          )
+        })}
+      </tbody>
+    </table>
+  )
+}
+
+export function TablaPlataforma({ servicios, enlaces }: { servicios: Servicio[]; enlaces: Panel['enlaces'] | undefined }) {
+  const [vista, setVista] = useState<Vista>('servicios')
+  return (
+    <section className="rounded-2xl border border-slate-200/80 bg-white px-5 py-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <span className="flex size-9 items-center justify-center rounded-xl bg-sky-50 text-sky-600" aria-hidden>
+            <LayoutList className="size-4" />
+          </span>
+          <h2 className="text-[15px] text-slate-900">{vista === 'servicios' ? 'Servicios' : 'Accesos directos'}</h2>
+        </div>
+        <SelectorSegmentado
+          etiqueta="Contenido de la tabla"
+          valor={vista}
+          opciones={[
+            { valor: 'servicios', texto: 'Servicios' },
+            { valor: 'accesos', texto: 'Accesos directos' },
+          ]}
+          alCambiar={setVista}
+        />
+      </div>
+      {vista === 'servicios' ? <TablaServicios servicios={servicios} /> : <TablaAccesos enlaces={enlaces} />}
+    </section>
   )
 }

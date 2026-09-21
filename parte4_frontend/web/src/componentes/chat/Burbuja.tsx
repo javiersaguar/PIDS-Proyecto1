@@ -79,7 +79,7 @@ function BurbujaAsistente({
       <span
         className={cn(
           'mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full text-primario',
-          mensaje.local ? 'bg-superficie-alterna' : 'bg-acento',
+          mensaje.local ? 'bg-superficie-alterna' : 'bg-acento-suave text-acento',
         )}
         aria-hidden
       >

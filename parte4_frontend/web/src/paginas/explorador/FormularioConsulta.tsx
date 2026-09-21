@@ -1,22 +1,20 @@
 /**
- * Formulario de consulta del explorador: nivel (con su descripción del catálogo), fuente, ventana temporal
- * alineada al nivel (horas en punto en `hora_zona`, días completos en los demás; el fin no se incluye), zona con
- * buscador, barrios y métricas. Valida en cliente (`hasta > desde`, rango máximo) antes de lanzar la consulta.
+ * Barra de filtros del explorador, en horizontal: nivel, fuente, ventana, zona o barrio y métricas
+ * como selectores. Valida en cliente (`hasta > desde`, rango máximo) antes de lanzar la consulta.
  *
- * El estado del formulario se inicializa desde `inicial`; la página lo remonta (con `key`) cuando cambia la
- * consulta de la URL, de modo que una alternativa o un ejemplo rellenan el formulario.
+ * El estado se inicializa desde `inicial`; la página lo remonta (con `key`) cuando cambia la
+ * consulta de la URL, de modo que una alternativa, un ejemplo o una vista guardada rellenan la barra.
  */
-import { LoaderCircle, Search, TriangleAlert } from 'lucide-react'
-import { useId, useMemo, useState, type FormEvent } from 'react'
+import { ChevronDown, LoaderCircle, Search, Share2, TriangleAlert } from 'lucide-react'
+import { useEffect, useId, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 
-import type { Catalogo, Consulta, Fuente, Metrica, Zona } from '@/api/tipos'
-import { DESCRIPCIONES_METRICA, ETIQUETAS_FUENTE, ETIQUETAS_METRICA, ETIQUETAS_NIVEL, METRICAS, NIVELES } from '@/componentes/datos/agregados'
+import type { Catalogo, Consulta, Fuente, Metrica, Nivel, Zona } from '@/api/tipos'
+import { ETIQUETAS_FUENTE, ETIQUETAS_METRICA, ETIQUETAS_NIVEL, METRICAS, NIVELES } from '@/componentes/datos/agregados'
 import { Button } from '@/componentes/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/componentes/ui/card'
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from '@/componentes/ui/dropdown-menu'
 import { Input } from '@/componentes/ui/input'
 import { Label } from '@/componentes/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/componentes/ui/select'
-import { Switch } from '@/componentes/ui/switch'
 import { cn } from '@/lib/utils'
 
 import { BuscadorZona } from './BuscadorZona'
@@ -27,12 +25,18 @@ import {
   admiteZona,
   BARRIOS_POR_DEFECTO,
   DESCRIPCIONES_NIVEL_POR_DEFECTO,
-  describirVentana,
   esPorHoras,
   MAX_DIAS_POR_DEFECTO,
   validar,
   type Formulario,
 } from './consulta'
+
+/** Texto corto del selector cerrado. El desplegable sigue mostrando el nombre completo. */
+const ETIQUETA_NIVEL_CORTA: Record<Nivel, string> = {
+  hora_zona: 'Hora y zona',
+  dia_barrio: 'Día y barrio',
+  od_dia_barrio: 'Flujos por día',
+}
 
 interface Props {
   inicial: Formulario
@@ -40,7 +44,10 @@ interface Props {
   /** El catálogo no ha podido cargarse: se usan los valores por defecto y se avisa. */
   catalogoNoDisponible?: boolean
   onEnviar: (consulta: Consulta) => void
+  /** La consulta que saldría ahora de los filtros, o `null` si no se puede lanzar. */
+  onBorrador?: (consulta: Consulta | null) => void
   enviando?: boolean
+  onCompartir?: () => void
 }
 
 const TODOS = '__todos__'
@@ -50,7 +57,29 @@ function etiquetaHora(h: number): string {
   return `${String(h).padStart(2, '0')}:00`
 }
 
-export function FormularioConsulta({ inicial, catalogo, catalogoNoDisponible, onEnviar, enviando }: Props) {
+function resumenMetricas(metricas: readonly Metrica[]): string {
+  const extras = metricas.filter((m) => m !== 'n_viajes')
+  if (extras.length === 0) return 'Viajes'
+  if (extras.length === 1) return `Viajes, ${ETIQUETAS_METRICA[extras[0]].toLowerCase()}`
+  return `${extras.length + 1} métricas`
+}
+
+function Campo({ idCampo, etiqueta, children, className }: { idCampo?: string; etiqueta: string; children: ReactNode; className?: string }) {
+  return (
+    <div className={cn('flex min-w-0 flex-col gap-1', className)}>
+      {idCampo ? (
+        <Label htmlFor={idCampo} className="text-[11px] font-medium text-slate-500">
+          {etiqueta}
+        </Label>
+      ) : (
+        <span className="text-[11px] font-medium text-slate-500">{etiqueta}</span>
+      )}
+      {children}
+    </div>
+  )
+}
+
+export function FormularioConsulta({ inicial, catalogo, catalogoNoDisponible, onEnviar, onBorrador, enviando, onCompartir }: Props) {
   const [f, setF] = useState<Formulario>(inicial)
   const [tocado, setTocado] = useState(false)
   const idBase = useId()
@@ -64,10 +93,15 @@ export function FormularioConsulta({ inicial, catalogo, catalogoNoDisponible, on
   const maxDias = catalogo?.max_dias_por_consulta ?? MAX_DIAS_POR_DEFECTO
   const barrios = catalogo?.barrios?.length ? catalogo.barrios : BARRIOS_POR_DEFECTO
   const metricasDisponibles = (catalogo?.metricas?.length ? catalogo.metricas : METRICAS) as readonly Metrica[]
+  const fuentes = (catalogo?.fuentes?.length ? catalogo.fuentes : (['historico', 'tiempo_real'] as Fuente[])) as readonly Fuente[]
   const errores = useMemo(() => validar(f, maxDias), [f, maxDias])
   const hayErrores = Object.keys(errores).length > 0
   const consulta = useMemo(() => aConsulta(f), [f])
   const porHoras = esPorHoras(f.nivel)
+
+  useEffect(() => {
+    onBorrador?.(hayErrores ? null : consulta)
+  }, [onBorrador, hayErrores, consulta])
 
   const enviar = (evento: FormEvent<HTMLFormElement>) => {
     evento.preventDefault()
@@ -82,145 +116,105 @@ export function FormularioConsulta({ inicial, catalogo, catalogoNoDisponible, on
   }
 
   return (
-    <Card className="sombra-tarjeta">
-      <CardHeader>
-        <CardTitle className="text-xl text-primario">Consulta</CardTitle>
-        <CardDescription>
-          Solo agregados: k = {catalogo?.k_minimo ?? 10}, ventanas alineadas al nivel y como mucho {maxDias} días por consulta.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={enviar} className="space-y-5" noValidate aria-label="Formulario de consulta">
-          {catalogoNoDisponible && (
-            <p role="status" className="flex items-start gap-2 rounded-md border border-aviso/30 bg-aviso/5 px-3 py-2 text-xs text-aviso">
-              <TriangleAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-              El catálogo no está disponible: se usan los niveles, barrios y límites por defecto.
-            </p>
+    <section className="rounded-2xl border border-slate-200/80 bg-white px-4 py-3 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+      <form onSubmit={enviar} noValidate aria-label="Formulario de consulta">
+        {catalogoNoDisponible && (
+          <p role="status" className="mb-3 flex items-start gap-2 rounded-lg border border-aviso/30 bg-aviso/5 px-3 py-2 text-xs text-aviso">
+            <TriangleAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+            El catálogo no está disponible: se usan los niveles, barrios y límites por defecto.
+          </p>
+        )}
+
+        <div className="flex items-start gap-3">
+          <div className="grid min-w-0 flex-1 grid-cols-[repeat(auto-fit,minmax(8.5rem,1fr))] items-end gap-x-2.5 gap-y-3">
+          <Campo idCampo={id('nivel')} etiqueta="Nivel">
+            <Select value={f.nivel} onValueChange={(v) => cambiar({ nivel: v as Nivel })}>
+              <SelectTrigger id={id('nivel')} type="button" className="w-full bg-white" aria-label="Nivel de agregación" title={catalogo?.niveles?.[f.nivel]?.descripcion ?? DESCRIPCIONES_NIVEL_POR_DEFECTO[f.nivel]}>
+                <span className="truncate">{ETIQUETA_NIVEL_CORTA[f.nivel]}</span>
+              </SelectTrigger>
+              <SelectContent>
+                {NIVELES.map((nivel) => (
+                  <SelectItem key={nivel} value={nivel}>
+                    {ETIQUETAS_NIVEL[nivel]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Campo>
+
+          <Campo idCampo={id('fuente')} etiqueta="Fuente">
+            <Select value={f.fuente} onValueChange={(v) => cambiar({ fuente: v as Fuente })}>
+              <SelectTrigger id={id('fuente')} type="button" className="w-full bg-white" aria-label="Fuente">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {fuentes.map((fuente) => (
+                  <SelectItem key={fuente} value={fuente}>
+                    {ETIQUETAS_FUENTE[fuente]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Campo>
+
+          <Campo idCampo={id('desde')} etiqueta="Desde">
+            <Input id={id('desde')} type="date" value={f.fechaDesde} onChange={(e) => cambiar({ fechaDesde: e.target.value })} aria-invalid={tocado && !!errores.fechas ? true : undefined} className="bg-white" />
+          </Campo>
+          {porHoras && (
+            <Campo etiqueta="Hora">
+              <Select value={String(f.horaDesde)} onValueChange={(v) => cambiar({ horaDesde: Number(v) })}>
+                <SelectTrigger id={id('hora-desde')} type="button" className="w-full bg-white" aria-label="Hora de inicio">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {HORAS.map((h) => (
+                    <SelectItem key={h} value={String(h)}>
+                      {etiquetaHora(h)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Campo>
           )}
 
-          <fieldset className="space-y-2">
-            <legend className="mb-2 text-sm font-medium">Nivel de agregación</legend>
-            <div role="radiogroup" aria-label="Nivel de agregación" className="grid gap-2">
-              {NIVELES.map((nivel) => {
-                const activo = f.nivel === nivel
-                return (
-                  <button
-                    key={nivel}
-                    type="button"
-                    role="radio"
-                    aria-checked={activo}
-                    onClick={() => cambiar({ nivel })}
-                    className={cn(
-                      'rounded-lg border px-3 py-2 text-left transition-colors hover:bg-muted',
-                      activo ? 'border-primario bg-primario/5 ring-1 ring-primario' : 'border-borde',
-                    )}
-                  >
-                    <span className="block text-sm font-medium">{ETIQUETAS_NIVEL[nivel]}</span>
-                    <span className="block text-xs text-texto-suave">{catalogo?.niveles?.[nivel]?.descripcion ?? DESCRIPCIONES_NIVEL_POR_DEFECTO[nivel]}</span>
-                  </button>
-                )
-              })}
-            </div>
-          </fieldset>
-
-          <fieldset>
-            <legend className="mb-2 text-sm font-medium">Fuente</legend>
-            <div role="radiogroup" aria-label="Fuente" className="inline-flex rounded-lg border p-0.5">
-              {(catalogo?.fuentes?.length ? catalogo.fuentes : (['historico', 'tiempo_real'] as Fuente[])).map((fuente) => (
-                <button
-                  key={fuente}
-                  type="button"
-                  role="radio"
-                  aria-checked={f.fuente === fuente}
-                  onClick={() => cambiar({ fuente })}
-                  className={cn(
-                    'rounded-md px-3 py-1 text-sm font-medium transition-colors',
-                    f.fuente === fuente ? 'bg-primario text-white shadow-sm' : 'text-texto-suave hover:text-foreground',
-                  )}
-                >
-                  {ETIQUETAS_FUENTE[fuente]}
-                </button>
-              ))}
-            </div>
-          </fieldset>
-
-          <fieldset className="space-y-3">
-            <legend className="mb-2 text-sm font-medium">Ventana temporal</legend>
-            <div className={cn('grid gap-3', porHoras ? 'grid-cols-[1fr_auto]' : 'grid-cols-1')}>
-              <div className="space-y-1.5">
-                <Label htmlFor={id('desde')}>Desde</Label>
-                <Input id={id('desde')} type="date" value={f.fechaDesde} onChange={(e) => cambiar({ fechaDesde: e.target.value })} aria-invalid={tocado && !!errores.fechas ? true : undefined} />
-              </div>
-              {porHoras && (
-                <div className="space-y-1.5">
-                  <Label htmlFor={id('hora-desde')}>Hora</Label>
-                  <Select value={String(f.horaDesde)} onValueChange={(v) => cambiar({ horaDesde: Number(v) })}>
-                    <SelectTrigger id={id('hora-desde')} className="w-24" aria-label="Hora de inicio">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {HORAS.map((h) => (
-                        <SelectItem key={h} value={String(h)}>
-                          {etiquetaHora(h)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-              <div className="space-y-1.5">
-                <Label htmlFor={id('hasta')}>Hasta (no incluido)</Label>
-                <Input id={id('hasta')} type="date" value={f.fechaHasta} onChange={(e) => cambiar({ fechaHasta: e.target.value })} aria-invalid={tocado && !!(errores.fechas || errores.rango) ? true : undefined} />
-              </div>
-              {porHoras && (
-                <div className="space-y-1.5">
-                  <Label htmlFor={id('hora-hasta')}>Hora</Label>
-                  <Select value={String(f.horaHasta)} onValueChange={(v) => cambiar({ horaHasta: Number(v) })}>
-                    <SelectTrigger id={id('hora-hasta')} className="w-24" aria-label="Hora de fin">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {HORAS.map((h) => (
-                        <SelectItem key={h} value={String(h)}>
-                          {etiquetaHora(h)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-            </div>
-            <p className="text-xs text-texto-suave">
-              {porHoras
-                ? 'Horas en punto; el fin no se incluye: de 08:00 a 12:00 cubre las horas 8, 9, 10 y 11. Un día completo va de las 00:00 a las 00:00 del día siguiente.'
-                : 'Días completos; el fin no se incluye: para un solo día, indica el día siguiente como fin.'}
-              {!hayErrores && (
-                <>
-                  {' '}
-                  Ventana: <span className="font-medium text-foreground">{describirVentana(consulta)}</span>.
-                </>
-              )}
-            </p>
-            {tocado && (errores.fechas || errores.rango) && (
-              <p role="alert" className="flex items-start gap-2 text-xs text-peligro">
-                <TriangleAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-                <span>{errores.fechas ?? errores.rango}</span>
-              </p>
-            )}
-          </fieldset>
+          <Campo idCampo={id('hasta')} etiqueta="Hasta">
+            <Input
+              id={id('hasta')}
+              type="date"
+              value={f.fechaHasta}
+              aria-label="Hasta (no incluido)"
+              onChange={(e) => cambiar({ fechaHasta: e.target.value })}
+              aria-invalid={tocado && !!(errores.fechas || errores.rango) ? true : undefined}
+              className="bg-white"
+            />
+          </Campo>
+          {porHoras && (
+            <Campo etiqueta="Hora fin">
+              <Select value={String(f.horaHasta)} onValueChange={(v) => cambiar({ horaHasta: Number(v) })}>
+                <SelectTrigger id={id('hora-hasta')} type="button" className="w-full bg-white" aria-label="Hora de fin">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {HORAS.map((h) => (
+                    <SelectItem key={h} value={String(h)}>
+                      {etiquetaHora(h)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Campo>
+          )}
 
           {admiteZona(f.nivel) && (
-            <div className="space-y-1.5">
-              <Label htmlFor={id('zona')}>Zona de origen</Label>
-              <BuscadorZona id={id('zona')} valor={f.zonaOrigen} onCambiar={(zona: Zona | null) => cambiar({ zonaOrigen: zona?._id ?? null })} />
-            </div>
+            <Campo idCampo={id('zona')} etiqueta="Zona">
+              <BuscadorZona id={id('zona')} compacto valor={f.zonaOrigen} onCambiar={(zona: Zona | null) => cambiar({ zonaOrigen: zona?._id ?? null })} />
+            </Campo>
           )}
 
           {admiteBarrioOrigen(f.nivel) && (
-            <div className="space-y-1.5">
-              <Label htmlFor={id('barrio-origen')}>Barrio de origen</Label>
+            <Campo idCampo={id('barrio-origen')} etiqueta="Origen">
               <Select value={f.barrioOrigen ?? TODOS} onValueChange={(v) => cambiar({ barrioOrigen: v === TODOS ? null : v })}>
-                <SelectTrigger id={id('barrio-origen')} className="w-full">
+                <SelectTrigger id={id('barrio-origen')} type="button" className="w-full bg-white" aria-label="Barrio de origen">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -232,14 +226,13 @@ export function FormularioConsulta({ inicial, catalogo, catalogoNoDisponible, on
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+            </Campo>
           )}
 
           {admiteBarrioDestino(f.nivel) && (
-            <div className="space-y-1.5">
-              <Label htmlFor={id('barrio-destino')}>Barrio de destino</Label>
+            <Campo idCampo={id('barrio-destino')} etiqueta="Destino">
               <Select value={f.barrioDestino ?? TODOS} onValueChange={(v) => cambiar({ barrioDestino: v === TODOS ? null : v })}>
-                <SelectTrigger id={id('barrio-destino')} className="w-full">
+                <SelectTrigger id={id('barrio-destino')} type="button" className="w-full bg-white" aria-label="Barrio de destino">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -251,40 +244,64 @@ export function FormularioConsulta({ inicial, catalogo, catalogoNoDisponible, on
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+            </Campo>
           )}
 
-          <fieldset>
-            <legend className="mb-2 text-sm font-medium">Métricas</legend>
-            <ul className="space-y-2">
-              {metricasDisponibles.map((metrica) => {
-                const siempre = metrica === 'n_viajes'
-                const activa = siempre || f.metricas.includes(metrica)
-                return (
-                  <li key={metrica} className="flex items-start justify-between gap-3">
-                    <Label htmlFor={id(`metrica-${metrica}`)} className="flex-col items-start gap-0.5 font-normal">
-                      <span className="font-medium">{ETIQUETAS_METRICA[metrica] ?? metrica}</span>
-                      <span className="text-xs text-texto-suave">{DESCRIPCIONES_METRICA[metrica] ?? ''}</span>
-                    </Label>
-                    <Switch
-                      id={id(`metrica-${metrica}`)}
+          <Campo etiqueta="Métricas">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button type="button" variant="outline" className="w-full justify-between bg-white px-2.5 font-normal" aria-label="Métricas">
+                  <span className="truncate">{resumenMetricas(f.metricas)}</span>
+                  <ChevronDown className="size-4 text-slate-400" aria-hidden />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="min-w-52" align="start">
+                {metricasDisponibles.map((metrica) => {
+                  const siempre = metrica === 'n_viajes'
+                  const activa = siempre || f.metricas.includes(metrica)
+                  return (
+                    <DropdownMenuCheckboxItem
+                      key={metrica}
                       checked={activa}
                       disabled={siempre}
-                      onCheckedChange={(v) => alternarMetrica(metrica, v)}
-                      aria-label={`Métrica ${ETIQUETAS_METRICA[metrica] ?? metrica}`}
-                    />
-                  </li>
-                )
-              })}
-            </ul>
-          </fieldset>
+                      onSelect={(evento) => evento.preventDefault()}
+                      onCheckedChange={(v) => alternarMetrica(metrica, v === true)}
+                    >
+                      {ETIQUETAS_METRICA[metrica] ?? metrica}
+                    </DropdownMenuCheckboxItem>
+                  )
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </Campo>
+          </div>
 
-          <Button type="submit" className="w-full" disabled={enviando || (tocado && hayErrores)}>
-            {enviando ? <LoaderCircle className="animate-spin" aria-hidden /> : <Search aria-hidden />}
-            {enviando ? 'Consultando…' : 'Consultar'}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+          <div className="flex shrink-0 flex-col gap-1">
+            <span className="text-[11px] leading-none font-medium text-transparent select-none" aria-hidden>
+              Acciones
+            </span>
+            <div className="flex items-center gap-2">
+              {onCompartir && (
+                <Button type="button" variant="outline" className="bg-white" onClick={onCompartir}>
+                  <Share2 aria-hidden />
+                  Copiar enlace
+                </Button>
+              )}
+              <Button type="submit" disabled={enviando || (tocado && hayErrores)}>
+                {enviando ? <LoaderCircle className="animate-spin" aria-hidden /> : <Search aria-hidden />}
+                {enviando ? 'Consultando…' : 'Consultar'}
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {tocado && (errores.fechas || errores.rango) && (
+          <p role="alert" className="mt-2 flex items-start gap-2 text-xs text-peligro">
+            <TriangleAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+            <span>{errores.fechas ?? errores.rango}</span>
+          </p>
+        )}
+      </form>
+    </section>
   )
 }

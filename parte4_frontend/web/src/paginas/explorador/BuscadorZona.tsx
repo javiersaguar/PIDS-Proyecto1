@@ -17,11 +17,13 @@ interface Props {
   valor: number | null
   onCambiar: (zona: Zona | null) => void
   disabled?: boolean
+  /** Sin la línea de barrio e id: cabe en la barra horizontal de filtros. */
+  compacto?: boolean
 }
 
 const MAXIMO_SUGERENCIAS = 12
 
-export function BuscadorZona({ id, valor, onCambiar, disabled }: Props) {
+export function BuscadorZona({ id, valor, onCambiar, disabled, compacto }: Props) {
   const [texto, setTexto] = useState('')
   const [editando, setEditando] = useState(false)
   const [abierto, setAbierto] = useState(false)
@@ -81,8 +83,8 @@ export function BuscadorZona({ id, valor, onCambiar, disabled }: Props) {
           aria-autocomplete="list"
           aria-activedescendant={listaVisible && opciones[activa] ? `${idLista}-${opciones[activa]._id}` : undefined}
           autoComplete="off"
-          placeholder="Todas las zonas · escribe para buscar (JFK, Times Sq…)"
-          className="pr-8 pl-8"
+          placeholder={compacto ? 'Buscar zona…' : 'Todas las zonas · escribe para buscar (JFK, Times Sq…)'}
+          className="h-8 pr-8 pl-8"
           value={mostrado}
           disabled={disabled}
           onChange={(e) => {
@@ -112,7 +114,7 @@ export function BuscadorZona({ id, valor, onCambiar, disabled }: Props) {
           </button>
         )}
       </div>
-      {seleccionada && !editando && (
+      {seleccionada && !editando && !compacto && (
         <p className="mt-1 text-xs text-texto-suave">
           {seleccionada.barrio} · zona #{seleccionada._id}
           {seleccionada.tipo_servicio ? ` · ${seleccionada.tipo_servicio}` : ''}

@@ -45,19 +45,16 @@ describe('PaginaPanel', () => {
     renderizarRutas('/')
 
     const indicadores = await screen.findByRole('region', { name: 'Indicadores' })
+    expect(within(indicadores).getByText('Viajes')).toBeInTheDocument()
     expect(within(indicadores).getByText('219.509')).toBeInTheDocument()
-    expect(within(indicadores).getByText(/31\/12\/2020 · histórico/)).toBeInTheDocument()
     expect(within(indicadores).getByText('7')).toBeInTheDocument() // barrios
-    expect(within(indicadores).getByText(/Manhattan concentra el 92,9 %/)).toBeInTheDocument()
-
-    const decisiones = within(indicadores).getByRole('list', { name: 'Decisiones por resultado' })
-    expect(decisiones).toHaveTextContent('120permitida')
-    expect(decisiones).toHaveTextContent('31enmascarada')
-    expect(decisiones).toHaveTextContent('9rechazada')
     expect(within(indicadores).getByText('160')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Actualizar' })).not.toBeInTheDocument()
+    expect(screen.queryByText(/cada 60 s/)).not.toBeInTheDocument()
+    expect(screen.queryByRole('banner')).not.toBeInTheDocument()
 
     // Frescura: 45 s → verde, «al día», y el contador «hace 45 s» (puede haber avanzado un segundo).
-    expect(within(indicadores).getByText(/^hace 4[5-7] s$/)).toBeInTheDocument()
+    expect(within(indicadores).getByLabelText(/^hace 4[5-7] s$/)).toBeInTheDocument()
     expect(within(indicadores).getByRole('img', { name: 'Estado: al día' })).toBeInTheDocument()
   })
 
@@ -67,35 +64,38 @@ describe('PaginaPanel', () => {
     const usuario = userEvent.setup()
 
     const grafico = await screen.findByRole('img', { name: 'Viajes por barrio el 31/12/2020 (histórico)' })
-    expect(screen.getByText(/7 barrios con grupos visibles/)).toBeInTheDocument()
-    // Una barra por barrio, con su cifra al final.
     expect(grafico.querySelectorAll('.recharts-bar-rectangle')).toHaveLength(7)
+    expect(grafico).toHaveTextContent('Manhattan')
     expect(grafico).toHaveTextContent('203.866')
 
     await usuario.click(screen.getByRole('tab', { name: 'Tiempo real' }))
     expect(await screen.findByRole('img', { name: 'Viajes por barrio el 30/12/2020 (tiempo real)' })).toBeInTheDocument()
-    expect(screen.getByText(/2 barrios con grupos visibles/)).toBeInTheDocument()
   })
 
-  it('lista los servicios con su estado y los accesos directos en pestaña nueva', async () => {
+  it('lista los servicios con su estado y, al cambiar, los accesos directos en pestaña nueva', async () => {
     conSesion(PANEL)
     renderizarRutas('/')
+    const usuario = userEvent.setup()
 
-    const servicios = await screen.findByRole('list', { name: 'Servicios de la plataforma' })
-    const filas = within(servicios).getAllByRole('listitem')
-    expect(filas).toHaveLength(3)
-    expect(filas[0]).toHaveTextContent('API de acceso')
-    expect(filas[0]).toHaveTextContent('en marcha')
-    expect(filas[1]).toHaveTextContent('caído')
-    expect(filas[2]).toHaveTextContent('desconocido')
+    const servicios = await screen.findByRole('table', { name: 'Servicios de la plataforma' })
+    const filas = within(servicios).getAllByRole('row')
+    expect(filas).toHaveLength(4)
+    expect(filas[1]).toHaveTextContent('API de acceso')
+    expect(filas[1]).toHaveTextContent('En marcha')
+    expect(filas[1].querySelector('img')?.getAttribute('src')).toMatch(/acceso\.png$/)
+    expect(filas[2]).toHaveTextContent('Caído')
+    expect(filas[3]).toHaveTextContent('Desconocido')
+    expect(screen.queryByRole('table', { name: 'Accesos directos' })).not.toBeInTheDocument()
 
-    const enlaces = screen.getByRole('list', { name: 'Accesos directos' })
+    await usuario.click(screen.getByRole('tab', { name: 'Accesos directos' }))
+    const enlaces = await screen.findByRole('table', { name: 'Accesos directos' })
     const grafana = within(enlaces).getByRole('link', { name: /Grafana/ })
     expect(grafana).toHaveAttribute('href', 'http://localhost:3000')
     expect(grafana).toHaveAttribute('target', '_blank')
     expect(grafana).toHaveAttribute('rel', 'noreferrer')
     expect(within(enlaces).getAllByRole('link')).toHaveLength(7)
     expect(within(enlaces).getByRole('link', { name: /Chatbot RAG/ })).toHaveAttribute('href', 'http://localhost:8011')
+    expect(within(enlaces).getAllByRole('row')[1]?.querySelector('img')?.getAttribute('src')).toMatch(/grafana\.png$/)
   })
 
   it('sin Prometheus, las tarjetas que dependen de él dicen «no disponible» y el resto sigue', async () => {

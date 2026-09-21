@@ -1,13 +1,30 @@
 /**
- * Esqueleto de la aplicación autenticada: barra lateral fija, cabecera, contenido (`<Outlet />`) y pie.
+ * Esqueleto de la aplicación autenticada: barra lateral fija y contenido (`<Outlet />`).
+ * Documentación y el asistente ocupan todo el hueco, sin cabecera. El panel, el explorador,
+ * privacidad, tiempo real y operaciones tampoco llevan cabecera: el título de la sección
+ * ya está en la barra lateral.
  */
-import { Outlet } from 'react-router'
+import { Outlet, useLocation } from 'react-router'
+
+import { cn } from '@/lib/utils'
 
 import { BarraLateral } from './BarraLateral'
 import { Cabecera } from './Cabecera'
-import { Pie } from './Pie'
 
 export function AppShell() {
+  const { pathname } = useLocation()
+  const lienzo =
+    pathname === '/documentacion' ||
+    pathname.startsWith('/documentacion/') ||
+    pathname === '/asistente' ||
+    pathname.startsWith('/asistente/')
+  const esPanel = pathname === '/'
+  const esPrivacidad = pathname === '/privacidad' || pathname.startsWith('/privacidad/')
+  const esExplorador = pathname === '/explorador' || pathname.startsWith('/explorador/')
+  const esTiempoReal = pathname === '/tiempo-real' || pathname.startsWith('/tiempo-real/')
+  const esOperaciones = pathname === '/operaciones' || pathname.startsWith('/operaciones/')
+  const amplio = esPanel || esExplorador || esTiempoReal || esOperaciones
+
   return (
     <div className="min-h-svh bg-fondo">
       <a
@@ -18,13 +35,20 @@ export function AppShell() {
       </a>
       <BarraLateral />
       <div className="flex min-h-svh flex-col pl-60">
-        <Cabecera />
-        <main id="contenido" tabIndex={-1} className="flex-1 px-6 py-6 outline-none">
-          <div className="mx-auto w-full max-w-7xl">
+        {!lienzo && !amplio && !esPrivacidad && <Cabecera />}
+        <main
+          id="contenido"
+          tabIndex={-1}
+          className={cn(lienzo ? 'h-svh overflow-hidden outline-none' : 'flex-1 outline-none', amplio && 'bg-[#f3f6fb] px-4 py-4 sm:px-6 sm:py-5', !lienzo && !amplio && 'px-6 py-6')}
+        >
+          {lienzo ? (
             <Outlet />
-          </div>
+          ) : (
+            <div className={cn('mx-auto w-full', esExplorador ? 'max-w-none' : 'max-w-7xl')}>
+              <Outlet />
+            </div>
+          )}
         </main>
-        <Pie />
       </div>
     </div>
   )

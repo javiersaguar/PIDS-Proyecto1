@@ -71,31 +71,31 @@ describe('PaginaOperaciones', () => {
     expect(within(tabla).getByText('en ejecución')).toBeInTheDocument()
     expect(within(tabla).getByText('fallida')).toBeInTheDocument()
     expect(within(tabla).getByText('marzo de 2020')).toBeInTheDocument()
-    expect(within(tabla).getByText('muestra (enero de 2020)')).toBeInTheDocument()
+    expect(within(tabla).getByText('Muestra de prueba, enero de 2020')).toBeInTheDocument()
     expect(within(tabla).getByText('7 min 30 s')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Abrir Airflow' })).toHaveAttribute('href', 'http://localhost:8085')
   })
 
-  it('lanza la carga solo tras confirmar en el diálogo y avisa con el dag_run_id', async () => {
+  it('lanza la carga solo tras confirmar en el diálogo y avisa de que ha empezado', async () => {
     const espia = apiBase({
       'POST /api/operaciones/airflow/cargas': { status: 202, json: { ...EJECUCIONES[1], dag_run_id: 'manual__nueva', estado: 'queued' } },
     })
     renderizarRutas('/operaciones')
     const usuario = userEvent.setup()
 
-    await usuario.click(await screen.findByRole('button', { name: 'Lanzar en Airflow' }))
+    await usuario.click(await screen.findByRole('button', { name: 'Cargar viajes' }))
 
     const dialogo = await screen.findByRole('dialog')
-    expect(dialogo).toHaveTextContent('~90 MB')
+    expect(dialogo).toHaveTextContent('90 MB')
     expect(dialogo).toHaveTextContent('varios minutos')
     expect(llamadas(espia, 'POST', '/api/operaciones/airflow/cargas')).toHaveLength(0)
 
-    await usuario.click(within(dialogo).getByRole('button', { name: 'Confirmar y lanzar' }))
+    await usuario.click(within(dialogo).getByRole('button', { name: 'Sí, cargar' }))
 
     await waitFor(() => expect(llamadas(espia, 'POST', '/api/operaciones/airflow/cargas')).toHaveLength(1))
     const [, init] = llamadas(espia, 'POST', '/api/operaciones/airflow/cargas')[0]
     expect(JSON.parse(init?.body as string)).toEqual({ mes: '2020-01', muestra: false })
-    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Carga lanzada en Airflow', { description: 'Ejecución manual__nueva' }))
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('La carga ya ha empezado', { description: 'Se está cargando enero de 2020.' }))
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
   })
 
@@ -104,16 +104,16 @@ describe('PaginaOperaciones', () => {
     renderizarRutas('/operaciones')
     const usuario = userEvent.setup()
 
-    await usuario.click(await screen.findByRole('button', { name: 'Lanzar en Airflow' }))
+    await usuario.click(await screen.findByRole('button', { name: 'Cargar viajes' }))
     await usuario.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Cancelar' }))
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     expect(llamadas(espia, 'POST', '/api/operaciones/airflow/cargas')).toHaveLength(0)
 
-    await usuario.click(screen.getByRole('switch', { name: /Solo la muestra/ }))
-    await usuario.click(screen.getByRole('button', { name: 'Lanzar en Airflow' }))
+    await usuario.click(screen.getByRole('switch', { name: /999 viajes de prueba/ }))
+    await usuario.click(screen.getByRole('button', { name: 'Cargar viajes' }))
     const dialogo = await screen.findByRole('dialog')
     expect(dialogo).toHaveTextContent('999 viajes')
-    await usuario.click(within(dialogo).getByRole('button', { name: 'Confirmar y lanzar' }))
+    await usuario.click(within(dialogo).getByRole('button', { name: 'Sí, cargar' }))
     await waitFor(() => expect(llamadas(espia, 'POST', '/api/operaciones/airflow/cargas')).toHaveLength(1))
     expect(JSON.parse(llamadas(espia, 'POST', '/api/operaciones/airflow/cargas')[0][1]?.body as string)).toEqual({ mes: '2020-01', muestra: true })
   })
@@ -123,10 +123,10 @@ describe('PaginaOperaciones', () => {
     renderizarRutas('/operaciones')
     const usuario = userEvent.setup()
 
-    await usuario.click(await screen.findByRole('button', { name: 'Lanzar en Airflow' }))
-    await usuario.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Confirmar y lanzar' }))
+    await usuario.click(await screen.findByRole('button', { name: 'Cargar viajes' }))
+    await usuario.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Sí, cargar' }))
 
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('No se ha podido lanzar la carga', { description: 'Airflow no responde' }))
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('No se ha podido empezar la carga', { description: 'Airflow no responde' }))
     expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
 
@@ -142,25 +142,25 @@ describe('PaginaOperaciones', () => {
     expect(screen.getByText('250 / 999 viajes enviados (25 %)')).toBeInTheDocument()
     expect(screen.getByRole('progressbar', { name: 'Viajes enviados' })).toHaveAttribute('aria-valuenow', '25')
     expect(screen.getByText('portal-yellow_tripdata_2020_muestra.csv-20260922T080000')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Iniciar' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Empezar' })).not.toBeInTheDocument()
 
     await usuario.click(screen.getByRole('button', { name: 'Parar' }))
     await waitFor(() => expect(llamadas(espia, 'DELETE', '/api/operaciones/simulacion')).toHaveLength(1))
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Simulación parada'))
   })
 
-  it('«Iniciar» envía fichero, ritmo y máximo; un 409 avisa de que ya hay una simulación activa', async () => {
+  it('«Empezar» envía fichero, ritmo y máximo; un 409 avisa de que ya hay una simulación activa', async () => {
     const espia = apiBase({
       'POST /api/operaciones/simulacion': { status: 409, json: { detail: 'Ya hay una simulación en curso' } },
     })
     renderizarRutas('/operaciones')
     const usuario = userEvent.setup()
 
-    const boton = await screen.findByRole('button', { name: 'Iniciar' })
+    const boton = await screen.findByRole('button', { name: 'Empezar' })
     await waitFor(() => expect(boton).toBeEnabled())
-    await usuario.clear(screen.getByLabelText('Ritmo (viajes/s)'))
-    await usuario.type(screen.getByLabelText('Ritmo (viajes/s)'), '20')
-    await usuario.type(screen.getByLabelText(/Máximo/), '300')
+    await usuario.clear(screen.getByLabelText('Cuántos por segundo'))
+    await usuario.type(screen.getByLabelText('Cuántos por segundo'), '20')
+    await usuario.type(screen.getByLabelText(/Máximo de viajes/), '300')
     await usuario.click(boton)
 
     await waitFor(() => expect(llamadas(espia, 'POST', '/api/operaciones/simulacion')).toHaveLength(1))

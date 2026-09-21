@@ -72,11 +72,9 @@ describe('PaginaAsistente', () => {
 
     // Sugerencias iniciales (las tres preguntas de BIENVENIDA) y el aviso permanente.
     const sugerencias = within(screen.getByRole('list', { name: 'Preguntas de ejemplo' })).getAllByRole('button')
-    expect(sugerencias.map((b) => b.textContent)).toEqual([
-      '¿Cuántos viajes salieron de JFK el 15 de enero entre las 8 y las 12?',
-      '¿Qué barrio tuvo más viajes el 3 de marzo?',
-      '¿Cuál fue la propina media en Manhattan la primera semana de febrero?',
-    ])
+    expect(sugerencias[0]).toHaveTextContent('¿Cuántos viajes salieron de JFK el 15 de enero entre las 8 y las 12?')
+    expect(sugerencias[1]).toHaveTextContent('¿Qué barrio tuvo más viajes el 3 de marzo?')
+    expect(sugerencias[2]).toHaveTextContent('¿Cuál fue la propina media en Manhattan la primera semana de febrero?')
     expect(screen.getAllByText(/no puedo darte información de viajes o personas concretas/).length).toBeGreaterThan(0)
   })
 

@@ -1,5 +1,5 @@
 /**
- * Tiempo real: `GET /api/tiempo-real?horas=6` con TanStack Query, refrescado cada 30 s.
+ * Tiempo real: `GET /api/tiempo-real?horas=6` con TanStack Query, refrescado cada 10 s.
  *
  *   const tiempoReal = useTiempoReal(6)     // tiempoReal.data: TiempoReal · tiempoReal.dataUpdatedAt para «hace X s»
  */
@@ -8,7 +8,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { api } from './cliente'
 import type { TiempoReal } from './tipos'
 
-export const INTERVALO_TIEMPO_REAL_MS = 30_000
+export const INTERVALO_TIEMPO_REAL_MS = 10_000
 export const HORAS_TIEMPO_REAL = [6, 12, 24] as const
 export type HorasTiempoReal = (typeof HORAS_TIEMPO_REAL)[number]
 
@@ -26,7 +26,7 @@ export function useTiempoReal(horas: number) {
   return useQuery({
     queryKey: claveTiempoReal(horas),
     queryFn: () => consultarTiempoReal(horas),
-    staleTime: 15_000,
+    staleTime: INTERVALO_TIEMPO_REAL_MS,
     refetchInterval: INTERVALO_TIEMPO_REAL_MS,
     refetchOnWindowFocus: false,
     placeholderData: keepPreviousData,

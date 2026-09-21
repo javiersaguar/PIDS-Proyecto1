@@ -19,7 +19,7 @@ interface Props<T extends string | number> {
 
 export function Segmentado<T extends string | number>({ etiqueta, opciones, valor, alCambiar, className }: Props<T>) {
   return (
-    <div role="radiogroup" aria-label={etiqueta} className={cn('inline-flex h-8 items-center rounded-lg border bg-superficie p-0.5', className)}>
+    <div role="radiogroup" aria-label={etiqueta} className={cn('inline-flex items-center rounded-lg bg-slate-100 p-0.5', className)}>
       {opciones.map((opcion) => {
         const activo = opcion.valor === valor
         return (
@@ -30,7 +30,7 @@ export function Segmentado<T extends string | number>({ etiqueta, opciones, valo
             aria-checked={activo}
             onClick={() => alCambiar(opcion.valor)}
             className={cn(
-              'h-full rounded-md px-2.5 text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring',
+              'rounded-md px-2.5 py-1 text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring',
               activo ? 'bg-primario text-white shadow-sm' : 'text-texto-suave hover:bg-muted hover:text-foreground',
             )}
           >

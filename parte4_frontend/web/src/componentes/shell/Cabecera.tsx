@@ -1,15 +1,10 @@
 /**
- * Cabecera: título de la sección activa, chips con el estado de los servicios (`GET /api/panel` → `servicios`)
- * y el botón «Cerrar sesión».
+ * Cabecera: título de la sección activa y chips con el estado de los servicios
+ * (`GET /api/panel` → `servicios`). El cierre de sesión vive en la barra lateral.
  */
-import { LogOut } from 'lucide-react'
-import { useLocation, useNavigate } from 'react-router'
-import { toast } from 'sonner'
+import { useLocation } from 'react-router'
 
-import { useCerrarSesion } from '@/api/sesion'
 import type { Servicio } from '@/api/tipos'
-import { Button } from '@/componentes/ui/button'
-import { Separator } from '@/componentes/ui/separator'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/componentes/ui/tooltip'
 import { cn } from '@/lib/utils'
 
@@ -71,32 +66,17 @@ function ChipsServicios() {
 
 export function Cabecera() {
   const { pathname } = useLocation()
-  const navegar = useNavigate()
-  const cerrar = useCerrarSesion()
   const seccion = seccionDe(pathname)
   const Icono = seccion?.icono
 
-  const salir = () => {
-    cerrar.mutate(undefined, {
-      onSuccess: () => toast.success('Sesión cerrada'),
-      onError: () => toast.error('No se ha podido cerrar la sesión en el servidor; se ha borrado en este navegador'),
-      onSettled: () => void navegar('/acceso', { replace: true }),
-    })
-  }
-
   return (
-    <header className="sticky top-0 z-20 flex h-14 items-center gap-4 border-b bg-superficie/90 px-6 backdrop-blur">
+    <header className="sticky top-0 z-20 flex h-14 items-center gap-4 border-b bg-white/90 px-6 backdrop-blur">
       <div className="flex min-w-0 items-center gap-2">
         {Icono && <Icono className="size-4 text-texto-suave" aria-hidden />}
         <p className="truncate text-[15px] font-semibold text-primario">{seccion?.titulo ?? 'Página no encontrada'}</p>
       </div>
       <div className="ml-auto flex items-center gap-3">
         <ChipsServicios />
-        <Separator orientation="vertical" className="hidden h-5! lg:block" />
-        <Button variant="ghost" size="sm" onClick={salir} disabled={cerrar.isPending}>
-          <LogOut aria-hidden />
-          Cerrar sesión
-        </Button>
       </div>
     </header>
   )

@@ -1,9 +1,8 @@
 /**
- * Asistente (§6): chat con el agente de la parte 3 a través del BFF. Selector de motor (Ollama / RAG), hilo con
- * Markdown, pasos de las herramientas en directo (SSE), botón de alternativa tras un rechazo, fuentes y
- * segundos/tokens por turno. Réplica en el portal de la interfaz Chainlit (`parte3_chatbot/app.py`).
+ * Asistente (§6): chat con el agente de la parte 3 a través del BFF.
+ * Lienzo limpio: pregunta, caja de texto y tres ejemplos. El hilo aparece al escribir.
  */
-import { Bot, Lock, MessageSquarePlus, Sparkles } from 'lucide-react'
+import { BarChart3, CircleDollarSign, MapPin, MessageSquarePlus, type LucideIcon } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
 import { useMotores } from '@/api/chat'
@@ -13,48 +12,52 @@ import { EntradaMensaje } from '@/componentes/chat/EntradaMensaje'
 import { esAsistente } from '@/componentes/chat/tipos'
 import { SelectorMotor } from '@/componentes/chat/SelectorMotor'
 import { useConversacion } from '@/componentes/chat/useConversacion'
-import { EncabezadoPagina, EstadoCargando, EstadoError, EstadoNoDisponible } from '@/componentes/shell'
+import { EstadoCargando, EstadoError, EstadoNoDisponible } from '@/componentes/shell'
 import { Button } from '@/componentes/ui/button'
-import { Card } from '@/componentes/ui/card'
 
 /** Las tres preguntas de ejemplo de `parte3_chatbot/prompts.py` (BIENVENIDA). */
-const SUGERENCIAS = [
-  '¿Cuántos viajes salieron de JFK el 15 de enero entre las 8 y las 12?',
-  '¿Qué barrio tuvo más viajes el 3 de marzo?',
-  '¿Cuál fue la propina media en Manhattan la primera semana de febrero?',
+const SUGERENCIAS: { icono: LucideIcon; titulo: string; texto: string }[] = [
+  {
+    icono: BarChart3,
+    titulo: 'Volumen de viajes',
+    texto: '¿Cuántos viajes salieron de JFK el 15 de enero entre las 8 y las 12?',
+  },
+  {
+    icono: MapPin,
+    titulo: 'Barrio con más viajes',
+    texto: '¿Qué barrio tuvo más viajes el 3 de marzo?',
+  },
+  {
+    icono: CircleDollarSign,
+    titulo: 'Propinas',
+    texto: '¿Cuál fue la propina media en Manhattan la primera semana de febrero?',
+  },
 ]
 
 const AVISO = 'Solo agregados: no puedo darte información de viajes o personas concretas.'
 
-function Bienvenida({ alElegir, deshabilitada }: { alElegir: (texto: string) => void; deshabilitada: boolean }) {
+function Casillas({ alElegir, deshabilitada }: { alElegir: (texto: string) => void; deshabilitada: boolean }) {
   return (
-    <div className="mx-auto flex max-w-xl flex-col items-center gap-4 py-8 text-center">
-      <span className="flex size-11 items-center justify-center rounded-full bg-acento text-primario" aria-hidden>
-        <Bot className="size-6" />
-      </span>
-      <div className="space-y-1">
-        <h2 className="text-lg">Asistente de datos de taxis (NYC, 2020)</h2>
-        <p className="text-texto-suave">
-          Pregúntame por volúmenes de viajes, importes medios, propinas o flujos entre barrios. Por ejemplo:
-        </p>
-      </div>
-      <ul className="grid w-full gap-2 text-left" aria-label="Preguntas de ejemplo">
-        {SUGERENCIAS.map((sugerencia) => (
-          <li key={sugerencia}>
-            <button
-              type="button"
-              onClick={() => alElegir(sugerencia)}
-              disabled={deshabilitada}
-              className="flex w-full items-center gap-2.5 rounded-lg border bg-superficie px-3 py-2 text-left text-sm transition-colors hover:border-acento hover:bg-acento-suave/50 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <Sparkles className="size-4 shrink-0 text-acento" aria-hidden />
-              <span>{sugerencia}</span>
-            </button>
-          </li>
-        ))}
-      </ul>
-      <p className="text-xs text-texto-suave">{AVISO}</p>
-    </div>
+    <ul className="mt-4 grid gap-3 sm:grid-cols-3" aria-label="Preguntas de ejemplo">
+      {SUGERENCIAS.map(({ icono: Icono, titulo, texto }) => (
+        <li key={texto}>
+          <button
+            type="button"
+            onClick={() => alElegir(texto)}
+            disabled={deshabilitada}
+            className="flex h-full w-full flex-col items-start gap-3 rounded-2xl border border-[#eceaf3] bg-white p-4 text-left shadow-[0_10px_28px_-18px_rgba(15,23,42,0.35)] transition hover:border-[#ddd6fe] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <span className="flex size-9 items-center justify-center rounded-xl bg-[#efe9ff] text-[#6d4aff]" aria-hidden>
+              <Icono className="size-4" />
+            </span>
+            <span>
+              <span className="block text-sm font-semibold text-slate-900">{titulo}</span>
+              <span className="mt-1 block text-[13px] leading-snug text-slate-500">{texto}</span>
+            </span>
+          </button>
+        </li>
+      ))}
+    </ul>
   )
 }
 
@@ -67,7 +70,6 @@ export default function PaginaAsistente() {
   const conversacion = useConversacion(motor)
   const hiloRef = useRef<HTMLDivElement>(null)
 
-  // El hilo se mantiene pegado al final según llegan mensajes y pasos.
   useEffect(() => {
     const hilo = hiloRef.current
     if (hilo) hilo.scrollTop = hilo.scrollHeight
@@ -86,97 +88,115 @@ export default function PaginaAsistente() {
     : conversacion.errorSesion
       ? 'No se ha podido abrir la sesión con el asistente'
       : null
+  const hayMensajes = conversacion.mensajes.length > 0
 
-  let contenido
+  const compositor = (
+    <EntradaMensaje
+      alEnviar={conversacion.enviar}
+      alDetener={conversacion.detener}
+      enCurso={conversacion.enCurso}
+      deshabilitada={!puedeEscribir}
+      motivo={motivoBloqueo}
+      complemento={
+        <SelectorMotor motores={listaMotores} elegido={motor} alElegir={cambiarMotor} deshabilitado={conversacion.enCurso} />
+      }
+    />
+  )
+
+  let cuerpo
   if (motores.isPending) {
-    contenido = <EstadoCargando variante="tarjeta" lineas={5} etiqueta="Cargando los motores del asistente…" />
+    cuerpo = (
+      <div className="flex flex-1 items-center justify-center px-6">
+        <EstadoCargando variante="tarjeta" lineas={4} etiqueta="Cargando los motores del asistente…" />
+      </div>
+    )
   } else if (motores.isError) {
-    contenido = (
-      <EstadoError
-        titulo="No se han podido cargar los motores del asistente"
-        error={motores.error}
-        alReintentar={() => void motores.refetch()}
-        reintentando={motores.isFetching}
-      />
+    cuerpo = (
+      <div className="flex flex-1 items-center justify-center px-6">
+        <EstadoError
+          titulo="No se han podido cargar los motores del asistente"
+          error={motores.error}
+          alReintentar={() => void motores.refetch()}
+          reintentando={motores.isFetching}
+        />
+      </div>
     )
   } else if (!motor) {
-    contenido = (
-      <EstadoNoDisponible
-        servicio="Asistente"
-        descripcion="Ningún motor de chat responde ahora mismo (Ollama o RAG). El explorador sigue disponible para consultar los agregados."
-        alReintentar={() => void motores.refetch()}
-      />
+    cuerpo = (
+      <div className="flex flex-1 items-center justify-center px-6">
+        <EstadoNoDisponible
+          servicio="Asistente"
+          descripcion="Ningún motor de chat responde ahora mismo (Ollama o RAG). El explorador sigue disponible para consultar los agregados."
+          alReintentar={() => void motores.refetch()}
+        />
+      </div>
     )
   } else {
-    contenido = (
-      <Card className="flex h-[calc(100svh-16rem)] min-h-[480px] flex-col gap-0 overflow-hidden py-0">
-        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b bg-superficie-alterna/60 px-4 py-2">
-          <p className="flex items-center gap-2 text-xs text-texto-suave">
-            <Lock className="size-3.5 shrink-0 text-enmascarado" aria-hidden />
-            <span>
-              <span className="font-medium text-foreground">Solo agregados:</span> no puedo darte información de viajes o personas
-              concretas.
-            </span>
-          </p>
-          <div className="flex flex-wrap items-center gap-2">
-            <SelectorMotor motores={listaMotores} elegido={motor} alElegir={cambiarMotor} deshabilitado={conversacion.enCurso} />
-            <Button variant="outline" size="sm" onClick={conversacion.reiniciar} disabled={!motor}>
-              <MessageSquarePlus aria-hidden />
-              Nueva conversación
-            </Button>
-          </div>
-        </div>
-
+    cuerpo = (
+      <div className={hayMensajes ? 'flex min-h-0 flex-1 flex-col overflow-hidden' : 'flex min-h-0 flex-1 flex-col overflow-y-auto'}>
+        <div className={hayMensajes ? 'hidden' : 'flex-1'} />
         <div
-          ref={hiloRef}
-          role="log"
-          aria-live="polite"
-          aria-relevant="additions text"
-          aria-label="Conversación con el asistente"
-          className="flex-1 space-y-4 overflow-y-auto px-4 py-4"
+          ref={hayMensajes ? hiloRef : undefined}
+          role={hayMensajes ? 'log' : undefined}
+          aria-live={hayMensajes ? 'polite' : undefined}
+          aria-relevant={hayMensajes ? 'additions text' : undefined}
+          aria-label={hayMensajes ? 'Conversación con el asistente' : undefined}
+          className={hayMensajes ? 'min-h-0 flex-1 overflow-y-auto px-6 py-6' : 'px-6'}
         >
-          {conversacion.errorSesion ? (
+          {hayMensajes ? (
+            <div className="mx-auto w-full max-w-3xl space-y-4">
+              {conversacion.mensajes.map((mensaje) => (
+                <Burbuja
+                  key={mensaje.id}
+                  mensaje={mensaje}
+                  esUltimo={mensaje.id === ultimoAsistente?.id}
+                  ocupado={conversacion.enCurso}
+                  alAceptarAlternativa={conversacion.aceptarAlternativa}
+                  alCancelarAlternativa={conversacion.cancelarAlternativa}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="mx-auto mb-8 w-full max-w-3xl text-center">
+              <h2 className="text-[2rem] leading-tight font-semibold tracking-tight text-slate-900">¿Qué quieres saber hoy?</h2>
+              <p className="mx-auto mt-3 max-w-xl text-[15px] leading-relaxed text-slate-500">
+                Pregunta por volúmenes de viajes, importes, propinas o flujos entre barrios de Nueva York en 2020.
+              </p>
+              <p className="mx-auto mt-2 max-w-xl text-sm text-slate-400">{AVISO}</p>
+            </div>
+          )}
+        </div>
+        <div className="mx-auto w-full max-w-3xl px-6 pb-6">
+          {conversacion.errorSesion && !hayMensajes ? (
             <EstadoError
               titulo="No se ha podido abrir la sesión con el asistente"
               error={conversacion.errorSesion}
               alReintentar={conversacion.reintentarSesion}
             />
-          ) : conversacion.mensajes.length === 0 ? (
-            <Bienvenida alElegir={conversacion.enviar} deshabilitada={!puedeEscribir} />
           ) : (
-            conversacion.mensajes.map((mensaje) => (
-              <Burbuja
-                key={mensaje.id}
-                mensaje={mensaje}
-                esUltimo={mensaje.id === ultimoAsistente?.id}
-                ocupado={conversacion.enCurso}
-                alAceptarAlternativa={conversacion.aceptarAlternativa}
-                alCancelarAlternativa={conversacion.cancelarAlternativa}
-              />
-            ))
+            compositor
+          )}
+          {!hayMensajes && !conversacion.errorSesion && (
+            <Casillas alElegir={conversacion.enviar} deshabilitada={!puedeEscribir} />
           )}
         </div>
-
-        <div className="border-t bg-superficie px-4 py-3">
-          <EntradaMensaje
-            alEnviar={conversacion.enviar}
-            alDetener={conversacion.detener}
-            enCurso={conversacion.enCurso}
-            deshabilitada={!puedeEscribir}
-            motivo={motivoBloqueo}
-          />
-        </div>
-      </Card>
+        <div className={hayMensajes ? 'hidden' : 'flex-1'} />
+      </div>
     )
   }
 
   return (
-    <>
-      <EncabezadoPagina
-        titulo="Asistente"
-        descripcion="Conversación con el agente sobre los agregados publicados, con los pasos de las herramientas en directo."
-      />
-      {contenido}
-    </>
+    <div className="relative flex h-full min-h-0 flex-col bg-[radial-gradient(ellipse_at_top,#f3eefc_0%,#f8f7fc_38%,#ffffff_72%)]">
+      <h1 className="sr-only">Asistente</h1>
+      {motor && (
+        <div className="absolute top-4 right-6 z-10">
+          <Button variant="ghost" size="sm" className="text-slate-500" onClick={conversacion.reiniciar}>
+            <MessageSquarePlus aria-hidden />
+            Nueva conversación
+          </Button>
+        </div>
+      )}
+      {cuerpo}
+    </div>
   )
 }

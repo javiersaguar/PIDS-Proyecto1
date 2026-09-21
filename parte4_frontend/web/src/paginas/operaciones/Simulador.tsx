@@ -1,9 +1,8 @@
 /**
- * Tarjeta «Simulador de tiempo real»: el BFF reenvía los viajes de un CSV de `data/muestra` a la API de captura al
- * ritmo pedido (lotes de 100). Aquí se elige el fichero, el ritmo y un máximo opcional, se inicia o se para, y se
- * sigue el progreso (enviados/total, lote) refrescado cada 2 s mientras está activo.
+ * Tarjeta «Simulador de tiempo real»: envía los viajes de un fichero de prueba al ritmo pedido,
+ * para que la página Tiempo real se vaya llenando. Solo puede haber una simulación a la vez.
  */
-import { LoaderCircle, Play, Square, TriangleAlert } from 'lucide-react'
+import { LoaderCircle, Play, Radio, Square, TriangleAlert } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { toast } from 'sonner'
 
@@ -12,9 +11,8 @@ import { useFicherosSimulacion, useIniciarSimulacion, usePararSimulacion, useSim
 import type { Simulacion } from '@/api/tipos'
 import { formatearFechaHora, formatearNumero } from '@/componentes/chat/formato'
 import { EstadoCargando, EstadoError } from '@/componentes/shell'
-import { Badge } from '@/componentes/ui/badge'
 import { Button } from '@/componentes/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/componentes/ui/card'
+import { Card, CardContent, CardHeader } from '@/componentes/ui/card'
 import { Input } from '@/componentes/ui/input'
 import { Label } from '@/componentes/ui/label'
 import { Progress } from '@/componentes/ui/progress'
@@ -22,56 +20,78 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 const RITMO_POR_DEFECTO = 50
 
+const NOMBRES_FICHERO: Record<string, string> = {
+  'yellow_tripdata_2020_muestra.csv': 'Taxis amarillos, muestra de 2020',
+  'exportacion_formato_europeo.csv': 'Muestra en formato europeo',
+}
+
+function nombreFichero(fichero: string): string {
+  return NOMBRES_FICHERO[fichero] ?? fichero.replace(/\.csv$/i, '').replaceAll('_', ' ')
+}
+
 function Progreso({ simulacion }: { simulacion: Simulacion }) {
   const porcentaje = simulacion.total > 0 ? Math.min(100, Math.round((simulacion.enviados / simulacion.total) * 100)) : 0
   return (
-    <div className="space-y-2 rounded-lg border border-acento/40 bg-acento-suave/40 p-3" aria-live="polite">
-      <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-        <span className="inline-flex items-center gap-1.5 font-medium">
-          <LoaderCircle className="size-3.5 animate-spin text-primario" aria-hidden />
+    <div className="space-y-3 rounded-xl border border-sky-200 bg-sky-50/70 p-4" aria-live="polite">
+      <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+        <span className="inline-flex items-center gap-2 font-medium text-slate-900">
+          <LoaderCircle className="size-4 animate-spin text-sky-600" aria-hidden />
           Simulación en marcha
         </span>
-        <span className="cifra">
+        <span className="cifra text-slate-700">
           {formatearNumero(simulacion.enviados)} / {formatearNumero(simulacion.total)} viajes enviados ({porcentaje} %)
         </span>
       </div>
       {/* El envoltorio de shadcn no reenvía `value` a Radix, así que los atributos ARIA se ponen aquí. */}
       <Progress
         value={porcentaje}
-        className="h-2 bg-superficie"
+        className="h-2.5 bg-white"
         aria-label="Viajes enviados"
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={porcentaje}
         aria-valuetext={`${porcentaje} %: ${formatearNumero(simulacion.enviados)} de ${formatearNumero(simulacion.total)} viajes`}
       />
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs sm:grid-cols-4">
-        <dt className="text-texto-suave">Lote</dt>
-        <dd className="truncate font-mono" title={simulacion.lote ?? undefined}>
-          {simulacion.lote ?? '—'}
-        </dd>
-        <dt className="text-texto-suave">Fichero</dt>
-        <dd className="truncate font-mono" title={simulacion.fichero ?? undefined}>
-          {simulacion.fichero ?? '—'}
-        </dd>
-        <dt className="text-texto-suave">Ritmo</dt>
-        <dd className="cifra">{formatearNumero(simulacion.ritmo)} viajes/s</dd>
-        <dt className="text-texto-suave">Inicio</dt>
-        <dd className="cifra">{formatearFechaHora(simulacion.inicio)}</dd>
+      {simulacion.lote && <span className="sr-only">{simulacion.lote}</span>}
+      <dl className="grid gap-3 text-sm sm:grid-cols-3">
+        <div className="min-w-0">
+          <dt className="text-slate-500">Fichero</dt>
+          <dd className="mt-0.5 text-slate-900">{simulacion.fichero ? nombreFichero(simulacion.fichero) : '—'}</dd>
+        </div>
+        <div>
+          <dt className="text-slate-500">Velocidad</dt>
+          <dd className="cifra mt-0.5 text-slate-900">{formatearNumero(simulacion.ritmo)} viajes por segundo</dd>
+        </div>
+        <div>
+          <dt className="text-slate-500">Empezó</dt>
+          <dd className="cifra mt-0.5 text-slate-900">{formatearFechaHora(simulacion.inicio)}</dd>
+        </div>
       </dl>
     </div>
   )
 }
 
 function UltimaSimulacion({ simulacion }: { simulacion: Simulacion }) {
-  if (!simulacion.lote && !simulacion.fichero && simulacion.enviados === 0) {
-    return <p className="text-xs text-texto-suave">Ninguna simulación en marcha. La última no ha dejado rastro en esta sesión del BFF.</p>
-  }
+  if (!simulacion.lote && !simulacion.fichero && simulacion.enviados === 0) return null
   return (
-    <p className="cifra text-xs text-texto-suave">
-      Última simulación: <span className="font-mono text-foreground">{simulacion.lote ?? simulacion.fichero ?? '—'}</span> ·{' '}
-      {formatearNumero(simulacion.enviados)} de {formatearNumero(simulacion.total)} viajes enviados
-      {simulacion.inicio && <> · iniciada el {formatearFechaHora(simulacion.inicio)}</>}
+    <p className="text-sm text-slate-600">
+      La última simulación envió{' '}
+      <span className="cifra font-medium text-slate-900">
+        {formatearNumero(simulacion.enviados)} de {formatearNumero(simulacion.total)}
+      </span>{' '}
+      viajes
+      {simulacion.fichero && (
+        <>
+          {' '}
+          del fichero <span className="font-medium text-slate-900">{nombreFichero(simulacion.fichero)}</span>
+        </>
+      )}
+      {simulacion.inicio && (
+        <>
+          . Empezó el <span className="cifra">{formatearFechaHora(simulacion.inicio)}</span>
+        </>
+      )}
+      .
     </p>
   )
 }
@@ -100,12 +120,12 @@ export function Simulador() {
     iniciar.mutate(
       { fichero, ritmo: ritmoNumero, maximo: maximoNumero },
       {
-        onSuccess: (estado) => toast.success('Simulación iniciada', { description: `Lote ${estado.lote ?? ''}`.trim() }),
+        onSuccess: () => toast.success('Simulación empezada', { description: 'Los viajes ya se están enviando.' }),
         onError: (error) => {
           if (error instanceof ErrorApi && error.status === 409) {
-            toast.error('Ya hay una simulación activa', { description: 'Párala antes de iniciar otra.' })
+            toast.error('Ya hay una simulación activa', { description: 'Párala antes de empezar otra.' })
           } else {
-            toast.error('No se ha podido iniciar la simulación', { description: mensajeDeError(error) })
+            toast.error('No se ha podido empezar la simulación', { description: mensajeDeError(error) })
           }
         },
       },
@@ -120,15 +140,21 @@ export function Simulador() {
   }
 
   return (
-    <Card className="sombra-tarjeta">
-      <CardHeader>
-        <CardTitle>Simulador de tiempo real</CardTitle>
-        <CardDescription>
-          Envía los viajes de un CSV de <code className="font-mono text-[11px]">data/muestra</code> a la API de captura, ordenados por hora de
-          recogida y en lotes de 100, para alimentar el flujo de tiempo real (Redpanda → Spark → <code className="font-mono text-[11px]">tr_*</code>).
-        </CardDescription>
+    <Card className="sombra-tarjeta gap-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-white py-0 text-slate-900 ring-0">
+      <CardHeader className="gap-0 px-5 pt-4 pb-0">
+        <div className="flex items-start gap-2.5">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600" aria-hidden>
+            <Radio className="size-4" strokeWidth={2.25} />
+          </span>
+          <div className="min-w-0 space-y-1">
+            <h2 className="text-[15px] leading-none text-slate-900">Simulador de tiempo real</h2>
+            <p className="max-w-3xl text-sm text-slate-500">
+              Imita los taxis circulando ahora mismo. Coge viajes de prueba y los envía poco a poco, para que la página Tiempo real vaya mostrando cifras. Tardan unos 30 segundos en aparecer.
+            </p>
+          </div>
+        </div>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 px-5 pt-4 pb-5">
         {simulacion.isPending ? (
           <EstadoCargando lineas={3} etiqueta="Consultando el simulador…" />
         ) : simulacion.isError ? (
@@ -145,36 +171,36 @@ export function Simulador() {
         )}
 
         {simulacion.data?.error && (
-          <p role="alert" className="flex items-start gap-2 rounded-lg border border-peligro/30 bg-peligro/5 px-3 py-2 text-xs text-peligro">
-            <TriangleAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+          <p role="alert" className="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+            <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
             <span>
-              <span className="font-medium">Error del simulador:</span> {simulacion.data.error}
+              <span className="font-medium">Algo ha fallado:</span> {simulacion.data.error}
             </span>
           </p>
         )}
 
-        <form onSubmit={enviar} className="flex flex-wrap items-end gap-4" noValidate>
-          <div className="min-w-56 flex-1 space-y-1.5">
-            <Label htmlFor="fichero-simulacion">Fichero</Label>
+        <form onSubmit={enviar} className="grid gap-4 rounded-xl bg-slate-50 p-4 md:grid-cols-[minmax(0,1.4fr)_11rem_12rem_auto] md:items-end" noValidate>
+          <div className="min-w-0 space-y-2">
+            <Label htmlFor="fichero-simulacion">Qué viajes enviar</Label>
             {ficheros.isError ? (
-              <p className="text-xs text-peligro">No se ha podido leer la lista de ficheros: {mensajeDeError(ficheros.error)}</p>
+              <p className="text-sm text-rose-700">No se ha podido leer la lista de ficheros: {mensajeDeError(ficheros.error)}</p>
             ) : (
               <Select value={fichero ?? ''} onValueChange={setFicheroElegido} disabled={activa || ficheros.isPending || listaFicheros.length === 0}>
-                <SelectTrigger id="fichero-simulacion" className="w-full" aria-label="Fichero">
-                  <SelectValue placeholder={ficheros.isPending ? 'Cargando…' : 'Sin ficheros en data/muestra'} />
+                <SelectTrigger id="fichero-simulacion" className="w-full" aria-label="Qué viajes enviar">
+                  <SelectValue placeholder={ficheros.isPending ? 'Cargando…' : 'No hay ficheros de prueba'} />
                 </SelectTrigger>
                 <SelectContent>
                   {listaFicheros.map((f) => (
                     <SelectItem key={f} value={f}>
-                      <span className="font-mono text-xs">{f}</span>
+                      {nombreFichero(f)}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             )}
           </div>
-          <div className="w-32 space-y-1.5">
-            <Label htmlFor="ritmo-simulacion">Ritmo (viajes/s)</Label>
+          <div className="space-y-2">
+            <Label htmlFor="ritmo-simulacion">Cuántos por segundo</Label>
             <Input
               id="ritmo-simulacion"
               type="number"
@@ -187,10 +213,8 @@ export function Simulador() {
               aria-invalid={!ritmoValido || undefined}
             />
           </div>
-          <div className="w-36 space-y-1.5">
-            <Label htmlFor="maximo-simulacion">
-              Máximo <span className="text-texto-suave">(opcional)</span>
-            </Label>
+          <div className="space-y-2">
+            <Label htmlFor="maximo-simulacion">Máximo de viajes</Label>
             <Input
               id="maximo-simulacion"
               type="number"
@@ -212,17 +236,10 @@ export function Simulador() {
           ) : (
             <Button type="submit" disabled={!fichero || !ritmoValido || !maximoValido || ocupado || simulacion.isPending}>
               {iniciar.isPending ? <LoaderCircle className="animate-spin" aria-hidden /> : <Play aria-hidden />}
-              Iniciar
+              Empezar
             </Button>
           )}
         </form>
-        <p className="flex flex-wrap items-center gap-1.5 text-xs text-texto-suave">
-          <Badge variant="outline" className="h-5 font-normal">
-            una a la vez
-          </Badge>
-          Solo puede haber una simulación activa en el portal; las cifras llegan a Tiempo real en cuanto Spark publica el siguiente micro-lote
-          (unos 30 s).
-        </p>
       </CardContent>
     </Card>
   )

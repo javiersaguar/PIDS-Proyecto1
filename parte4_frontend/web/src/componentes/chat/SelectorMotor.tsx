@@ -16,7 +16,7 @@ interface Props {
 
 export function SelectorMotor({ motores, elegido, alElegir, deshabilitado = false }: Props) {
   return (
-    <div role="radiogroup" aria-label="Motor del asistente" className="inline-flex rounded-lg border bg-superficie p-0.5">
+    <div role="radiogroup" aria-label="Motor del asistente" className="inline-flex flex-wrap items-center gap-1">
       {motores.map((motor) => {
         const activo = motor.id === elegido
         return (
@@ -29,21 +29,19 @@ export function SelectorMotor({ motores, elegido, alElegir, deshabilitado = fals
             title={motor.descripcion}
             onClick={() => alElegir(motor.id)}
             className={cn(
-              'flex min-w-36 flex-col items-start rounded-md px-3 py-1.5 text-left transition-colors',
+              'inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-left text-xs transition-colors',
               'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring',
-              'disabled:cursor-not-allowed disabled:opacity-60',
-              activo ? 'bg-primario text-white shadow-sm' : 'text-foreground hover:bg-muted',
+              'disabled:cursor-not-allowed disabled:opacity-50',
+              activo ? 'bg-[#f3eefe] font-medium text-[#5b21b6]' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800',
             )}
           >
-            <span className="flex items-center gap-2 text-[13px] font-semibold">
-              {motor.nombre}
-              {!motor.disponible && (
-                <Badge variant="outline" className={cn('h-4 px-1.5 text-[10px] font-medium', activo ? 'border-white/40 text-white' : 'text-aviso')}>
-                  no disponible
-                </Badge>
-              )}
-            </span>
-            <span className={cn('font-mono text-[11px]', activo ? 'text-white/75' : 'text-texto-suave')}>{motor.modelo || '—'}</span>
+            <span>{motor.nombre}</span>
+            <span className={cn('font-mono text-[11px]', activo ? 'text-[#7c3aed]' : 'text-slate-400')}>{motor.modelo || '—'}</span>
+            {!motor.disponible && (
+              <Badge variant="outline" className="h-4 px-1.5 text-[10px] font-medium text-aviso">
+                no disponible
+              </Badge>
+            )}
           </button>
         )
       })}
