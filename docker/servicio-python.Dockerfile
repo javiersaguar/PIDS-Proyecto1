@@ -1,4 +1,4 @@
-# Imagen común de los servicios Python (captura, acceso, chatbot y trabajos auxiliares).
+# Imagen común de los servicios Python (captura, acceso, los dos chatbots y trabajos auxiliares).
 # Cada servicio instala solo su grupo de dependencias de pyproject.toml.
 # Contexto de construcción: la raíz del repositorio.
 FROM python:3.12-slim
@@ -22,7 +22,9 @@ COPY config ./config
 COPY data/muestra ./data/muestra
 COPY parte2_plataforma ./parte2_plataforma
 COPY parte3_chatbot ./parte3_chatbot
+COPY parte3_chatbot_rag ./parte3_chatbot_rag
 
 RUN useradd --system --create-home --uid 10001 app \
- && chown -R app /app/parte3_chatbot
+ && mkdir -p /app/informes \
+ && chown -R app /app/parte3_chatbot /app/parte3_chatbot_rag /app/informes
 USER app

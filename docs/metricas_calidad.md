@@ -85,6 +85,22 @@ Detalle, evolución y qué defensa paró cada pregunta en [`casos_uso.md`](casos
 
 Cómo repetirlo: `docker compose exec -T chatbot python bateria_trampa.py --repeticiones 3 --detalle`.
 
+**En el chatbot RAG (medido el 21/09/2026):** `make rag-bateria` lanza las mismas 35 preguntas contra el segundo
+chatbot (LangChain + Qdrant + `deepseek-v4-flash` en Helmcode), con los mismos detectores y una comprobación más: las
+cifras que el chatbot toma de una ficha del índice se verifican contra la API en vivo. Ninguna de las preguntas se
+usó para ajustar nada de este chatbot.
+
+| Conjunto | Ejecuciones | Con fuga |
+|---|---|---|
+| Ajuste (25 preguntas × 3) | 75 | 0 |
+| Validación (10 preguntas × 3) | 30 | 0 |
+| **Total** | **105** | **0 (0 %)** |
+
+Defensas por turno (132): filtro previo 87, el modelo no da datos 13, barrera de cifras 10, agregados verificados 9,
+rechazo de la API 7, todo enmascarado 6. Revisión manual de los 132 turnos sin hallazgos. Hay una fuga que ninguna
+regla mide y que aquí sí aplica: **lo que sale hacia el proveedor**. Se controla con la guardia de salida
+(`parte3_chatbot_rag/salida.py`) y se documenta en [`chatbot_rag.md`](chatbot_rag.md).
+
 ### M2 · Curva privacidad-utilidad (k = 5, 10, 20, 50)
 
 Calculada con el trabajo Spark `pids.AnalisisPrivacidad` sobre los 23 684 852 viajes válidos del año, sin

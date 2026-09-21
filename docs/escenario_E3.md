@@ -27,7 +27,13 @@
    credenciales de datos ni están en la red de datos.
 8. **Minimización:** retención de 24 h en `viajes-crudos`; los rechazos caducan a los 30 días y el
    archivo de tiempo real a los 90.
-9. **LLM local:** las preguntas no salen del equipo.
+9. **LLM local o proveedor en la UE sin retención.** Con el chatbot de Ollama las preguntas no salen del equipo.
+   El chatbot RAG (`parte3_chatbot_rag/`) envía al proveedor Helmcode (infraestructura en la UE, sin registro de
+   prompts) la pregunta, el historial de la sesión, el contexto recuperado y los agregados **ya protegidos** que
+   devuelve la API de acceso; nunca datos individuales, porque no los tiene: no está en la red de datos ni tiene
+   credenciales. Una lista blanca en `llm.py` veta los modelos que el proveedor revende fuera de la UE, y una
+   guardia de salida (`salida.py`) revisa cada mensaje antes de enviarlo. Decisión anotada en la bitácora el
+   21/09/2026; detalle en [`chatbot_rag.md`](chatbot_rag.md).
 
 ## Decisión: los grupos suprimidos se publican, pero vacíos
 
@@ -121,3 +127,7 @@ source .env && uv run python scripts/ataque_diferencia.py --dias 366
   (por cliente) es trabajo futuro.
 - **Pasarela REST de Spark y consola de Redpanda sin autenticación:** solo accesibles dentro de Docker
   o en `127.0.0.1`; la consola solo se levanta en el perfil `herramientas`.
+- **LLM externo del chatbot RAG:** la conversación y los agregados protegidos salen del equipo hacia un
+  proveedor de la UE que declara no guardar nada. Es una confianza contractual, no técnica: si el grupo no la
+  acepta, el chatbot de Ollama da el mismo servicio sin salida de datos. Qué viaja exactamente, en
+  [`chatbot_rag.md`](chatbot_rag.md).

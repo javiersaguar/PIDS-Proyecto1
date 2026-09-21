@@ -8,12 +8,15 @@ RITMO ?= 50
 SIN_GPU ?=
 
 COMPOSE := docker compose $(if $(SIN_GPU),-f docker-compose.yml -f docker-compose.sin-gpu.yml,)
-PERFILES_TODO := --profile spark --profile airflow --profile observabilidad --profile chatbot --profile frontend
+PERFILES_TODO := --profile spark --profile airflow --profile observabilidad --profile chatbot --profile rag \
+		--profile frontend
+PERFILES_UNA_VEZ := --profile herramientas --profile simulador --profile rag-indexar
 WEB := parte4_frontend/web
 
 .DEFAULT_GOAL := ayuda
-.PHONY: ayuda entorno sync test test-spark test-frontend construir nucleo spark airflow observabilidad chatbot \
-	    frontend frontend-dev herramientas todo parar estado logs tiempo-real simular historico historico-muestra \
+.PHONY: ayuda entorno entorno-completar sync test test-spark test-frontend construir nucleo spark airflow observabilidad \
+	    chatbot chatbot-rag rag-indexar rag-comprobar rag-casos rag-bateria rag-comparar frontend frontend-dev \
+	    herramientas todo parar estado logs tiempo-real simular historico historico-muestra \
 	    datos-muestra descargar borrar-todo
 
 ayuda: ## Muestra esta ayuda
@@ -22,6 +25,9 @@ ayuda: ## Muestra esta ayuda
 # --- preparación ----------------------------------------------------------------------------
 entorno: ## Genera .env con claves aleatorias (no sobrescribe uno existente)
 	python3 scripts/generar_env.py
+
+entorno-completar: ## Añade a un .env existente las variables nuevas de .env.example (sin tocar las demás)
+	python3 scripts/generar_env.py --completar
 
 sync: ## Crea o actualiza el entorno Python local (uv)
 	uv sync
@@ -37,7 +43,7 @@ test-frontend: ## Tests del portal web: BFF (pytest) y SPA (eslint + vitest; req
 	cd $(WEB) && npm run lint && npm test -- --run
 
 construir: ## Construye todas las imágenes del proyecto
-	$(COMPOSE) $(PERFILES_TODO) --profile simulador build
+	$(COMPOSE) $(PERFILES_TODO) $(PERFILES_UNA_VEZ) build
 
 # --- servicios ------------------------------------------------------------------------------
 nucleo: _env ## Levanta el núcleo: S3, Redpanda, MongoDB y las APIs
@@ -55,6 +61,9 @@ observabilidad: _env ## Núcleo + Prometheus y Grafana (http://localhost:3000)
 chatbot: _env ## Núcleo + Ollama y chatbot (http://localhost:8010). SIN_GPU=1 para CPU
 	$(COMPOSE) --profile chatbot up -d
 
+chatbot-rag: _env ## Núcleo + Qdrant y chatbot RAG con LLM externo (http://localhost:8011). Requiere LLM_API_KEY
+	$(COMPOSE) --profile rag up -d
+
 frontend: _env ## Portal web (http://localhost:8020)
 	$(COMPOSE) --profile frontend up -d --build frontend
 
@@ -69,17 +78,17 @@ todo: _env ## Toda la plataforma
 	$(COMPOSE) $(PERFILES_TODO) up -d
 
 parar: ## Para todos los servicios (conserva los datos)
-	$(COMPOSE) $(PERFILES_TODO) --profile herramientas --profile simulador down
+	$(COMPOSE) $(PERFILES_TODO) $(PERFILES_UNA_VEZ) down
 
 estado: ## Estado de los servicios
-	$(COMPOSE) $(PERFILES_TODO) --profile herramientas ps
+	$(COMPOSE) $(PERFILES_TODO) $(PERFILES_UNA_VEZ) ps
 
 logs: ## Logs en directo (S=servicio para uno solo)
 	$(COMPOSE) $(PERFILES_TODO) logs -f --tail=100 $(S)
 
 borrar-todo: ## Para todo y BORRA los volúmenes (datos, usuarios, modelos). Pide confirmación
 	@read -p "Se borrarán todos los datos de la plataforma. Escribe 'borrar' para seguir: " r && [ "$$r" = borrar ]
-	$(COMPOSE) $(PERFILES_TODO) --profile herramientas --profile simulador down -v
+	$(COMPOSE) $(PERFILES_TODO) $(PERFILES_UNA_VEZ) down -v
 
 # --- flujos de datos ------------------------------------------------------------------------
 tiempo-real: ## Lanza el trabajo Spark de tiempo real (modo cluster, supervisado)
@@ -114,6 +123,22 @@ latencia: _env ## Mide captura → agregado (20 lotes; requiere un único Tiempo
 
 descargar: ## Descarga un mes a data/crudo (MES=2020-01 FUENTE=parquet|api)
 	uv run python scripts/descargar_datos.py --fuente $(FUENTE) --meses $(MES)
+
+# --- chatbot RAG (perfil rag) ---------------------------------------------------------------
+rag-comprobar: _env ## Comprueba el proveedor LLM: modelos, chat, llamada a herramienta y embeddings (ARGS='--modelo qwen3.6')
+	$(COMPOSE) --profile rag run --rm --no-deps chatbot-rag python comprobar_llm.py $(ARGS)
+
+rag-indexar: _env ## Indexa en Qdrant el conocimiento y las fichas de agregados (ARGS='--solo fichas')
+	$(COMPOSE) --profile rag-indexar run --rm rag-indexar python indexar.py $(ARGS)
+
+rag-casos: _env ## Suite de casos de uso del chatbot RAG, desde el anfitrión; informe en informes/chatbot_rag (ARGS='--casos CU1 --detalle')
+	uv run python parte3_chatbot_rag/casos_de_uso_rag.py $(ARGS)
+
+rag-bateria: _env ## Batería de preguntas trampa (M1) del chatbot RAG, desde el anfitrión (ARGS='--detalle')
+	uv run python parte3_chatbot_rag/bateria_trampa_rag.py --repeticiones 3 $(ARGS)
+
+rag-comparar: _env ## Los dos chatbots (Ollama y RAG) sobre la misma suite y batería (ARGS='--solo casos --repeticiones 1')
+	uv run python parte3_chatbot_rag/comparar.py $(ARGS)
 
 _env:
 	@test -f .env || (echo "Falta .env: ejecuta 'make entorno'" && exit 1)

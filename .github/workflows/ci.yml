@@ -50,4 +50,5 @@ jobs:
         run: |
           python3 scripts/generar_env.py
           docker compose --profile spark --profile airflow --profile observabilidad \
-            --profile chatbot --profile frontend --profile herramientas --profile simulador config --quiet
+            --profile chatbot --profile rag --profile rag-indexar --profile frontend --profile herramientas \
+            --profile simulador config --quiet
