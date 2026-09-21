@@ -43,10 +43,25 @@ dev = [
     "pytest-asyncio>=1.0",
     "httpx>=0.28",
 ]
+# Chatbot RAG (parte3_chatbot_rag): LangChain + Qdrant + LLM externo compatible con OpenAI (Helmcode).
+# ollama y httpx-sse permiten comparar con el chatbot de Ollama reutilizando su código.
+rag = [
+    "chainlit>=2.12",
+    "httpx>=0.28",
+    "httpx-sse>=0.4",
+    "langchain>=1.4",
+    "langchain-core>=1.6.3",
+    "langchain-openai>=1.6.2",
+    "langchain-qdrant>=1.1",
+    "langchain-text-splitters>=1.1",
+    "ollama>=0.6",
+    "openai>=3.13",
+    "qdrant-client>=1.19",
+]
 
 [tool.uv]
 package = false
-default-groups = ["datos", "captura", "acceso", "chatbot", "dev"]
+default-groups = ["datos", "captura", "acceso", "chatbot", "rag", "dev"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
