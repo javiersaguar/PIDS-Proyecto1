@@ -89,11 +89,29 @@ Las contraseñas y claves están en `.env`.
 └── Makefile
 ```
 
-## Equipo
+## Equipo y ramas
 
-Javier Saguar · Alejandro Cuevas · Mónica Fernández · Pedro José Orrego · Daniel Naval
+Cada persona trabaja en su propia rama y lleva sus cambios a `main` con un *pull request*; nadie sube
+directamente a `main`. Así no nos pisamos el trabajo.
 
-Reparto de tareas en [`docs/plan.md`](docs/plan.md).
+| Persona | Rama | Responsabilidad principal |
+|---|---|---|
+| Javier Saguar | `javier-saguar` | Spark (Scala): histórico y tiempo real; parte 1 |
+| Alejandro Cuevas | `alejandro-cuevas` | Almacenamiento, cola y despliegue (Compose, S3, MongoDB, Redpanda) |
+| Mónica Fernández | `monica-fernandez` | APIs y reglas de privacidad |
+| Pedro José Orrego | `pedro-jose-orrego` | Airflow, Prometheus, Grafana y métricas de calidad |
+| Daniel Naval | `daniel-naval` | Chatbot, casos de uso e integración con los gestos |
+
+Reparto completo en [`docs/plan.md`](docs/plan.md).
+
+```bash
+git fetch origin
+git switch <tu-rama>          # la primera vez la crea a partir de origin/<tu-rama>
+git merge origin/main         # al empezar el día y antes de abrir el pull request
+git push origin <tu-rama>     # y el pull request, de <tu-rama> a main
+```
+
+Para una tarea larga puedes abrir una rama de tarea (`tarea/...`) a partir de la tuya.
 
 ## Cómo trabajamos
 
