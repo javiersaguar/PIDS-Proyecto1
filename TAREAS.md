@@ -28,7 +28,7 @@ decisión pendiente en T13.
 
 ## T01 · Copia de seguridad del dataset de gestos
 
-- **Estado:** libre · **Responsable:** — · **Estimación:** 30 min · **Dificultad:** baja
+- **Estado:** en curso · **Responsable:** Javier Saguar · **Estimación:** 30 min · **Dificultad:** baja
 - **Por qué:** las 3000 imágenes y las 5 tomas originales **solo existen en el portátil de Javier**
   (`C:\Users\Javier\PIDS_HandPose`), porque no caben en el repositorio. Si se pierde ese disco, se pierde
   el dataset del proyecto y no se puede volver a grabar (cinco personas, una tarde).
@@ -39,6 +39,10 @@ decisión pendiente en T13.
   3. Comprobar que alguien más del grupo puede descargarlo y ejecutar `preprocesar.py` con él.
 - **Hecha cuando:** otro miembro del grupo ha reproducido el preprocesado desde la copia.
 - **Dónde:** `parte1_gestos/README.md`
+- **Notas (21/09):** paso 1 hecho: `dataset_gestos_PIDS_2026-09-16.zip` (598,9 MiB; SHA-256 y contenido en
+  `parte1_gestos/README.md`), verificado en el portátil con `preprocesar.py` desde una copia limpia (3000
+  imágenes, 2931 con mano). Falta subirlo a un sitio compartido **solo con el grupo**, anotar el enlace en el
+  README y que otra persona lo descargue y reproduzca el preprocesado.
 
 ## T06 · Integración de los gestos (última fase del esquema)
 

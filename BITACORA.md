@@ -36,7 +36,7 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 | **Cómo levantarlo** | En Ubuntu (WSL2): `make entorno && make sync && make test && make airflow && make historico-muestra`. Chatbot RAG: pegar `LLM_API_KEY` en `.env` y `make chatbot-rag && make rag-indexar` |
 | **Forma de trabajar** | Una rama por persona (tabla en el README) y cambios a `main` por *pull request*. Para trabajo en paralelo, una rama de tarea con contratos por bloque (`parte3_chatbot_rag/CONTRATOS.md`) |
 | **Siguientes tareas** | Ver [`TAREAS.md`](TAREAS.md) |
-| **Pendiente inmediato** | Confirmar en grupo la decisión del LLM externo (regla 9 de E3), dejar el tiempo real listo para la demo (T11) y la copia de seguridad del dataset de gestos (T01) |
+| **Pendiente inmediato** | Confirmar en grupo la decisión del LLM externo (regla 9 de E3), dejar el tiempo real listo para la demo (T11) y subir la copia del dataset de gestos, ya hecha y verificada (T01) |
 | **Requisitos** | Todo instalado en este equipo (incluido el NVIDIA Container Toolkit). En equipos sin GPU: `make chatbot SIN_GPU=1` con `OLLAMA_MODELO=llama3.2:3b`, o el chatbot RAG, que no necesita GPU |
 
 ## Decisiones tomadas
@@ -78,6 +78,31 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 ---
 
 ## Entradas
+
+### 2026-09-21 · Javier Saguar · T01 (en curso) · Copia de seguridad del dataset de gestos
+
+- **Rama / commits:** `main`
+- **Qué he hecho:**
+  - `dataset_gestos_PIDS_2026-09-16.zip` (598,9 MiB) con las 5 tomas completas (p1 a p5, 3000 imágenes y
+    sus `metadata.json`), un `LEEME.txt` y `MANIFIESTO.sha256` con el SHA-256 de cada fichero. Está en
+    `C:\Users\Javier\PIDS_HandPose\copias`, junto a su `.sha256`.
+  - Quedan fuera las cuatro tomas interrumpidas o vacías (0, 6, 0 y 0 imágenes), que el entrenamiento tampoco
+    usa.
+  - Sección «Copia de seguridad del dataset» en `parte1_gestos/README.md`: qué contiene, su SHA-256 y cómo
+    comprobarla y usarla con `PIDS_DATOS`.
+- **Por qué:** las imágenes solo existían en el disco del portátil y el dataset no se puede volver a grabar.
+- **Ficheros clave:** `parte1_gestos/README.md`, `TAREAS.md`
+- **Cómo comprobarlo:** descargar la copia, comprobar el SHA-256 del README, descomprimir y
+  `preprocesar.py` con `PIDS_DATOS` apuntando a su `data`.
+- **Resultado:** descomprimida en otra carpeta, los 3005 ficheros coinciden con el manifiesto, y
+  `preprocesar.py` desde una copia limpia del repositorio da lo mismo que sobre el original: 5 tomas
+  completas, 3000 imágenes, 2931 con mano (97,7 %).
+- **Pendiente y riesgos:** subirla a un sitio compartido solo con el grupo (Drive u OneDrive de la UPM),
+  anotar el enlace en el README y que otra persona reproduzca el preprocesado desde la copia; hasta entonces la
+  copia sigue en el mismo disco que el original.
+- **Contexto para quien siga:** son fotos de las cinco personas del grupo: ni en GitHub (el repositorio es
+  público) ni con un enlace abierto a cualquiera. El zip va sin compresión porque las JPEG no ganan nada y así
+  se abre más rápido.
 
 ### 2026-09-21 · Javier Saguar · Chatbot RAG con LLM externo: LangChain, Qdrant y Helmcode, en cinco bloques
 
