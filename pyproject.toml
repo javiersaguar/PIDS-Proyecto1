@@ -38,6 +38,15 @@ chatbot = [
     "httpx>=0.28",
     "httpx-sse>=0.4",
 ]
+# Portal web (parte 4): el BFF de FastAPI que sirve la SPA. La imagen instala además `chatbot` (agente del chat).
+frontend = [
+    "fastapi>=0.141",
+    "uvicorn[standard]>=0.53",
+    "httpx>=0.28",
+    "pymongo>=4.18",
+    "sse-starlette>=3.4",
+    "pydantic>=2.13",
+]
 dev = [
     "pytest>=9",
     "pytest-asyncio>=1.0",
@@ -46,7 +55,7 @@ dev = [
 
 [tool.uv]
 package = false
-default-groups = ["datos", "captura", "acceso", "chatbot", "dev"]
+default-groups = ["datos", "captura", "acceso", "chatbot", "frontend", "dev"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
