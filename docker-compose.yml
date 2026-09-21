@@ -1,13 +1,14 @@
 # Plataforma PIDS (E3: privacidad total).
 #
 # Sin perfil se levanta el núcleo: S3, Redpanda, MongoDB, API de captura y API de acceso.
-# Perfiles:  spark · airflow · observabilidad · chatbot · rag · rag-indexar · herramientas · simulador
+# Perfiles:  spark · airflow · observabilidad · chatbot · rag · rag-indexar · frontend · herramientas · simulador
 # Ejemplo:   docker compose --profile spark --profile observabilidad up -d   (o: make todo)
 #
 # Todos los puertos se publican solo en 127.0.0.1. Las redes separan lo que puede ver cada servicio:
 #   datos       almacenamiento y cola (S3, MongoDB, Redpanda) y quien los usa
-#   servicios   APIs, chatbots, Qdrant, Grafana y Prometheus
+#   servicios   APIs, chatbots, Qdrant, portal web, Grafana y Prometheus
 # Los chatbots y Grafana no están en la red de datos: solo llegan a la información a través de la API de acceso.
+# El portal web (frontend) sí está, pero solo para leer la auditoría con el usuario pids_auditor.
 
 name: pids
 
@@ -216,7 +217,7 @@ services:
     command: ["uvicorn", "parte2_plataforma.acceso.app:app", "--host", "0.0.0.0", "--port", "8000"]
     environment:
       MONGO_URI: mongodb://pids_acceso:${MONGO_ACCESO_PASSWORD}@mongo:27017/?authSource=admin
-      ACCESO_CLAVES: chatbot=${ACCESO_CLAVE_CHATBOT},chatbot_rag=${ACCESO_CLAVE_CHATBOT_RAG},airflow=${ACCESO_CLAVE_AIRFLOW},equipo=${ACCESO_CLAVE_EQUIPO}
+      ACCESO_CLAVES: chatbot=${ACCESO_CLAVE_CHATBOT},chatbot_rag=${ACCESO_CLAVE_CHATBOT_RAG},airflow=${ACCESO_CLAVE_AIRFLOW},equipo=${ACCESO_CLAVE_EQUIPO},frontend=${ACCESO_CLAVE_FRONTEND}
     ports:
       - "127.0.0.1:${PUERTO_ACCESO:-8002}:8000"
     healthcheck: *salud-python
@@ -479,6 +480,59 @@ services:
     depends_on:
       qdrant:
         condition: service_healthy
+
+  # ---------------------------------------------------------------- portal web (parte 4)
+  # Un solo contenedor: BFF de FastAPI (guarda todas las claves, sesión por cookie) + SPA de React construida.
+  # Está en `datos` solo para leer la auditoría en MongoDB con pids_auditor; los datos publicados los pide a la
+  # API de acceso como cualquier otro cliente (aparece como `frontend` en la auditoría).
+  frontend:
+    image: pids/frontend:local
+    build:
+      context: .
+      dockerfile: parte4_frontend/bff/Dockerfile
+    profiles: [frontend]
+    restart: unless-stopped
+    networks: [datos, servicios]
+    environment:
+      FRONTEND_CLAVE: ${FRONTEND_CLAVE}
+      FRONTEND_SECRETO: ${FRONTEND_SECRETO}
+      ACCESO_URL: http://acceso:8000
+      ACCESO_CLAVE: ${ACCESO_CLAVE_FRONTEND}
+      CAPTURA_URL: http://captura:8000
+      CAPTURA_CLAVE: ${CAPTURA_CLAVE_SIMULADOR}
+      PROMETHEUS_URL: http://prometheus:9090
+      AIRFLOW_URL: http://airflow-apiserver:8080
+      AIRFLOW_USUARIO: ${AIRFLOW_ADMIN_USER}
+      AIRFLOW_CLAVE: ${AIRFLOW_ADMIN_PASSWORD}
+      AUDITORIA_MONGO_URI: mongodb://pids_auditor:${MONGO_AUDITOR_PASSWORD}@mongo:27017/?authSource=admin
+      OLLAMA_URL: http://ollama:11434
+      OLLAMA_MODELO: ${OLLAMA_MODELO:-llama3.1:8b}
+      # Motor RAG del asistente: mismo proveedor, índice y reglas que el servicio chatbot-rag (sus claves de la API de
+      # acceso son las del portal, así que en la auditoría sigue apareciendo como `frontend`)
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.helmcode.com/v1}
+      LLM_API_KEY: ${LLM_API_KEY}
+      LLM_MODELO: ${LLM_MODELO:-deepseek-v4-flash}
+      LLM_MODELO_EMBEDDINGS: ${LLM_MODELO_EMBEDDINGS:-qwen3-embedding}
+      LLM_TEMPERATURA: ${LLM_TEMPERATURA:-0.2}
+      QDRANT_URL: http://qdrant:6333
+      RAG_K: ${RAG_K:-6}
+      RAG_RERANK: ${RAG_RERANK:-false}
+      # Enlaces del menú: URL del navegador del usuario (puertos publicados en el anfitrión), no del contenedor
+      ENLACES_GRAFANA: http://localhost:${PUERTO_GRAFANA:-3000}
+      ENLACES_AIRFLOW: http://localhost:${PUERTO_AIRFLOW:-8085}
+      ENLACES_SPARK: http://localhost:${PUERTO_SPARK:-8090}
+      ENLACES_CHATBOT: http://localhost:${PUERTO_CHATBOT:-8010}
+      ENLACES_CHATBOT_RAG: http://localhost:${PUERTO_CHATBOT_RAG:-8011}
+      ENLACES_API_ACCESO: http://localhost:${PUERTO_ACCESO:-8002}/docs
+      ENLACES_API_CAPTURA: http://localhost:${PUERTO_CAPTURA:-8001}/docs
+    ports:
+      - "127.0.0.1:${PUERTO_FRONTEND:-8020}:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/salud')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    depends_on:
       acceso:
         condition: service_healthy
 

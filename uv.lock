@@ -2128,6 +2128,14 @@ dev = [
     { name = "pytest" },
     { name = "pytest-asyncio" },
 ]
+frontend = [
+    { name = "fastapi" },
+    { name = "httpx" },
+    { name = "pydantic" },
+    { name = "pymongo" },
+    { name = "sse-starlette" },
+    { name = "uvicorn", extra = ["standard"] },
+]
 rag = [
     { name = "chainlit" },
     { name = "httpx" },
@@ -2178,6 +2186,14 @@ dev = [
     { name = "httpx", specifier = ">=0.28" },
     { name = "pytest", specifier = ">=9" },
     { name = "pytest-asyncio", specifier = ">=1.0" },
+]
+frontend = [
+    { name = "fastapi", specifier = ">=0.141" },
+    { name = "httpx", specifier = ">=0.28" },
+    { name = "pydantic", specifier = ">=2.13" },
+    { name = "pymongo", specifier = ">=4.18" },
+    { name = "sse-starlette", specifier = ">=3.4" },
+    { name = "uvicorn", extras = ["standard"], specifier = ">=0.53" },
 ]
 rag = [
     { name = "chainlit", specifier = ">=2.12" },

@@ -32,6 +32,7 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 | **Métricas** | M1: 0 fugas en la API (31 casos), en el chatbot de Ollama (105 ejecuciones) y en el chatbot RAG (105 ejecuciones) · M2: con k = 10 se publica el 95,1 % de los viajes en hora-zona · M3: p95 35,4 s (objetivo < 60 s) |
 | **Chatbots** | Ollama: `llama3.1:8b` en GPU a temperatura 0,2, 21/21 casos en 2-3 s · RAG: `deepseek-v4-flash` (Helmcode, UE), 21/21 casos con p50 1,1 s y unos 6 000 tokens por pregunta. Detalle en `docs/chatbot_rag.md` |
 | **Parte 1** | Se ejecuta desde el repositorio, con `PIDS_DATOS` apuntando a las imágenes (que siguen fuera de Git) |
+| **Portal web (parte 4)** | Rama `tarea/frontend`: SPA React + BFF FastAPI con panel, explorador, asistente, tiempo real, privacidad/auditoría, operaciones y documentación; probado de punta a punta contra la plataforma real desde el host y la imagen `pids/frontend:local` construida. Pendiente: PR a `main`, recrear `acceso` con la clave `frontend` y `make frontend` desde la carpeta principal (T14). 306 tests de Python y 98 de Vitest en esa rama |
 | **Sin empezar** | Integración de gestos (T06), seguridad (T08), alta disponibilidad (T09), vídeo y presentación (T10) |
 | **Cómo levantarlo** | En Ubuntu (WSL2): `make entorno && make sync && make test && make airflow && make historico-muestra`. Chatbot RAG: pegar `LLM_API_KEY` en `.env` y `make chatbot-rag && make rag-indexar` |
 | **Forma de trabajar** | Una rama por persona (tabla en el README) y cambios a `main` por *pull request*. Para trabajo en paralelo, una rama de tarea con contratos por bloque (`parte3_chatbot_rag/CONTRATOS.md`) |
@@ -103,6 +104,56 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 - **Contexto para quien siga:** son fotos de las cinco personas del grupo: ni en GitHub (el repositorio es
   público) ni con un enlace abierto a cualquiera. El zip va sin compresión porque las JPEG no ganan nada y así
   se abre más rápido.
+
+### 2026-09-21 · Javier Saguar · Portal web corporativo (parte 4): SPA de React y BFF de FastAPI
+
+- **Rama / commits:** `tarea/frontend` · `d5bf245` (contratos), `fc78ef2` (fase 0), `bc52f17` (fase 1) y el de esta entrada
+- **Qué he hecho:**
+  - Un portal web que reúne en una sola aplicación lo que estaba repartido entre Chainlit, Grafana, Airflow y los
+    `/docs` de las APIs: panel (último día publicado por barrio, decisiones de 24 h, frescura del *streaming*, estado de
+    servicios), explorador de agregados (tres niveles, zona con buscador, tabla ordenable, gráficos y matriz de flujos,
+    rechazos con su alternativa relanzable), asistente (el mismo agente de la parte 3 con pasos en directo por SSE,
+    fuentes y tokens; motor Ollama o RAG), tiempo real, privacidad (reglas E3 y auditoría con filtros), operaciones
+    (cargas de Airflow y simulador) y documentación.
+  - Arquitectura: un contenedor `frontend` (perfil `frontend`, 8020) con un BFF de FastAPI que guarda todas las
+    claves y sirve la SPA construida; entrada con una contraseña única (`FRONTEND_CLAVE`) y cookie firmada. Todas las
+    cifras pasan por `POST /consultas` de la API de acceso como cliente `frontend` (misma protección, misma auditoría);
+    el panel y el tiempo real solo suman grupos visibles. MongoDB solo se lee con `pids_auditor`.
+  - Trabajo en paralelo con cinco bloques y propiedad exclusiva de ficheros, fijado en
+    `parte4_frontend/CONTRATOS.md` (formas JSON, códigos, variables, rutas, sistema de diseño): F0 cimientos, F1 BFF de
+    plataforma, F2 BFF de chat, F3 páginas de datos, F4 asistente y administración. La fase 0 dejó creados los routers y
+    páginas vacíos que los demás rellenaron, así nadie tocó ficheros compartidos.
+  - Tests sin red: la API de acceso falsa de los tests del BFF aplica el filtro de privacidad real; la SPA se prueba con
+    Vitest y una API simulada. Imagen multi-stage (node → python) construida y comprobada.
+- **Por qué:** «visualización» y «acceso» del enunciado con un acabado de producto, y un único sitio para la demo;
+  además cubre la caja de seguridad (el navegador nunca ve una clave) sin relajar E3.
+- **Ficheros clave:** `parte4_frontend/{CONTRATOS,README}.md`, `parte4_frontend/bff/`, `parte4_frontend/web/src/`,
+  `tests/test_frontend_bff_{base,plataforma,chat}.py`, `docker-compose.yml` (servicio `frontend`), `Makefile`,
+  `.env.example`, `.github/workflows/ci.yml`
+- **Cómo comprobarlo:**
+  ```bash
+  make test-frontend                                   # BFF + SPA sin servicios
+  make frontend-dev                                    # BFF en el host; cd parte4_frontend/web && npm run dev
+  make frontend                                        # imagen y contenedor: http://localhost:8020 (FRONTEND_CLAVE de .env)
+  ```
+- **Resultado:** 306 tests de Python (217 + 89 del BFF) y 98 de Vitest en verde; lint y build limpios. Contra la
+  plataforma real desde el host: catálogo, consultas (Manhattan 203 866 el 3/3; 403 con alternativa), panel del
+  31/12/2020 (41 015 viajes visibles, 2 grupos enmascarados no sumados), tiempo real, auditoría (33 305 decisiones en
+  24 h), ejecuciones de Airflow, chat con Ollama (652 viajes de JFK; rechazo → alternativa → 54 viajes) y 200 viajes
+  simulados; la imagen `pids/frontend:local` construye en 6 s con caché.
+- **Pendiente y riesgos:**
+  - Abrir el PR `tarea/frontend` → `main` y, al levantarlo desde la carpeta principal, recrear `acceso` para que conozca
+    la clave `frontend` (`ACCESO_CLAVE_FRONTEND` en `.env`: `make entorno` no completa un `.env` existente en esta rama;
+    en `tarea/rag-base` sí hay `--completar`). Hasta entonces el BFF en el host usa la clave del equipo.
+  - `README.md`, `BITACORA.md`, `TAREAS.md` y `pyproject.toml` también cambian en `tarea/rag-base`: conflictos
+    pequeños y aditivos al fusionar.
+  - El motor RAG del asistente (tras traer `main` a la rama) corre dentro del BFF con las claves del portal: probado
+    desde el host; en el contenedor necesita `LLM_API_KEY` en `.env` y Qdrant indexado.
+  - La contraseña del portal es única (sin usuarios ni roles) y la sesión no caduca al cerrar el navegador (12 h).
+- **Contexto para quien siga:** cada sección de la SPA vive en su carpeta de `paginas/` y cada endpoint en su fichero de
+  `bff/rutas/` + `bff/servicios/`; los tipos de la API están en `web/src/api/tipos.ts` y son el contrato. Los servicios
+  opcionales caídos se muestran como «no disponible», nunca rompen la página. Las cachés del BFF (10 min catálogo, 60 s
+  panel, 20 s tiempo real) existen para que el refresco automático no multiplique la auditoría.
 
 ### 2026-09-21 · Javier Saguar · Chatbot RAG con LLM externo: LangChain, Qdrant y Helmcode, en cinco bloques
 

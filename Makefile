@@ -8,12 +8,14 @@ RITMO ?= 50
 SIN_GPU ?=
 
 COMPOSE := docker compose $(if $(SIN_GPU),-f docker-compose.yml -f docker-compose.sin-gpu.yml,)
-PERFILES_TODO := --profile spark --profile airflow --profile observabilidad --profile chatbot --profile rag
+PERFILES_TODO := --profile spark --profile airflow --profile observabilidad --profile chatbot --profile rag \
+		--profile frontend
 PERFILES_UNA_VEZ := --profile herramientas --profile simulador --profile rag-indexar
+WEB := parte4_frontend/web
 
 .DEFAULT_GOAL := ayuda
-.PHONY: ayuda entorno entorno-completar sync test test-spark construir nucleo spark airflow observabilidad \
-	    chatbot chatbot-rag rag-indexar rag-comprobar rag-casos rag-bateria rag-comparar \
+.PHONY: ayuda entorno entorno-completar sync test test-spark test-frontend construir nucleo spark airflow observabilidad \
+	    chatbot chatbot-rag rag-indexar rag-comprobar rag-casos rag-bateria rag-comparar frontend frontend-dev \
 	    herramientas todo parar estado logs tiempo-real simular historico historico-muestra \
 	    datos-muestra descargar borrar-todo
 
@@ -36,6 +38,10 @@ test: ## Tests de Python
 test-spark: ## Tests de Scala (dentro de Docker, no hace falta sbt)
 	docker build --target compilacion --build-arg EJECUTAR_TESTS=true -f parte2_plataforma/spark/Dockerfile -t pids/spark-tests:local .
 
+test-frontend: ## Tests del portal web: BFF (pytest) y SPA (eslint + vitest; requiere `npm ci` en parte4_frontend/web)
+	uv run pytest -q tests/test_frontend_bff_*.py
+	cd $(WEB) && npm run lint && npm test -- --run
+
 construir: ## Construye todas las imágenes del proyecto
 	$(COMPOSE) $(PERFILES_TODO) $(PERFILES_UNA_VEZ) build
 
@@ -57,6 +63,13 @@ chatbot: _env ## Núcleo + Ollama y chatbot (http://localhost:8010). SIN_GPU=1 p
 
 chatbot-rag: _env ## Núcleo + Qdrant y chatbot RAG con LLM externo (http://localhost:8011). Requiere LLM_API_KEY
 	$(COMPOSE) --profile rag up -d
+
+frontend: _env ## Portal web (http://localhost:8020)
+	$(COMPOSE) --profile frontend up -d --build frontend
+
+frontend-dev: _env ## BFF del portal en el host con recarga (puerto 8020); la SPA, aparte: cd parte4_frontend/web && npm run dev
+	@echo "BFF en http://localhost:8020 (lee .env y usa los puertos publicados). En otra terminal: cd $(WEB) && npm run dev"
+	uv run uvicorn parte4_frontend.bff.app:app --port 8020 --reload
 
 herramientas: _env ## Consola de Redpanda (http://localhost:8088). Muestra mensajes crudos: solo desarrollo
 	$(COMPOSE) --profile herramientas up -d

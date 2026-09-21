@@ -16,6 +16,23 @@ jobs:
       - run: uv sync --frozen
       - run: uv run pytest -q
 
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: parte4_frontend/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: parte4_frontend/web/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test -- --run
+      - run: npm run build
+
   spark:
     runs-on: ubuntu-latest
     steps:
@@ -33,5 +50,5 @@ jobs:
         run: |
           python3 scripts/generar_env.py
           docker compose --profile spark --profile airflow --profile observabilidad \
-            --profile chatbot --profile rag --profile rag-indexar --profile herramientas --profile simulador \
-            config --quiet
+            --profile chatbot --profile rag --profile rag-indexar --profile frontend --profile herramientas \
+            --profile simulador config --quiet

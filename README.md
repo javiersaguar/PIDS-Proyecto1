@@ -13,6 +13,7 @@ la parte 1.
 | 3 | Chatbot con LLM local (Ollama) que consulta la plataforma | [`parte3_chatbot/`](parte3_chatbot/) |
 | 3 bis | Chatbot RAG: LangChain + Qdrant + LLM externo en la UE (Helmcode) | [`parte3_chatbot_rag/`](parte3_chatbot_rag/) |
 | — | Integración gestos ↔ plataforma ↔ chatbot (última fase) | [`integracion/`](integracion/) |
+| 4 | Portal web corporativo: panel, explorador, asistente, tiempo real, auditoría y operaciones | [`parte4_frontend/`](parte4_frontend/) |
 
 ## Stack tecnológico
 
@@ -95,11 +96,13 @@ make chatbot-rag          # + Qdrant y chatbot RAG
 make rag-indexar          # indexa en Qdrant el conocimiento y las fichas de agregados
 make tiempo-real          # arranca el streaming en Spark
 make simular              # envía viajes a la API de captura
+make frontend             # + portal web (contraseña: FRONTEND_CLAVE de .env)
 make                      # lista de todos los comandos
 ```
 
 | Servicio | URL |
 |---|---|
+| Portal web | http://localhost:8020 |
 | Chatbot (Ollama) | http://localhost:8010 |
 | Chatbot RAG | http://localhost:8011 |
 | Airflow | http://localhost:8085 |
@@ -132,6 +135,7 @@ del LLM externo, que se pega a mano desde el panel de Helmcode.
 ├── parte3_chatbot/          Chainlit + Ollama: agente, herramientas y barreras sobre las cifras
 ├── parte3_chatbot_rag/      Chainlit + LangChain + Qdrant + Helmcode; reutiliza las herramientas y
 │                            barreras del anterior. CONTRATOS.md reparte el trabajo en cinco bloques
+├── parte4_frontend/         portal web: BFF de FastAPI (bff/) y SPA de React (web/)
 ├── integracion/             cliente de gestos (Windows)
 ├── scripts/                 descarga, perfilado, generación de .env, auditoría, latencia y ataques
 ├── tests/                   tests de Python (los de Scala están en parte2_plataforma/spark)

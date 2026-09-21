@@ -19,3 +19,5 @@ tests
 **/.bloop
 **/.chainlit/translations
 **/.files
+parte4_frontend/web/node_modules
+parte4_frontend/web/dist

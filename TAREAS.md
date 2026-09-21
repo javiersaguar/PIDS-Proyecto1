@@ -139,6 +139,23 @@ decisión pendiente en T13.
   se enseña.
 - **Dónde:** `BITACORA.md`, `docs/plan.md`
 
+## T14 · Portal web (parte 4): llevarlo a `main` y a la demo
+
+- **Estado:** en curso · **Responsable:** Javier Saguar · **Estimación:** 2 h · **Dificultad:** baja
+- **Por qué:** el portal ya funciona en la rama `tarea/frontend` (bitácora del 21/09), pero no está en `main` ni levantado
+  desde la carpeta principal, que es la única que ejecuta `docker compose`.
+- **Qué hay que hacer:**
+  1. *Pull request* `tarea/frontend` → `main` (conflictos aditivos con `tarea/rag-base` en README, bitácora, tareas y
+     `pyproject.toml`).
+  2. Añadir a `.env` `ACCESO_CLAVE_FRONTEND`, `FRONTEND_CLAVE`, `FRONTEND_SECRETO` y `PUERTO_FRONTEND` (con
+     `scripts/generar_env.py --completar` de `tarea/rag-base`, o a mano), recrear `acceso` (`docker compose up -d --no-deps
+     acceso`) y `make frontend`.
+  3. Repasar en el navegador las siete secciones con datos reales y añadir las capturas a `docs/capturas/`.
+  4. Probar el motor RAG del asistente desde el contenedor (necesita `LLM_API_KEY` y `make rag-indexar`).
+- **Hecha cuando:** `make frontend` desde la carpeta principal levanta el portal en http://localhost:8020, la auditoría
+  muestra el cliente `frontend` y las capturas están en `docs/`.
+- **Dónde:** `parte4_frontend/`, `docker-compose.yml`, `.env`, `docs/capturas/`
+
 ---
 
 ## Ideas y trabajo futuro
@@ -147,6 +164,8 @@ decisión pendiente en T13.
   pregunta (hoy salen todas las recuperadas); quitar el pie «Datos históricos» duplicado cuando el modelo ya lo
   escribe; medir el rerank (`RAG_RERANK=true`) con la suite; reindexar las fichas desde Airflow tras cada carga.
 - Chatbot RAG: probar `qwen3.6` con `LLM_RAZONAMIENTO=none` (responde en ~1 s) con la suite y la batería completas.
+- Portal web: usuarios y roles (hoy una contraseña única), exportar a CSV la tabla del explorador, persistir en la URL el
+  selector de horas del tiempo real, y modo oscuro con las variables del tema.
 - Privacidad diferencial (OpenDP) sobre los agregados, además del umbral k.
 - Detectar patrones de consultas sospechosos por cliente (muchas consultas solapadas).
 - Airflow: un DAG que cargue los 12 meses en cadena, con reintentos.

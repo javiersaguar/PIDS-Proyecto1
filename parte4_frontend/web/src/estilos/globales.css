@@ -1,0 +1,180 @@
+/*
+ * Tema corporativo del portal (CONTRATOS.md §7).
+ *
+ * Los tokens de la marca se declaran como variables CSS (--primario, --acento, …) y se mapean a las variables
+ * de shadcn/ui (--primary, --accent, --destructive, …), de modo que todos los componentes de `componentes/ui`
+ * los heredan sin tocarlos. También se exponen como colores de Tailwind (bg-primario, text-acento,
+ * text-enmascarado, border-borde, …) para el resto de la aplicación.
+ */
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+/* Inter (regular, medium, semibold y bold) servida desde el propio paquete: sin llamadas a terceros. */
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/inter/700.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* --- 1. Tokens de la marca ------------------------------------------------------------------------------ */
+:root {
+  --primario: #0b1f3a;          /* azul marino: barra lateral, títulos, botones primarios */
+  --primario-claro: #14305a;    /* marino un punto más claro: elementos activos sobre la barra */
+  --acento: #f5b400;            /* amarillo taxi: elemento activo del menú, indicadores, serie principal */
+  --acento-suave: #fff4cc;      /* amarillo muy diluido: fondos de realce pequeños */
+  --fondo: #f4f6f9;             /* fondo de la aplicación */
+  --superficie: #ffffff;        /* tarjetas y paneles */
+  --superficie-alterna: #eef1f5;/* cabeceras de tabla, filas alternas, skeletons */
+  --texto: #111827;
+  --texto-suave: #6b7280;
+  --borde: #e5e7eb;
+  --ok: #15803d;
+  --aviso: #b45309;
+  --peligro: #b91c1c;
+  --enmascarado: #7c3aed;       /* grupos «<10»: chip «enmascarado por privacidad» */
+  --enmascarado-suave: #f3e8ff;
+
+  /* --- 2. Variables de shadcn/ui, alimentadas por los tokens ------------------------------------------- */
+  --background: var(--fondo);
+  --foreground: var(--texto);
+  --card: var(--superficie);
+  --card-foreground: var(--texto);
+  --popover: var(--superficie);
+  --popover-foreground: var(--texto);
+  --primary: var(--primario);
+  --primary-foreground: #ffffff;
+  --secondary: var(--superficie-alterna);
+  --secondary-foreground: var(--primario);
+  --muted: var(--superficie-alterna);
+  --muted-foreground: var(--texto-suave);
+  --accent: var(--acento-suave);
+  --accent-foreground: var(--primario);
+  --destructive: var(--peligro);
+  --border: var(--borde);
+  --input: var(--borde);
+  --ring: var(--primario);
+  --chart-1: var(--acento);
+  --chart-2: #1e3a8a;
+  --chart-3: #3b82f6;
+  --chart-4: #93c5fd;
+  --chart-5: var(--enmascarado);
+  --radius: 0.5rem;             /* 8 px */
+  --sidebar: var(--primario);
+  --sidebar-foreground: #dbe2ee;
+  --sidebar-primary: var(--acento);
+  --sidebar-primary-foreground: var(--primario);
+  --sidebar-accent: rgb(255 255 255 / 0.08);
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgb(255 255 255 / 0.12);
+  --sidebar-ring: var(--acento);
+  --sombra-tarjeta: 0 1px 2px rgb(11 31 58 / 0.06), 0 1px 3px rgb(11 31 58 / 0.04);
+}
+
+/* --- 3. Tokens como utilidades de Tailwind --------------------------------------------------------------- */
+@theme inline {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-heading: var(--font-sans);
+
+  --color-primario: var(--primario);
+  --color-primario-claro: var(--primario-claro);
+  --color-acento: var(--acento);
+  --color-acento-suave: var(--acento-suave);
+  --color-fondo: var(--fondo);
+  --color-superficie: var(--superficie);
+  --color-superficie-alterna: var(--superficie-alterna);
+  --color-texto: var(--texto);
+  --color-texto-suave: var(--texto-suave);
+  --color-borde: var(--borde);
+  --color-ok: var(--ok);
+  --color-aviso: var(--aviso);
+  --color-peligro: var(--peligro);
+  --color-enmascarado: var(--enmascarado);
+  --color-enmascarado-suave: var(--enmascarado-suave);
+
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+  --shadow-tarjeta: var(--sombra-tarjeta);
+}
+
+/* --- 4. Base ---------------------------------------------------------------------------------------------- */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans antialiased;
+    color-scheme: light;
+  }
+  body {
+    @apply bg-background text-foreground text-sm leading-normal;   /* 14 px de base */
+  }
+  h1, h2, h3, h4 {
+    @apply font-semibold tracking-tight text-primario;
+  }
+  h1 { @apply text-3xl; }   /* 30 px */
+  h2 { @apply text-2xl; }   /* 24 px */
+  h3 { @apply text-xl; }    /* 20 px */
+  /* Las cifras siempre alineadas en columna (tablas, KPIs, ejes). */
+  table, tbody, td, th {
+    font-variant-numeric: tabular-nums;
+  }
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-ring;
+  }
+}
+
+/* --- 5. Utilidades propias -------------------------------------------------------------------------------- */
+/* Cifras con dígitos de ancho fijo (KPIs, tablas, ejes de los gráficos). */
+@utility cifra {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+/* Sombra suave de las tarjetas (§7). */
+@utility sombra-tarjeta {
+  box-shadow: var(--sombra-tarjeta);
+}
+/* Fondo de la barra lateral y de la página de acceso: marino con una trama muy sutil. */
+@utility fondo-marino {
+  background-color: var(--primario);
+  background-image:
+    radial-gradient(at 0% 0%, rgb(245 180 0 / 0.10) 0, transparent 45%),
+    radial-gradient(at 100% 100%, rgb(255 255 255 / 0.06) 0, transparent 50%);
+}

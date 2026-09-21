@@ -63,6 +63,7 @@ flowchart LR
 | Chatbot | Chainlit + Ollama (llama3.1:8b, GPU) | Conversación; solo usa la API de acceso | Agregados |
 | Chatbot RAG | Chainlit + LangChain 1.4 + Helmcode (`deepseek-v4-flash`, UE) | Conversación con recuperación de contexto; las mismas herramientas y barreras que el chatbot de Ollama; guardia de salida antes de cada llamada al proveedor | Agregados y documentación |
 | Índice vectorial | Qdrant 1.19 | Colecciones `conocimiento` (docs, catálogo, zonas, ejemplos) y `agregados_gruesos` (fichas de día-barrio y flujos, obtenidas por la API de acceso) | Agregados protegidos |
+| Portal web (parte 4) | FastAPI (BFF) + React | Panel, explorador, asistente, tiempo real, auditoría y operaciones en una sola aplicación; el BFF guarda las claves y el navegador entra con una contraseña única | Agregados y auditoría |
 
 Airflow usa además un PostgreSQL interno solo para sus metadatos; no guarda datos del proyecto. El chatbot RAG
 está descrito en detalle en [`chatbot_rag.md`](chatbot_rag.md).
@@ -80,6 +81,9 @@ está descrito en detalle en [`chatbot_rag.md`](chatbot_rag.md).
    filtro previo → contexto de Qdrant → guardia de salida → Helmcode (herramientas sobre la misma API de acceso,
    cliente `chatbot_rag`) → barreras sobre las cifras → respuesta con sus fuentes.
 5. **Gestos (último):** demo → `POST /gestos` → `gestos` → SSE → chatbot.
+6. **Portal web:** navegador → BFF (`/api/*`, cookie de sesión) → `POST /consultas` de la API de acceso como cliente
+   `frontend` (mismo filtro y misma auditoría); estado y frescura desde Prometheus; auditoría con `pids_auditor`;
+   cargas por la API de Airflow; el chat ejecuta el mismo agente de la parte 3 dentro del BFF (`parte4_frontend/README.md`).
 
 ## Monitorización y alertas
 
@@ -114,6 +118,7 @@ en `127.0.0.1`:
 | Chatbot (Ollama) | http://localhost:8010 |
 | Chatbot RAG | http://localhost:8011 (`PUERTO_CHATBOT_RAG`) |
 | Qdrant | http://localhost:6333/dashboard |
+| Portal web | http://localhost:8020 (`PUERTO_FRONTEND`) |
 | Spark (máster) | http://localhost:8090 |
 | Airflow | http://localhost:8085 |
 | Grafana | http://localhost:3000 |
