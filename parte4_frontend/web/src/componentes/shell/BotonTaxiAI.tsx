@@ -28,7 +28,8 @@ export function BotonTaxiAI({ abierto, alPulsar, ref }: Props) {
       aria-hidden={abierto}
       tabIndex={abierto ? -1 : undefined}
       className={cn(
-        'fixed right-6 bottom-6 z-50 inline-flex h-12 items-center gap-2.5 rounded-full pr-5 pl-4 text-sm font-semibold tracking-wide text-white',
+        // bottom-40: por encima de la fila baja del grafo (Chatbots, Ollama) y del enlace de abrir de la tabla
+        'fixed right-6 bottom-40 z-50 inline-flex h-12 items-center gap-2.5 rounded-full pr-5 pl-4 text-sm font-semibold tracking-wide text-white',
         'bg-[#6d4aff] shadow-[0_14px_36px_-12px_rgba(109,74,255,0.75)] transition-[opacity,background-color,transform] duration-200 ease-out',
         'hover:-translate-y-0.5 hover:bg-[#5b3ae0] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6d4aff]',
         abierto && 'pointer-events-none invisible scale-90 opacity-0',

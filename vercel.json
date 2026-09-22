@@ -10,7 +10,7 @@
       "destination": "https://street-humorous-squeezing.ngrok-free.dev/api/:ruta*"
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!.*\\.).*)",
       "destination": "/index.html"
     }
   ],
