@@ -7,7 +7,7 @@
   "rewrites": [
     {
       "source": "/api/:ruta*",
-      "destination": "https://pon-aqui-tu-dominio-de-ngrok.invalid/api/:ruta*"
+      "destination": "https://street-humorous-squeezing.ngrok-free.dev/api/:ruta*"
     },
     {
       "source": "/(.*)",

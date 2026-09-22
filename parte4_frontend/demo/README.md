@@ -16,8 +16,10 @@ la demostración). La elección se recuerda en esa pestaña.
 
 **El túnel** (`make tunel`, servicio `tunel` del perfil `tunel`) es ngrok con una cuenta gratuita: saca a internet el
 portal y nada más, detrás de su contraseña; la conexión la abre ngrok hacia fuera, sin puertos publicados. Hasta que
-se pone el dominio en `vercel.json`, la regla de `/api` apunta a un nombre `.invalid` (reservado, nunca resuelve): así
-ninguna petición puede acabar en un dominio de otra persona. Pasos en el README principal («Portal web y web
+se pone el dominio en `vercel.json`, la regla de `/api` apuntaba a un nombre `.invalid` (reservado, nunca resuelve),
+para que ninguna petición acabara en un dominio de otra persona. El del equipo es
+`street-humorous-squeezing.ngrok-free.dev` (el token está solo en `.env`). No hace falta el ngrok de Windows: con el
+mismo dominio, solo puede haber un túnel encendido a la vez. Pasos en el README principal («Portal web y web
 pública»). La demostración no depende de nada del equipo: con el portátil apagado la web sigue funcionando.
 
 ## Qué enseña la demostración

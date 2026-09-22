@@ -79,7 +79,8 @@ frontend-dev: _env ## BFF del portal en el host con recarga (puerto 8020); la SP
 tunel: _env ## Túnel del portal a internet (ngrok) para la web pública de Vercel. Pide NGROK_AUTHTOKEN y NGROK_DOMINIO
 	@grep -qE '^NGROK_AUTHTOKEN=.+' .env && grep -qE '^NGROK_DOMINIO=.+' .env || \
 		{ echo "Faltan NGROK_AUTHTOKEN y NGROK_DOMINIO en .env (cuenta gratuita de ngrok: README, «Web pública»)"; exit 1; }
-	$(COMPOSE) --profile frontend --profile tunel up -d frontend tunel
+	$(COMPOSE) --profile frontend up -d frontend
+	$(COMPOSE) --profile tunel up -d --no-deps tunel
 	@echo "Túnel en marcha: https://$$(grep '^NGROK_DOMINIO=' .env | cut -d= -f2) (la web de Vercel pasa a en vivo)"
 
 tunel-parar: ## Apaga el túnel: la web pública vuelve a la instantánea
