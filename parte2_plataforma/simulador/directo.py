@@ -146,7 +146,9 @@ def viajes_desde(carpeta: Path, desde: datetime) -> Iterator[dict]:
 def punto_de_partida(dias: list[date], ultima_hora: datetime | None, reloj: datetime | None = None) -> datetime:
     """Dónde sigue la captura: el reloj de la anterior (mismo proceso) o la hora siguiente a la última publicada.
 
-    Sin nada publicado, el primer día a las 00:00. Lanza `SinDatos` si no queda nada por enviar desde ahí.
+    Sin nada publicado (también tras `make tiempo-real-reiniciar`), el primer día a las 00:00. Lanza `SinDatos` si no
+    queda nada por enviar desde ahí. Si se para una captura antes de que Spark publique su primera hora (unos 30 s),
+    la siguiente vuelve a empezar y repite esos viajes.
     """
     if not dias:
         raise SinDatos('No hay viajes preparados en data/directo: ejecuta `make captura-preparar`')
@@ -156,8 +158,10 @@ def punto_de_partida(dias: list[date], ultima_hora: datetime | None, reloj: date
     desde = primero
     if publicada is not None:
         desde = max(desde, publicada + timedelta(hours=1))
-    if reloj is not None and (publicada is None or reloj >= publicada):
-        desde = max(primero, reloj)       # la hora a medias es nuestra: se sigue en el minuto exacto
+    # la hora a medias es nuestra: se sigue en el minuto exacto. Sin nada publicado (tiempo real recién reiniciado)
+    # el reloj de antes no vale: se empieza por el primer día
+    if reloj is not None and publicada is not None and reloj >= publicada:
+        desde = max(primero, reloj)
     if desde >= fin:
         raise SinDatos(f'Ya se ha capturado todo hasta el {fin - timedelta(days=1):%d/%m/%Y}: para volver a empezar, '
                        '`make tiempo-real-reiniciar`')

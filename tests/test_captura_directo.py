@@ -70,6 +70,8 @@ def test_punto_de_partida_sigue_donde_se_quedo_y_nunca_vuelve_atras():
     assert D.punto_de_partida(dias, datetime(2020, 12, 1, 5), datetime(2020, 12, 1, 5, 40)) == datetime(2020, 12, 1, 5, 40)
     # Spark tiene algo más reciente que el reloj (otra captura, pruebas): manda lo publicado
     assert D.punto_de_partida(dias, datetime(2020, 12, 1, 9), datetime(2020, 12, 1, 5, 40)) == datetime(2020, 12, 1, 10)
+    # tiempo real recién reiniciado: nada publicado, así que el reloj de antes no cuenta
+    assert D.punto_de_partida(dias, None, datetime(2020, 12, 2, 3)) == datetime(2020, 12, 1)
     with pytest.raises(D.SinDatos, match='tiempo-real-reiniciar'):
         D.punto_de_partida(dias, datetime(2020, 12, 2, 23))                  # ya está todo
     with pytest.raises(D.SinDatos, match='latencia|tiempo-real-reiniciar'):
