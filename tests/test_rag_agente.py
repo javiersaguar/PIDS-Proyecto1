@@ -221,7 +221,7 @@ def test_una_ficha_se_convierte_en_un_resultado_de_la_api():
                                    'n_viajes': 203866, 'importe_medio': 18.64}]
     assert resultado['resultado'] == 'permitida' and resultado['texto'].startswith('El martes 3 de marzo')
     oculta = R.ficha_como_resultado(FICHA_OCULTA)
-    assert oculta['filas'][0]['n_viajes'] == '<10' and oculta['grupos_enmascarados'] == 1
+    assert oculta['filas'][0]['n_viajes'] == 'oculto' and oculta['grupos_enmascarados'] == 1
     assert R.ficha_como_resultado(DOC_E3) is None
     mala = Document(page_content='', metadata={'tipo': 'ficha', 'nivel': 'dia_barrio', 'dia': 'ayer'})
     assert R.ficha_como_resultado(mala) is None

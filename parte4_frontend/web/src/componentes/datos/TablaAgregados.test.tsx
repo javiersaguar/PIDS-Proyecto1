@@ -10,7 +10,7 @@ const FILAS_BARRIOS: Fila[] = [
   { dia: '2020-03-03T00:00:00', barrio_origen: 'Bronx', n_viajes: 233, importe_medio: 22.65, suprimido: false },
   { dia: '2020-03-03T00:00:00', barrio_origen: 'Manhattan', n_viajes: 203866, importe_medio: 16.96, suprimido: false },
   { dia: '2020-03-03T00:00:00', barrio_origen: 'Queens', n_viajes: 12145, importe_medio: 45.0, suprimido: false },
-  { dia: '2020-03-03T00:00:00', barrio_origen: 'Staten Island', n_viajes: '<10', importe_medio: null, suprimido: true },
+  { dia: '2020-03-03T00:00:00', barrio_origen: 'Staten Island', n_viajes: 'oculto', importe_medio: null, suprimido: true },
 ]
 
 function barriosEnOrden(): string[] {
@@ -32,14 +32,14 @@ describe('TablaAgregados', () => {
     expect(screen.getAllByText('03/03/2020')).toHaveLength(4)
   })
 
-  it('marca los grupos enmascarados con el chip violeta y «<10», sin cifras', () => {
+  it('marca los grupos enmascarados con el chip violeta y «oculto», sin cifras', () => {
     render(<TablaAgregados filas={FILAS_BARRIOS} nivel="dia_barrio" metricas={['n_viajes', 'importe_medio']} />)
 
     const fila = screen.getByText('Staten Island').closest('tr')
     expect(fila).not.toBeNull()
     expect(fila).toHaveAttribute('data-enmascarada', 'true')
     expect(within(fila as HTMLElement).getByText('enmascarado por privacidad')).toBeInTheDocument()
-    expect(within(fila as HTMLElement).getByText('<10')).toBeInTheDocument()
+    expect(within(fila as HTMLElement).getByText('oculto')).toBeInTheDocument()
     // La métrica del grupo enmascarado no se muestra.
     expect(within(fila as HTMLElement).getAllByRole('cell')[3]).toHaveTextContent('—')
   })
@@ -52,7 +52,7 @@ describe('TablaAgregados', () => {
 
     await usuario.click(screen.getByRole('button', { name: 'Viajes' }))
     expect(screen.getByRole('columnheader', { name: 'Viajes' })).toHaveAttribute('aria-sort', 'descending')
-    // El enmascarado (<10) se ordena por debajo de cualquier grupo visible.
+    // El enmascarado (oculto) se ordena por debajo de cualquier grupo visible.
     expect(barriosEnOrden()).toEqual(['Manhattan', 'Queens', 'Bronx', 'Staten Island'])
 
     await usuario.click(screen.getByRole('button', { name: 'Viajes' }))

@@ -9,9 +9,9 @@ Todos acceden a los datos procesados de la parte 2 a través de la API de acceso
 | CU3 | Importes y propinas | «Propina media en Manhattan la primera semana de febrero» | dia_barrio | Métricas protegidas y redondeadas; fechas relativas |
 | CU4 | Flujos entre barrios | «¿Cuántos viajes hubo de Queens a Manhattan el 10 de enero?» | od_dia_barrio | Destino solo a nivel de barrio y día |
 | CU5 | Petición individual (rechazo) | «Dame el viaje de las 3:12 desde Times Square» | — | Rechazo sin pasar por el LLM + alternativa |
-| CU6 | Grupos pequeños (enmascarado) | «Viajes por hora desde Staten Island el 1 de enero» | hora_zona | Grupos `<10` sin cifras y explicación |
+| CU6 | Grupos pequeños (enmascarado) | «Viajes por hora desde Staten Island el 1 de enero» | hora_zona | Grupos `oculto` sin cifras y explicación |
 | CU7 | Tiempo real | «¿Cuántos viajes llevamos en la última hora simulada?» | hora_zona (tiempo_real) | Datos en streaming con la misma protección |
-| CU8 | Confirmación por gestos (integración) | El bot propone una alternativa y el usuario hace 👍 | — | Parte 1 → parte 3 |
+| CU8 | Confirmación por gestos (integración) | El bot propone una alternativa y el usuario hace 👍 (con la demo de Windows o con la cámara del portal) | — | Parte 1 → parte 3 |
 
 ## Resultados medidos
 
@@ -116,15 +116,15 @@ barrio y consulta cada una de sus 20 zonas por separado (cada consulta pasa el f
 
 > **Usuario:** Viajes por hora desde Staten Island el 1 de enero
 >
-> **Bot:** Todos los grupos de esta consulta están enmascarados por privacidad (tienen menos de 10 viajes, o se
-> ocultan para que no se puedan deducir otros), así que no se muestran sus cifras:
+> **Bot:** Todos los grupos de esta consulta están enmascarados por privacidad (se publican como
+> «oculto»: pueden tener menos de 10 viajes o esconderse para que no se deduzcan otros), así que no se muestran sus cifras:
 >
 > | Hora | Zona de origen | Viajes |
 > |---|---|---|
-> | 2020-01-01 05:00 | Stapleton | <10 |
-> | 2020-01-01 09:00 | Charleston/Tottenville | <10 |
+> | 2020-01-01 05:00 | Stapleton | oculto |
+> | 2020-01-01 09:00 | Charleston/Tottenville | oculto |
 > | … | … | … |
-> | 2020-01-01 23:00 | Port Richmond | <10 |
+> | 2020-01-01 23:00 | Port Richmond | oculto |
 >
 > 10 grupos están enmascarados por privacidad: no se muestran sus cifras ni se suman a ningún total.
 
@@ -134,7 +134,7 @@ barrio y consulta cada una de sus 20 zonas por separado (cada consulta pasa el f
 >
 > **Bot:** Todos los grupos de esta consulta están enmascarados por privacidad (…), así que no se muestran sus
 > cifras: **Viajes por hora y zona de origen · tiempo real · 2020-01-01 04:00 → 2020-01-01 05:00** ·
-> Outside of NYC `<10`. 1 grupo está enmascarado por privacidad.
+> Outside of NYC `oculto`. 1 grupo está enmascarado por privacidad.
 
 Con los datos de tiempo real de la prueba del 1 de enero de 2020, la última hora solo tenía un grupo y estaba
 enmascarado, así que la respuesta se dio sin el LLM. En la medición final el streaming ya había procesado un
@@ -250,3 +250,7 @@ Hechas con la interfaz real (http://localhost:8010) en la versión final, en `do
 | [`cu8_cancelada.png`](capturas/cu8_cancelada.png) | CU8: la mano abierta cancela |
 
 CU8 (gestos): el 22/09 el 👍 ejecutó la alternativa y el ✋ la canceló. El vídeo está en `docs/capturas/cu8_gesto.mp4`.
+Desde la misma tarde, CU8 funciona en los tres chatbots (los dos de Chainlit y TAXI AI en el portal) y con la cámara
+del navegador, con el MLP de la parte 1: ✌️ hace además la siguiente pregunta de ejemplo, y en el portal 👌 lee la
+respuesta en voz alta y 🤘/✊ abren y cierran el asistente. Tabla y pruebas en
+[`integracion/README.md`](../integracion/README.md).

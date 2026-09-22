@@ -1,7 +1,7 @@
 """BFF del portal (parte 4), rutas de plataforma (F1): consultas, catálogo, panel, tiempo real, auditoría y
 operaciones. Sin red: la API de acceso, la de captura, Prometheus y Airflow son una `Plataforma` falsa detrás de
 un `httpx.MockTransport` (la API de acceso falsa aplica el filtro de privacidad real de
-`parte2_plataforma.comun.privacidad`, así que los 403 y los `"<10"` son los de verdad); MongoDB es un fake que
+`parte2_plataforma.comun.privacidad`, así que los 403 y los `"oculto"` son los de verdad); MongoDB es un fake que
 sustituye a `servicios.auditoria.abrir_cliente`."""
 from __future__ import annotations
 
@@ -347,7 +347,7 @@ def test_consulta_permitida_o_enmascarada_pasa_tal_cual_con_la_clave_del_portal(
     assert r.status_code == 200
     cuerpo = r.json()
     assert cuerpo['resultado'] == 'enmascarada' and cuerpo['grupos_enmascarados'] == 1 and cuerpo['truncada'] is False
-    assert [f['n_viajes'] for f in cuerpo['filas']] == [200, 30, '<10']
+    assert [f['n_viajes'] for f in cuerpo['filas']] == [200, 30, 'oculto']
     assert cuerpo['filas'][2]['suprimido'] is True and 'nota' in cuerpo
     assert cuerpo['consulta']['fuente'] == 'historico' and cuerpo['consulta']['metricas'] == ['n_viajes']
     assert plataforma.claves_vistas == {'clave-equipo'}
@@ -501,7 +501,7 @@ def test_tiempo_real_devuelve_las_ultimas_horas_con_datos_ordenadas_y_solo_suma_
                                                    '2020-12-31T07:00:00']
     assert tr['por_hora'][1] == {'hora': '2020-12-31T05:00:00', 'n_viajes': 30, 'grupos': 3, 'grupos_enmascarados': 1}
     assert tr['por_hora'][3] == {'hora': '2020-12-31T07:00:00', 'n_viajes': 12, 'grupos': 2, 'grupos_enmascarados': 1}
-    assert [f['n_viajes'] for f in tr['por_zona_ultima_hora']] == [12, '<10']       # tal cual las da la API
+    assert [f['n_viajes'] for f in tr['por_zona_ultima_hora']] == [12, 'oculto']    # tal cual las da la API
     assert tr['por_zona_ultima_hora'][1]['suprimido'] is True and tr['por_zona_ultima_hora'][1]['zona_origen'] == 5
     assert all(c['fuente'] == 'tiempo_real' for c in plataforma.consultas)
 
@@ -553,7 +553,7 @@ def test_trocear_respeta_el_maximo_de_31_dias():
 
 
 def test_resumenes_no_suman_lo_enmascarado():
-    filas = [dia('2020-12-31', 'Manhattan', 200), {**dia('2020-12-31', 'Bronx', '<10'), 'suprimido': True},
+    filas = [dia('2020-12-31', 'Manhattan', 200), {**dia('2020-12-31', 'Bronx', 'oculto'), 'suprimido': True},
              dia('2020-12-31', 'Manhattan', 5), {**dia('2020-12-31', 'Queens', 40), 'suprimido': True}]
     assert ACCESO.resumir_dia('2020-12-31T00:00:00', filas) == {
         'dia': '2020-12-31T00:00:00', 'por_barrio': {'Manhattan': 205}, 'total': 205, 'grupos_enmascarados': 2}

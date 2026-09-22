@@ -8,7 +8,7 @@ Son los mismos casos, consultas de referencia y comprobaciones que la suite del 
 Cada caso se repite varias veces con una conversación nueva. La comprobación de cifras es la misma: cada número
 de la respuesta tiene que estar en la consulta de referencia lanzada directamente contra la API, así que una
 ficha desactualizada del índice (cifras «congeladas» tras recargar el histórico) se detecta aquí como fallo.
-CU8 (gestos) no aplica: el chatbot RAG no tiene gestos.
+CU8 (gestos) queda fuera, como en la suite de Ollama: la confirmación por gesto se prueba con la demo (integracion/).
 
 Uso (desde el host, con la plataforma y Qdrant levantados; lee .env y deriva las URL de los puertos publicados):
     uv run python parte3_chatbot_rag/casos_de_uso_rag.py

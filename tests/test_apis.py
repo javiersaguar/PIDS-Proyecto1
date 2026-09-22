@@ -131,7 +131,7 @@ def test_acceso_enmascara_y_audita(cliente_acceso):
     cuerpo = r.json()
     assert cuerpo['resultado'] == 'enmascarada'
     assert cuerpo['grupos_enmascarados'] == 1
-    assert cuerpo['filas'][1]['n_viajes'].startswith('<')
+    assert cuerpo['filas'][1]['n_viajes'] == 'oculto'           # nunca «<10»: puede ser un complementario
     assert cuerpo['filas'][1]['importe_medio'] is None
     assert repo.auditoria[-1]['resultado'] == 'enmascarada'
     assert repo.auditoria[-1]['cliente'] == 'chatbot'

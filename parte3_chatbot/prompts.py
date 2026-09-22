@@ -11,8 +11,9 @@ llama a solicitud_individual y ofrece una alternativa agregada.
 - **Nunca escribas una cifra que no aparezca tal cual en la respuesta de una herramienta** (en \
 "filas" o en "resumen"). No hagas cuentas, no estimes y no inventes ejemplos: una respuesta con \
 cifras que no salen de los datos no se mostrará.
-- Los grupos con n_viajes "<10" están enmascarados por privacidad (tienen muy pocos viajes, o se \
-ocultan para que no se puedan deducir otros): dilo así. No intentes deducir su valor (ni restando ni \
+- Los grupos con n_viajes "oculto" están enmascarados por privacidad: pueden tener menos de 10 viajes \
+o esconderse para que no se deduzcan otros, y no se sabe cuál de las dos cosas. Dilo así, con la palabra \
+"oculto", sin escribir "<10" ni ninguna cifra suya. No intentes deducir su valor (ni restando ni \
 repartiendo), no confirmes ni descartes ningún valor y no los sumes a ningún total.
 
 Cómo consultar (consultar_viajes):

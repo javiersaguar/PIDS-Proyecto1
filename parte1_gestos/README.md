@@ -58,6 +58,21 @@ $env:PIDS_CLAVE_GESTOS = "<CAPTURA_CLAVE_GESTOS del .env>"
 Sin esa variable no se envía nada: la demo de la parte 1 funciona igual. Detalle del ciclo en
 [`integracion/README.md`](../integracion/README.md).
 
+### El mismo modelo en el navegador
+
+El MLP (normalización muñeca + escala + rotación, 96,5 % en LOPO) también corre en el portal web: MediaPipe para web
+saca los 21 puntos de la mano y el MLP, exportado a JSON, los clasifica en el propio navegador. Así la parte 1 se
+puede enseñar en la web pública, con cualquier cámara y sin Python. Se exporta (y se comprueba con los landmarks del
+dataset: 98,4 % con numpy) con:
+
+```bash
+uv run --no-project --with numpy --with h5py python parte1_gestos/entrenamiento/exportar_web.py
+```
+
+Escribe `parte4_frontend/web/public/gestos/modelo.json` y unas muestras con las probabilidades de Python, con las
+que `web/src/gestos/modelo.test.ts` comprueba que TypeScript predice lo mismo. Detalle en
+[`integracion/README.md`](../integracion/README.md).
+
 El entorno de Python (`.venv` con MediaPipe 0.10.35, Keras 3 sobre PyTorch y CUDA) es el que ya está
 creado en `C:\Users\Javier\PIDS_HandPose`. Sus dependencias exactas están en
 `entrenamiento/requirements.txt`, por si hay que rehacerlo en otro equipo.

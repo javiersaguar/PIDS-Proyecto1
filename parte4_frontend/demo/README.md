@@ -27,7 +27,7 @@ pública»). La demostración no depende de nada del equipo: con el portátil ap
 - **Explorador**: el filtro de privacidad de la API portado a TypeScript (`web/src/demo/privacidad.ts`, con las
   reglas de `config/privacidad.json`) decide cada consulta igual que la API: rechazos con sus motivos y su
   alternativa, ventanas alineadas, rango máximo, campos individuales. Las filas son las que ya devolvió la API,
-  con los grupos de menos de 10 viajes como `"<10"`. Hay datos de todo 2020 por día y barrio y por flujos entre
+  con los grupos suprimidos como `"oculto"`. Hay datos de todo 2020 por día y barrio y por flujos entre
   barrios; por hora y zona, el 01/01, 15/01, 03/03 y 15/03 completos y todo el año para JFK (132), LaGuardia (138),
   Times Square (230) y Stapleton (221). Si una consulta pide horas que no están grabadas, la nota de la respuesta
   lo dice.
@@ -43,6 +43,9 @@ pública»). La demostración no depende de nada del equipo: con el portátil ap
   demostración no se lanzan operaciones.
 - **Grafo**: «Capturar datos» anima el camino de la captura con un reloj de 2020 que avanza, pero no envía nada ni
   cambia el tiempo real grabado (lo dice el propio control).
+- **Gestos**: TAXI AI → «Gestos» reconoce la mano con la cámara de quien mira (MediaPipe y el MLP de la parte 1, en su
+  navegador). ✌️ recorre las preguntas grabadas, 👍 confirma la alternativa, 👌 lee la respuesta y 🤘/✊ abren y cierran
+  el panel. El gesto no se envía a ningún sitio: no hay plataforma detrás.
 - **Observabilidad**: los ocho cuadros de Grafana con los datos de Prometheus del momento de la grabación
   (`public/demo/observabilidad/`, «Datos grabados el …» en la página). Son métricas de la plataforma: estado de los
   servicios, colas, Spark, tamaños de las colecciones y los totales por barrio que ya publica la API (sin los grupos

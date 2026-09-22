@@ -118,6 +118,9 @@ export class BffDemo {
     if (ruta.startsWith('/api/operaciones/')) return this.operaciones(metodo, ruta, p.cuerpo)
     if (ruta.startsWith('/api/chat/')) return this.chat(metodo, ruta, p.cuerpo)
     if (metodo === 'GET' && ruta.startsWith('/api/observabilidad/')) return this.observabilidad(ruta)
+    // Gestos: el navegador los reconoce y TAXI AI los atiende igual, pero no hay plataforma a la que enviarlos
+    if (metodo === 'POST' && ruta === '/api/gestos') return json({ enviado: false, demostracion: true }, 202)
+    if (metodo === 'GET' && ruta === '/api/gestos/stream') return detalle(404, 'En la demostración no hay gestos de la plataforma')
     return detalle(404, 'Not Found')
   }
 

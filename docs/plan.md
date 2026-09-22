@@ -13,7 +13,7 @@
 | 3d | Prometheus + Grafana: panel y alertas | ✅ panel y 3 alertas probadas |
 | 3e | Medición de las 3 métricas de calidad | ✅ M1, M2 y M3 medidas |
 | 4 | Chatbot: casos de uso con LLM local | ✅ 7 casos medidos (21/21) y batería trampa |
-| 4b | Chatbot RAG: LangChain + Qdrant + LLM externo en la UE (Helmcode) | ✅ 21/21 y 0/105; decisión E3 pendiente de confirmar en grupo (T13) |
+| 4b | Chatbot RAG: LangChain + Qdrant + LLM externo en la UE (Helmcode) | ✅ Vigente (22/09). La demo enseña los dos: Ollama (las preguntas no salen del equipo) y RAG. 21/21 y 0/105 |
 | 5 | Integración con la parte 1 (gestos) | ✅ vídeo en `docs/capturas/cu8_gesto.mp4` |
 | 6 | Entrega: documentación, capturas, vídeo, presentación | ⏳ |
 

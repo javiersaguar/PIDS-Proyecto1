@@ -1,7 +1,7 @@
 /**
  * Matriz origen → destino (mapa de calor) para los flujos entre barrios. Es una tabla HTML accesible
  * (`<th scope>`), con las celdas coloreadas por intensidad (escala logarítmica, porque Manhattan→Manhattan
- * aplasta al resto) y las celdas enmascaradas en violeta con «<10».
+ * aplasta al resto) y las celdas enmascaradas en violeta con «oculto».
  */
 import { Lock } from 'lucide-react'
 import { useMemo } from 'react'
@@ -88,7 +88,7 @@ export function MatrizFlujos({ celdas, formatearValor = formatearEntero, titulo,
                     >
                       <span className="inline-flex items-center gap-1">
                         <Lock className="size-3" aria-hidden />
-                        {'<10'}
+                        {'oculto'}
                       </span>
                     </td>
                   )

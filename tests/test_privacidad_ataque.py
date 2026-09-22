@@ -51,12 +51,12 @@ def test_resumir_cuenta_grupos_revelados():
 
 def test_total_suprimido_se_reconstruye_con_los_flujos_si_todos_son_visibles():
     dia_barrio = [{'barrio_origen': 'Manhattan', 'n_viajes': 900, 'suprimido': False},
-                  {'barrio_origen': 'Staten Island', 'n_viajes': '<10', 'suprimido': True},
-                  {'barrio_origen': 'EWR', 'n_viajes': '<10', 'suprimido': True}]
+                  {'barrio_origen': 'Staten Island', 'n_viajes': 'oculto', 'suprimido': True},
+                  {'barrio_origen': 'EWR', 'n_viajes': 'oculto', 'suprimido': True}]
     od = [{'barrio_origen': 'Staten Island', 'n_viajes': 12, 'suprimido': False},
           {'barrio_origen': 'Staten Island', 'n_viajes': 15, 'suprimido': False},
           {'barrio_origen': 'EWR', 'n_viajes': 11, 'suprimido': False},
-          {'barrio_origen': 'EWR', 'n_viajes': '<10', 'suprimido': True}]
+          {'barrio_origen': 'EWR', 'n_viajes': 'oculto', 'suprimido': True}]
     publicados, reconstruidos = A.totales_del_dia(dia_barrio, od)
     assert publicados == {'Manhattan': 900}
     assert reconstruidos == {'Staten Island': 27}      # EWR no: tiene un flujo suprimido

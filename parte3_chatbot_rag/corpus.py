@@ -111,8 +111,8 @@ def documento_privacidad(cfg: dict | None = None) -> Document:
                         for nombre, n in cfg['niveles'].items())
     texto = f"""Reglas de privacidad de la plataforma (escenario E3, versión {cfg['version']} de las reglas)
 
-Umbral k: los grupos con menos de {cfg['k_minimo']} viajes se publican enmascarados, sin cifras, y nunca se \
-suman a ningún total. Las medias se redondean a {cfg['decimales']} decimales. La granularidad temporal mínima \
+Umbral k: los grupos con menos de {cfg['k_minimo']} viajes, y los que se ocultan para que no se deduzcan \
+restando, se publican enmascarados con n_viajes "oculto", sin cifras, y nunca se suman a ningún total. Las medias se redondean a {cfg['decimales']} decimales. La granularidad temporal mínima \
 es de {cfg['granularidad_temporal_minima_horas']} hora en el nivel por horas y de un día en los demás. Cada \
 consulta abarca como máximo {cfg['max_dias_por_consulta']} días y devuelve como máximo \
 {cfg['max_filas_por_respuesta']} filas.

@@ -7,7 +7,9 @@ Aquí solo va la interfaz:
   - las fuentes recuperadas (documentos, zonas, ejemplos y fichas de agregados) van en un desplegable
     «Fuentes», con los tokens que ha costado el turno;
   - si la API rechaza la consulta, se muestra el motivo y un botón para lanzar la alternativa agregada.
-Sin gestos: la integración con la parte 1 sigue en el chatbot de Ollama (parte3_chatbot/app.py).
+Gestos de la parte 1 (con GESTOS_ACTIVOS): los mismos que el chatbot de Ollama, con su módulo
+(parte3_chatbot/gestos.py) y la tabla de config/gestos.json: 👍 confirma, ✋ cancela y ✌️ hace la siguiente
+pregunta de ejemplo.
 
 Arranque: chainlit run app.py --host 0.0.0.0 --port 8000 --headless   (make chatbot-rag → http://localhost:8011)
 """
@@ -24,6 +26,7 @@ RAIZ = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(RAIZ / 'parte3_chatbot_rag'), str(RAIZ / 'parte3_chatbot')]
 
 import fabrica  # noqa: E402
+import gestos  # noqa: E402
 from agente import Turno  # noqa: E402
 from herramientas import ClienteAcceso  # noqa: E402
 from prompts import BIENVENIDA  # noqa: E402
@@ -106,6 +109,19 @@ async def _ejecutar_alternativa() -> None:
     await _responder(alternativa=alternativa)
 
 
+async def _cancelar_alternativa() -> None:
+    cl.user_session.set('alternativa', None)
+    await cl.Message(content='De acuerdo, consulta cancelada.').send()
+
+
+async def _pregunta_de_ejemplo() -> None:
+    """✌️: la siguiente pregunta de `config/gestos.json`, como si la hubiera escrito el usuario."""
+    pregunta, siguiente = gestos.siguiente_pregunta(cl.user_session.get('pregunta_gesto') or 0)
+    cl.user_session.set('pregunta_gesto', siguiente)
+    await cl.Message(content=pregunta, author='Tú', type='user_message').send()
+    await _responder(pregunta=pregunta)
+
+
 @cl.on_chat_start
 async def inicio() -> None:
     acceso = fabrica.cliente_acceso('chatbot_rag')
@@ -114,6 +130,11 @@ async def inicio() -> None:
     cl.user_session.set('agente', agente)
     cl.user_session.set('contador', contador)
     cl.user_session.set('alternativa', None)
+    cl.user_session.set('tarea_gestos', gestos.enganchar_a_chainlit({
+        'confirmar': _ejecutar_alternativa,
+        'cancelar': _cancelar_alternativa,
+        'siguiente': _pregunta_de_ejemplo,
+    }))
     await cl.Message(content=BIENVENIDA).send()
 
 
@@ -130,12 +151,14 @@ async def aceptar(accion: cl.Action) -> None:
 
 @cl.action_callback('cancelar')
 async def cancelar(_: cl.Action) -> None:
-    cl.user_session.set('alternativa', None)
-    await cl.Message(content='De acuerdo, consulta cancelada.').send()
+    await _cancelar_alternativa()
 
 
 @cl.on_chat_end
 async def fin() -> None:
+    tarea = cl.user_session.get('tarea_gestos')
+    if tarea:
+        tarea.cancel()
     acceso = cl.user_session.get('acceso')
     if acceso:
         await acceso.cerrar()

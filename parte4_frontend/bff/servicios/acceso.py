@@ -136,7 +136,7 @@ def trocear(desde: datetime, hasta: datetime, maximo_dias: int = MAX_DIAS_POR_CO
 
 
 def visible(fila: dict) -> bool:
-    """Un grupo se suma solo si la API lo marcó como no suprimido y trae una cifra (no `"<10"`)."""
+    """Un grupo se suma solo si la API lo marcó como no suprimido y trae una cifra (no `"oculto"`)."""
     return not fila.get('suprimido') and isinstance(fila.get('n_viajes'), (int, float))
 
 

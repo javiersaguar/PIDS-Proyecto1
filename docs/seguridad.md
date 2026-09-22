@@ -20,6 +20,7 @@ en la decisión del LLM externo ([`chatbot_rag.md`](chatbot_rag.md), T13).
 | Agregados | MongoDB `publico` | La API de acceso, con `X-API-Key`. Grupos por debajo de k van vacíos |
 | Auditoría | MongoDB `auditoria` | Spark y la API solo insertan. `pids_auditor` solo lee |
 | Secretos | `.env` (no está en Git, modo `0600`) | Cada componente tiene la suya |
+| Imagen de la cámara (gestos) | El navegador o el equipo con la demo de Windows | Nadie más: a la plataforma solo llegan la etiqueta y la confianza, por la API de captura con la clave del cliente `gestos` (en el portal, la guarda el BFF) |
 
 Las reglas son las de [`escenario_E3.md`](escenario_E3.md) y `config/privacidad.json`.
 

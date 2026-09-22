@@ -184,7 +184,7 @@ def test_percentiles_y_medidas_censuradas_no_parecen_exitos():
     datos = latencia.resumen([{'estado': 'publicado', 'latencia_s': 12}, {'estado': 'timeout'}])
     assert datos['publicadas'] == 1 and datos['fallidas'] == 1
     assert latencia.resumen([])['p95_s'] is None
-    assert not latencia.reconocido([{'n_viajes': '<10', 'suprimido': True}], 15)
+    assert not latencia.reconocido([{'n_viajes': 'oculto', 'suprimido': True}], 15)
     assert not latencia.reconocido([{'n_viajes': 30, 'suprimido': False}], 15)
     assert latencia.reconocido([{'n_viajes': 15, 'suprimido': False}], 15)
 

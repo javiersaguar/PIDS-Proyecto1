@@ -13,6 +13,8 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    // src/gestos/tabla.ts (y src/demo) importan config/*.json, fuera de la carpeta web
+    fs: { allow: [fileURLToPath(new URL('.', import.meta.url)), fileURLToPath(new URL('../../config', import.meta.url))] },
     // En desarrollo el BFF corre en el host: `uv run uvicorn parte4_frontend.bff.app:app --port 8020 --reload`
     proxy: {
       '/api': 'http://127.0.0.1:8020',

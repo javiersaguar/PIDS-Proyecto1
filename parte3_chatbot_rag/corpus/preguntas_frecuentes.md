@@ -7,15 +7,15 @@ el 96 % superan la validación), publicados en la fuente `historico`, y los viaj
 flujo de tiempo real, publicados en la fuente `tiempo_real` con las mismas reglas. Los importes están en
 dólares y las distancias en millas.
 
-## ¿Por qué algunos grupos aparecen como «<10»?
+## ¿Por qué algunos grupos aparecen como «oculto»?
 
 La plataforma sigue el escenario de **privacidad total (E3)**: ningún dato individual puede exponerse.
-Solo se publican agregados, y los grupos con menos de 10 viajes (el umbral k) se publican sin cifras,
-marcados como enmascarados. Así se distingue «no hubo viajes» (no aparece la fila) de «hubo muy pocos y
-no se muestran» (la fila aparece con «<10»). Además, algunos grupos con 10 o más viajes también se
-ocultan: es la **supresión complementaria**, que impide deducir un grupo pequeño restando los visibles al
-total del día. Por eso un grupo enmascarado nunca se estima, no se confirma ni se descarta ningún valor y
-no se suma a ningún total.
+Solo se publican agregados. Los grupos con menos de 10 viajes (el umbral k) se publican sin cifras, y
+también algunos con 10 o más: es la **supresión complementaria**, que impide deducir un grupo pequeño
+restando los visibles al total del día. La API no distingue unos de otros (esa marca no se publica), así
+que todos salen como «oculto». Así se distingue «no hubo viajes» (no aparece la fila) de «el grupo está
+oculto». Un grupo enmascarado nunca se estima, no se confirma ni se descarta ningún valor y no se suma a
+ningún total. No se escribe «<10»: para los complementarios sería falso.
 
 ## ¿Qué diferencia hay entre una zona y un barrio?
 

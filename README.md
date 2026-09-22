@@ -12,7 +12,7 @@ la parte 1.
 | 2 | Plataforma: captura, procesado, almacenamiento, acceso y visualización | [`parte2_plataforma/`](parte2_plataforma/) |
 | 3 | Chatbot con LLM local (Ollama) que consulta la plataforma | [`parte3_chatbot/`](parte3_chatbot/) |
 | 3 bis | Chatbot RAG: LangChain + Qdrant + LLM externo en la UE (Helmcode) | [`parte3_chatbot_rag/`](parte3_chatbot_rag/) |
-| — | Integración gestos ↔ plataforma ↔ chatbot (última fase) | [`integracion/`](integracion/) |
+| — | Integración gestos ↔ plataforma ↔ chatbots: la demo de Windows o la cámara del navegador (el MLP de la parte 1 en el portal, también en Vercel) manejan los tres chatbots | [`integracion/`](integracion/) |
 | 4 | Portal web corporativo: panel, explorador, asistente, tiempo real, auditoría y operaciones | [`parte4_frontend/`](parte4_frontend/) |
 
 ## Stack tecnológico

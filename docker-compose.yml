@@ -484,6 +484,10 @@ services:
       RAG_RERANK: ${RAG_RERANK:-false}
       ACCESO_URL: http://acceso:8000
       ACCESO_CLAVE: ${ACCESO_CLAVE_CHATBOT_RAG}
+      # gestos de la parte 1, como el chatbot de Ollama (lee la cola por la API de captura)
+      CAPTURA_URL: http://captura:8000
+      CAPTURA_CLAVE: ${CAPTURA_CLAVE_CHATBOT}
+      GESTOS_ACTIVOS: ${GESTOS_ACTIVOS:-false}
       CHATBOT_USUARIO: ${CHATBOT_USUARIO:-equipo}
       CHATBOT_CLAVE: ${CHATBOT_CLAVE}
       CHAINLIT_AUTH_SECRET: ${CHAINLIT_AUTH_SECRET}
@@ -550,6 +554,8 @@ services:
       ACCESO_CLAVE: ${ACCESO_CLAVE_FRONTEND}
       CAPTURA_URL: http://captura:8000
       CAPTURA_CLAVE: ${CAPTURA_CLAVE_SIMULADOR}
+      # Gestos reconocidos en el navegador: entran por la API de captura como cliente `gestos` (el de la demo de Windows)
+      GESTOS_CLAVE: ${CAPTURA_CLAVE_GESTOS}
       PROMETHEUS_URL: http://prometheus:9090
       # Estado de las alertas en la sección Observabilidad (lectura anónima de Grafana)
       GRAFANA_URL: http://grafana:3000

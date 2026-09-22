@@ -34,8 +34,8 @@ describe('formato de cifras', () => {
   })
 
   it('devuelve las cadenas tal cual (grupos enmascarados) y el guion cuando no hay valor', () => {
-    expect(formatearEntero('<10')).toBe('<10')
-    expect(formatearViajes('<10')).toBe('<10')
+    expect(formatearEntero('oculto')).toBe('oculto')
+    expect(formatearViajes('oculto')).toBe('oculto')
     expect(formatearViajes(7182)).toBe('7.182')
     expect(formatearEntero(null)).toBe(SIN_DATO)
     expect(formatearEntero(undefined)).toBe(SIN_DATO)

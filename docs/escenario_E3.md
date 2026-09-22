@@ -9,7 +9,7 @@
 |---|---|---|
 | Agregar o anonimizar antes de hacer consultable | Los viajes individuales solo existen en el bucket `crudo` y en el topic `viajes-crudos`. MongoDB (lo único consultable) solo recibe agregados | `pids.Privacidad`, `01_usuarios.js` |
 | Misma protección para histórico y tiempo real | Las mismas funciones Scala (`Esquema`, `Privacidad`) en el trabajo por lotes y en el de streaming; las reglas salen de dos JSON compartidos con Python. Excepción: la supresión complementaria solo se aplica en lotes (ver «Riesgos conocidos») | `config/`, `CargaHistorica`, `TiempoReal` |
-| Enmascarar resultados con pocos registros | Grupos con menos de `k_minimo` = 10 viajes se publican con `suprimido: true` y sin cifras; la API los devuelve como `"<10"` y nunca los suma a un total. Supresión complementaria para que no se puedan deducir restando (ver «Ataque por diferencia») | `Privacidad.proteger`, `Privacidad.suprimirComplementariosTodos`, `privacidad.enmascarar` |
+| Enmascarar resultados con pocos registros | Grupos con menos de `k_minimo` = 10 viajes, y los complementarios que impedirían deducirlos restando, se publican con `suprimido: true` y sin cifras. La API los devuelve todos como `"oculto"` (no se puede distinguir cuáles son complementarios: esa marca no se publica) y nunca los suma a un total | `Privacidad.proteger`, `Privacidad.suprimirComplementariosTodos`, `privacidad.enmascarar` |
 | Rechazar consultas de viajes individuales | Tres barreras: filtro previo del chatbot, rutas `/viajes/*` y `/consultas/individual` que siempre rechazan, y validación de cada consulta (campos prohibidos, granularidad mínima, rango máximo) | `herramientas.parece_individual`, `acceso/app.py`, `privacidad.evaluar` |
 | Registrar decisiones y ofrecer alternativas | Cada decisión (permitida, enmascarada o rechazada) se guarda en `auditoria.decisiones`, que solo admite inserciones. Cada rechazo incluye una consulta alternativa que sí se puede responder (probado en los tests) | `acceso/app.py`, `test_privacidad.py` |
 
@@ -32,14 +32,15 @@
    prompts) la pregunta, el historial de la sesión, el contexto recuperado y los agregados **ya protegidos** que
    devuelve la API de acceso; nunca datos individuales, porque no los tiene: no está en la red de datos ni tiene
    credenciales. Una lista blanca en `llm.py` veta los modelos que el proveedor revende fuera de la UE, y una
-   guardia de salida (`salida.py`) revisa cada mensaje antes de enviarlo. Decisión anotada en la bitácora el
-   21/09/2026; detalle en [`chatbot_rag.md`](chatbot_rag.md).
+   guardia de salida (`salida.py`) revisa cada mensaje antes de enviarlo. Decisión vigente desde el
+   22/09/2026 (bitácora): la demo enseña los dos chatbots. Detalle en [`chatbot_rag.md`](chatbot_rag.md).
 
 ## Decisión: los grupos suprimidos se publican, pero vacíos
 
-Un grupo con menos de 10 viajes se publica con `suprimido: true` y sin cifras, en vez de no publicarse.
-Así la respuesta puede distinguir «no hubo viajes» de «hubo muy pocos y no se muestran», que es lo que
-pide E3 («informar de la decisión de privacidad»). Con el año 2020 completo eso supone 430 113
+Un grupo suprimido se publica con `suprimido: true` y `n_viajes: "oculto"`, en vez de no publicarse.
+Así la respuesta distingue «no hubo viajes» de «el grupo está oculto». No se escribe `"<10"`: con la
+supresión complementaria un grupo oculto puede tener 10 o más viajes, y la marca de complementario no
+se publica. Es lo que pide E3 («informar de la decisión de privacidad»). Con el año 2020 completo eso supone 430 113
 documentos extra y 214 MB en total en MongoDB, coste asumible. Si en el futuro se cargan varios años,
 habría que revisarlo (ver `docs/metricas_calidad.md`).
 

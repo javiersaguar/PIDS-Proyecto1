@@ -29,8 +29,8 @@ const RESPUESTA_ENMASCARADA: Respuesta = {
   resultado: 'enmascarada',
   consulta: { nivel: 'hora_zona', fuente: 'historico', desde: '2020-01-01T00:00:00', hasta: '2020-01-02T00:00:00', metricas: ['n_viajes'], zona_origen: 221 },
   filas: [
-    { zona_origen: 221, zona_origen_nombre: 'Stapleton', barrio_origen: 'Staten Island', n_viajes: '<10', hora: '2020-01-01T05:00:00', suprimido: true },
-    { zona_origen: 221, zona_origen_nombre: 'Stapleton', barrio_origen: 'Staten Island', n_viajes: '<10', hora: '2020-01-01T09:00:00', suprimido: true },
+    { zona_origen: 221, zona_origen_nombre: 'Stapleton', barrio_origen: 'Staten Island', n_viajes: 'oculto', hora: '2020-01-01T05:00:00', suprimido: true },
+    { zona_origen: 221, zona_origen_nombre: 'Stapleton', barrio_origen: 'Staten Island', n_viajes: 'oculto', hora: '2020-01-01T09:00:00', suprimido: true },
     { zona_origen: 221, zona_origen_nombre: 'Stapleton', barrio_origen: 'Staten Island', n_viajes: 12, hora: '2020-01-01T18:00:00', suprimido: false },
   ],
   grupos_enmascarados: 2,
@@ -44,7 +44,7 @@ const RESPUESTA_BARRIOS: Respuesta = {
   filas: [
     { dia: '2020-03-03T00:00:00', barrio_origen: 'Manhattan', n_viajes: 203866, distancia_media: 2.2, importe_medio: 16.96, propina_media: 2.12, pct_pago_tarjeta: 78.07, suprimido: false },
     { dia: '2020-03-03T00:00:00', barrio_origen: 'Queens', n_viajes: 12145, distancia_media: 10.77, importe_medio: 45.0, propina_media: 5.11, pct_pago_tarjeta: 61.98, suprimido: false },
-    { dia: '2020-03-03T00:00:00', barrio_origen: 'Staten Island', n_viajes: '<10', distancia_media: null, importe_medio: null, propina_media: null, pct_pago_tarjeta: null, suprimido: true },
+    { dia: '2020-03-03T00:00:00', barrio_origen: 'Staten Island', n_viajes: 'oculto', distancia_media: null, importe_medio: null, propina_media: null, pct_pago_tarjeta: null, suprimido: true },
   ],
   grupos_enmascarados: 1,
   truncada: false,
@@ -75,7 +75,7 @@ const BASE = {
 const URL_ENMASCARADA = '/explorador?nivel=hora_zona&fuente=historico&desde=2020-01-01T00%3A00%3A00&hasta=2020-01-02T00%3A00%3A00&zona_origen=221'
 
 describe('PaginaExplorador', () => {
-  it('lanza la consulta de la URL y marca los grupos enmascarados con el chip y «<10»', async () => {
+  it('lanza la consulta de la URL y marca los grupos enmascarados con el chip y «oculto»', async () => {
     const espia = simularApi({ ...BASE, 'POST /api/consultas': RESPUESTA_ENMASCARADA })
     renderizarRutas(URL_ENMASCARADA)
 
@@ -88,7 +88,7 @@ describe('PaginaExplorador', () => {
 
     const tabla = within(resultado).getByRole('table', { name: /^Filas:/ })
     expect(within(tabla).getAllByText('enmascarado por privacidad')).toHaveLength(2)
-    expect(within(tabla).getAllByText('<10')).toHaveLength(2)
+    expect(within(tabla).getAllByText('oculto')).toHaveLength(2)
     const [, cuerpo, pie] = within(tabla).getAllByRole('rowgroup')
     expect(within(cuerpo).getByText('12')).toBeInTheDocument()
     // El total del pie solo suma el grupo visible.

@@ -57,9 +57,10 @@ proveedor, matrículas, instantes exactos ni destino por zona: pedirlos rechaza 
 - `resumen`: calculado por la plataforma, no por el modelo: `total_viajes`, `grupo_con_mas_viajes`,
   `grupo_con_menos_viajes` y las medias conjuntas ponderadas por viajes (`propina_media_conjunta`,
   `importe_medio_conjunta`…). Las cifras de una respuesta se copian de aquí o de las filas.
-- Un grupo con `n_viajes` igual a `"<10"` está **enmascarado por privacidad**: tuvo menos de 10 viajes, o se
-  oculta para que no se pueda deducir otro grupo restando. No tiene cifras, no se suma a ningún total y no se
-  estima. Cuando hay grupos enmascarados el resumen no da total ni medias conjuntas.
+- Un grupo con `n_viajes` igual a `"oculto"` está **enmascarado por privacidad**: tuvo menos de 10 viajes, o se
+  oculta para que no se pueda deducir otro grupo restando. No se sabe cuál de las dos, así que no se escribe
+  `"<10"`. No tiene cifras, no se suma a ningún total y no se estima. Cuando hay grupos enmascarados el resumen
+  no da total ni medias conjuntas.
 - `resultado` puede ser `permitida`, `enmascarada` (hay grupos ocultos) o `rechazada` (la consulta viola una
   regla). Un rechazo trae los `motivos` y una `alternativa` que sí se puede responder: se explica y se ofrece.
 - `truncada` en verdadero significa que la respuesta tiene más de 500 filas y solo se muestran las primeras:

@@ -3,10 +3,13 @@
  * como botón fijo abajo a la derecha con su panel deslizante (disponible en todas las páginas, sin ruta propia).
  * El grafo ocupa todo el hueco, sin cabecera. El panel, el explorador, privacidad, tiempo real y
  * operaciones tampoco llevan cabecera: el título de la sección ya está en la barra lateral.
+ * Los gestos de la parte 1 (cámara del navegador o demo de Windows) valen en todas las páginas: `ProveedorGestos`.
  */
 import { useCallback, useRef, useState } from 'react'
 import { Outlet, useLocation } from 'react-router'
 
+import { AtajosGestos } from '@/gestos/AtajosGestos'
+import { ProveedorGestos } from '@/gestos/ProveedorGestos'
 import { cn } from '@/lib/utils'
 
 import { BarraLateral } from './BarraLateral'
@@ -37,6 +40,7 @@ export function AppShell() {
   }
 
   const cerrarAsistente = useCallback(() => setAsistenteAbierto(false), [])
+  const abrirAsistente = useCallback(() => setAsistenteAbierto(true), [])
   const alternarAsistente = useCallback(() => setAsistenteAbierto((abierto) => !abierto), [])
 
   const lienzo = pathname === '/grafo' || pathname.startsWith('/grafo/')
@@ -49,6 +53,8 @@ export function AppShell() {
   const amplio = esPanel || esExplorador || esTiempoReal || esOperaciones || esObservabilidad
 
   return (
+    <ProveedorGestos panelAbierto={asistenteAbierto} elevada={lienzo}>
+    <AtajosGestos abierto={asistenteAbierto} alAbrir={abrirAsistente} alCerrar={cerrarAsistente} />
     <div className="min-h-svh bg-fondo">
       <a
         href="#contenido"
@@ -76,5 +82,6 @@ export function AppShell() {
       <BotonTaxiAI ref={botonRef} abierto={asistenteAbierto} alPulsar={alternarAsistente} elevado={lienzo} />
       <PanelAsistente abierto={asistenteAbierto} alCerrar={cerrarAsistente} botonRef={botonRef} />
     </div>
+    </ProveedorGestos>
   )
 }

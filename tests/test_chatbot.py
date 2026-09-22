@@ -226,7 +226,7 @@ def test_para_el_modelo_compacta_filas_y_quita_lo_que_sobra():
 # --- cifras verificadas --------------------------------------------------------------------------------
 
 DIA = {'filas': [{'barrio_origen': 'Manhattan', 'n_viajes': 203866}, {'barrio_origen': 'Queens', 'n_viajes': 12145},
-                 {'barrio_origen': 'Staten Island', 'n_viajes': '<10', 'suprimido': True}], 'grupos_enmascarados': 1}
+                 {'barrio_origen': 'Staten Island', 'n_viajes': 'oculto', 'suprimido': True}], 'grupos_enmascarados': 1}
 JFK = H.con_resumen({'filas': [{'n_viajes': n, 'propina_media': p} for n, p in [(144, 4.11), (169, 3.9)]]})
 
 
@@ -266,7 +266,7 @@ def test_los_datos_tal_cual_ocultan_los_grupos_pequenos_y_no_dan_total():
     consulta = {'nivel': 'dia_barrio', 'fuente': 'historico', 'desde': '2020-03-03T00:00:00',
                 'hasta': '2020-03-04T00:00:00'}
     texto = C.respuesta_con_datos([{**DIA, 'consulta': consulta}])
-    assert '| Manhattan | 203.866 |' in texto and '| Staten Island | <10 |' in texto
+    assert '| Manhattan | 203.866 |' in texto and '| Staten Island | oculto |' in texto
     assert 'Total' not in texto and '1 grupo está enmascarado' in texto
     assert C.respuesta_con_datos([{'resultado': 'rechazada'}]) is None
 

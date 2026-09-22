@@ -16,9 +16,9 @@ const TIEMPO_REAL: TiempoReal = {
   ],
   por_zona_ultima_hora: [
     { hora: '2020-12-30T20:00:00', zona_origen: 265, zona_origen_nombre: 'Outside of NYC', barrio_origen: 'N/A', n_viajes: 15, suprimido: false },
-    { hora: '2020-12-30T20:00:00', zona_origen: 4, zona_origen_nombre: 'Alphabet City', barrio_origen: 'Manhattan', n_viajes: '<10', suprimido: true },
-    { hora: '2020-12-30T20:00:00', zona_origen: 7, zona_origen_nombre: 'Astoria', barrio_origen: 'Queens', n_viajes: '<10', suprimido: true },
-    { hora: '2020-12-30T20:00:00', zona_origen: 12, zona_origen_nombre: 'Battery Park', barrio_origen: 'Manhattan', n_viajes: '<10', suprimido: true },
+    { hora: '2020-12-30T20:00:00', zona_origen: 4, zona_origen_nombre: 'Alphabet City', barrio_origen: 'Manhattan', n_viajes: 'oculto', suprimido: true },
+    { hora: '2020-12-30T20:00:00', zona_origen: 7, zona_origen_nombre: 'Astoria', barrio_origen: 'Queens', n_viajes: 'oculto', suprimido: true },
+    { hora: '2020-12-30T20:00:00', zona_origen: 12, zona_origen_nombre: 'Battery Park', barrio_origen: 'Manhattan', n_viajes: 'oculto', suprimido: true },
   ],
 }
 
@@ -57,7 +57,7 @@ describe('PaginaTiempoReal', () => {
     // Ordenada por viajes de mayor a menor: la visible primero, los enmascarados después.
     expect(filas[0]).toHaveTextContent('Outside of NYC')
     expect(within(cuerpo).getAllByText('enmascarado por privacidad')).toHaveLength(3)
-    expect(within(cuerpo).getAllByText('<10')).toHaveLength(3)
+    expect(within(cuerpo).getAllByText('oculto')).toHaveLength(3)
     expect(pie).toHaveTextContent('3 enmascarados no incluidos')
     expect(within(pie).getByText('15')).toBeInTheDocument()
   })

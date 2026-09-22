@@ -1,6 +1,6 @@
 /**
  * Tabla ordenable de filas de agregados (`Fila` del §5). Las columnas dependen del nivel y de las métricas
- * pedidas; los grupos enmascarados llevan el chip violeta «enmascarado por privacidad» y `<10`, sin cifras.
+ * pedidas; los grupos enmascarados llevan el chip violeta «enmascarado por privacidad» y `oculto`, sin cifras.
  * El total del pie suma solo los grupos visibles: los enmascarados se cuentan, nunca se suman.
  */
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react'

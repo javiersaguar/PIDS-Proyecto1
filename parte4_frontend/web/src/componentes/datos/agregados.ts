@@ -66,7 +66,7 @@ export function esMetrica(valor: unknown): valor is Metrica {
   return typeof valor === 'string' && (METRICAS as readonly string[]).includes(valor)
 }
 
-/** Un grupo enmascarado llega con `suprimido: true` y `n_viajes: "<10"`, sin cifras. */
+/** Un grupo enmascarado llega con `suprimido: true` y `n_viajes: "oculto"`, sin cifras. */
 export function esEnmascarada(fila: Fila): boolean {
   return fila.suprimido === true || typeof fila.n_viajes === 'string'
 }

@@ -163,6 +163,15 @@ describe('resto del BFF de la demostración', () => {
     expect(otro.tipo === 'json' && otro.estado).toBe(404)
   })
 
+  it('los gestos se atienden en el navegador: no se envían a ningún sitio y no hay flujo de la plataforma', async () => {
+    const demo = nuevaDemo()
+    const envio = await demo.atender(peticion('POST', '/api/gestos', { gesto: 'thumbsup', confianza: 0.97, dispositivo: 'portal-abc123' }))
+    expect(envio.tipo === 'json' && envio.estado).toBe(202)
+    expect(cuerpo(envio)).toEqual({ enviado: false, demostracion: true })
+    const flujo = await demo.atender(peticion('GET', '/api/gestos/stream'))
+    expect(flujo.tipo === 'json' && flujo.estado).toBe(404)
+  })
+
   it('cerrar la sesión exige volver a entrar; cualquier contraseña vale', async () => {
     const demo = nuevaDemo()
     await demo.atender(peticion('DELETE', '/api/sesion'))

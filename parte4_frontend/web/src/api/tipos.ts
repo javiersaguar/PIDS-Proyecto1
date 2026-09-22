@@ -20,7 +20,7 @@ export interface Consulta {                      // POST /api/consultas (cuerpo)
   nivel: Nivel; fuente?: Fuente; desde: string; hasta: string;             // ISO sin zona: 2020-01-15T08:00:00
   metricas?: Metrica[]; zona_origen?: number | null; barrio_origen?: string | null; barrio_destino?: string | null;
 }
-export interface Fila {                          // una fila de agregados; n_viajes es "<10" si el grupo está enmascarado
+export interface Fila {                          // una fila de agregados; n_viajes es "oculto" si el grupo está enmascarado
   hora?: string; dia?: string; zona_origen?: number; zona_origen_nombre?: string;
   barrio_origen?: string; barrio_destino?: string; n_viajes: number | string; suprimido: boolean;
   distancia_media?: number | null; importe_medio?: number | null; propina_media?: number | null; pct_pago_tarjeta?: number | null;

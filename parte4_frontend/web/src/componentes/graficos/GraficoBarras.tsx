@@ -1,7 +1,7 @@
 /**
  * Gráfico de barras (Recharts) con una serie: horizontal (categorías en el eje Y, para barrios o zonas) o
  * vertical (para horas). La serie va en el amarillo taxi; los grupos enmascarados se pintan como una barra
- * mínima con trama violeta y la etiqueta «<10», sin cifra.
+ * mínima con trama violeta y la etiqueta «oculto», sin cifra.
  */
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, Tooltip, XAxis, YAxis } from 'recharts'
 
@@ -72,7 +72,7 @@ export function GraficoBarras({
 
   const describirEntrada: DescribirEntrada = (_clave, _valor, punto) => {
     const p = punto as unknown as PuntoBarra
-    if (p.enmascarado) return { texto: '<10 · enmascarado', enmascarado: true }
+    if (p.enmascarado) return { texto: 'oculto · enmascarado', enmascarado: true }
     return p.valor === null ? { texto: '—' } : { texto: formatearValor(p.valor) }
   }
 
@@ -160,7 +160,7 @@ export function GraficoBarras({
                   fill={COLOR_ENMASCARADO}
                   fontSize={11}
                   fontWeight={600}
-                  valueAccessor={(entrada) => ((entrada.payload as PuntoBarra).enmascarado ? '<10' : '')}
+                  valueAccessor={(entrada) => ((entrada.payload as PuntoBarra).enmascarado ? 'oculto' : '')}
                 />
               )}
             </Bar>

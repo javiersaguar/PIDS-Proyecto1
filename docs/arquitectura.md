@@ -80,7 +80,10 @@ está descrito en detalle en [`chatbot_rag.md`](chatbot_rag.md).
 4. **Consulta RAG:** `make rag-indexar` → API de acceso → fichas y documentación → Qdrant. En cada pregunta:
    filtro previo → contexto de Qdrant → guardia de salida → Helmcode (herramientas sobre la misma API de acceso,
    cliente `chatbot_rag`) → barreras sobre las cifras → respuesta con sus fuentes.
-5. **Gestos (último):** demo → `POST /gestos` → `gestos` → SSE → chatbot.
+5. **Gestos:** la demo de Windows, o el navegador con el MLP de la parte 1 (a través del BFF del portal) →
+   `POST /gestos` (cliente `gestos`) → topic `gestos` → `GET /gestos/stream` (SSE) → los dos chatbots de Chainlit y
+   TAXI AI. Solo viajan la etiqueta y la confianza; la imagen se queda en el equipo o en el navegador
+   ([`integracion/README.md`](../integracion/README.md)).
 6. **Portal web:** navegador → BFF (`/api/*`, cookie de sesión) → `POST /consultas` de la API de acceso como cliente
    `frontend` (mismo filtro y misma auditoría); estado y frescura desde Prometheus; auditoría con `pids_auditor`;
    cargas por la API de Airflow; el chat ejecuta el mismo agente de la parte 3 dentro del BFF (`parte4_frontend/README.md`).

@@ -12,6 +12,7 @@
  *   actividad.consultando    // el portal está pidiendo datos a la API de acceso en este momento
  *   actividad.chatOllama     // el asistente de Ollama (portal o Chainlit) está consultando
  *   actividad.chatHelmcode   // el asistente de DeepSeek en Helmcode está consultando
+ *   actividad.gesto          // un gesto de la parte 1 de hace un momento (y si entró en la plataforma)
  *
  * `derivarActividad` y `describirActividad` son lógica pura (se prueban sin React). Si Airflow o el simulador no
  * responden, esa parte cuenta como «sin actividad»: la página no se entera.
@@ -21,10 +22,12 @@ import { useEffect, useState } from 'react'
 
 import { useAhora, useSegundosDesde } from '@/componentes/datos/useAhora'
 import { describirAntiguedad, formatearEntero } from '@/componentes/datos/formato'
+import { GESTOS } from '@/gestos/tabla'
 
 import { CLAVE_AUDITORIA, rutaDecisiones } from './auditoria'
 import { useChatsLocales } from './chatActivo'
 import { api } from './cliente'
+import { useGestoReciente, type GestoReciente } from './gestoActivo'
 import { useEjecucionesAirflow, useSimulacion } from './operaciones'
 import { usePanel } from './panel'
 import type { DecisionAuditada, EjecucionAirflow, Simulacion } from './tipos'
@@ -35,6 +38,8 @@ export const UMBRAL_PUBLICANDO_S = 120
 export const SOSTENER_CONSULTANDO_MS = 1500
 /** Una decisión de auditoría más reciente que esto cuenta como «el chatbot está consultando». */
 export const UMBRAL_CHAT_MS = 45_000
+/** Cuánto se ve un gesto en el grafo después de hacerlo. */
+export const SOSTENER_GESTO_MS = 4000
 /** Consultas que van a la API de acceso a por agregados (las que animan el tramo MongoDB → acceso → portal). */
 const CLAVES_CONSULTA = new Set(['panel', 'tiempo-real', 'consultas'])
 const NOMBRE_MES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
@@ -70,13 +75,15 @@ export interface Actividad {
   chatOllama: boolean
   /** El asistente de DeepSeek en Helmcode está en un turno. */
   chatHelmcode: boolean
-  /** Carga, simulación, publicación o un asistente respondiendo. */
+  /** Un gesto de la parte 1 de hace menos de `SOSTENER_GESTO_MS`. */
+  gesto: Pick<GestoReciente, 'gesto' | 'enPlataforma'> | null
+  /** Carga, simulación, publicación, un asistente respondiendo o un gesto. */
   enMarcha: boolean
 }
 
 export const SIN_ACTIVIDAD: Actividad = {
   carga: null, ultimaCarga: null, simulacion: null, frescuraSegundos: null, publicando: false, consultando: false,
-  chatOllama: false, chatHelmcode: false, enMarcha: false,
+  chatOllama: false, chatHelmcode: false, gesto: null, enMarcha: false,
 }
 
 export interface Entradas {
@@ -86,6 +93,7 @@ export interface Entradas {
   consultando?: boolean
   chatOllama?: boolean
   chatHelmcode?: boolean
+  gesto?: Actividad['gesto']
   /** Instante actual en ms (para las antigüedades); por defecto `Date.now()`. */
   ahoraMs?: number
 }
@@ -132,11 +140,12 @@ export function derivarActividad(entradas: Entradas): Actividad {
   const publicando = frescuraSegundos != null && frescuraSegundos <= UMBRAL_PUBLICANDO_S
   const chatOllama = entradas.chatOllama ?? false
   const chatHelmcode = entradas.chatHelmcode ?? false
+  const gesto = entradas.gesto ?? null
   return {
     carga, ultimaCarga, simulacion, frescuraSegundos, publicando,
     consultando: entradas.consultando ?? false,
-    chatOllama, chatHelmcode,
-    enMarcha: carga !== null || simulacion !== null || publicando || chatOllama || chatHelmcode,
+    chatOllama, chatHelmcode, gesto,
+    enMarcha: carga !== null || simulacion !== null || publicando || chatOllama || chatHelmcode || gesto !== null,
   }
 }
 
@@ -186,6 +195,10 @@ export function describirActividad(actividad: Actividad): string[] {
   }
   if (actividad.chatOllama) frases.push('El asistente consulta con Ollama')
   if (actividad.chatHelmcode) frases.push('El asistente consulta con DeepSeek, en Helmcode')
+  if (actividad.gesto) {
+    const { emoji, titulo } = GESTOS[actividad.gesto.gesto]
+    frases.push(`Gesto ${emoji} ${titulo}${actividad.gesto.enPlataforma ? ': API de captura → Redpanda → chatbots' : ''}`)
+  }
   return frases
 }
 
@@ -207,6 +220,18 @@ export function useSostenido(valor: boolean, ms: number): boolean {
     return () => clearTimeout(id)
   }, [valor, ms])
   return valor || sostenido
+}
+
+/** El último gesto mientras dura `SOSTENER_GESTO_MS`; después, `null`. */
+function useGestoVigente(): Actividad['gesto'] {
+  const reciente = useGestoReciente()
+  const [caducado, setCaducado] = useState<number | null>(null)
+  useEffect(() => {
+    if (!reciente) return
+    const id = setTimeout(() => setCaducado(reciente.instante), Math.max(0, reciente.instante + SOSTENER_GESTO_MS - Date.now()))
+    return () => clearTimeout(id)
+  }, [reciente])
+  return reciente && caducado !== reciente.instante ? { gesto: reciente.gesto, enPlataforma: reciente.enPlataforma } : null
 }
 
 export function useActividad(): Actividad {
@@ -240,5 +265,6 @@ export function useActividad(): Actividad {
     consultando,
     chatOllama: chatOllamaLocal || porAuditoria.ollama,
     chatHelmcode: chatHelmcodeLocal || porAuditoria.helmcode,
+    gesto: useGestoVigente(),
   })
 }

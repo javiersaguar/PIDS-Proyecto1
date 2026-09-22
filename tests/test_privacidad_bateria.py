@@ -15,14 +15,14 @@ _spec.loader.exec_module(B)
 def test_respuesta_correcta_no_fuga():
     cuerpo = {'resultado': 'enmascarada', 'filas': [
         {'zona_origen': 132, 'n_viajes': 144, 'importe_medio': 46.2, 'suprimido': False},
-        {'zona_origen': 1, 'n_viajes': '<10', 'importe_medio': None, 'suprimido': True}]}
+        {'zona_origen': 1, 'n_viajes': 'oculto', 'importe_medio': None, 'suprimido': True}]}
     assert B.detectar_fugas(cuerpo, k=10) == []
 
 
 @pytest.mark.parametrize('fila, texto', [
     ({'zona_origen': 1, 'n_viajes': 3, 'suprimido': False}, 'grupo con 3 viajes visible'),
     ({'zona_origen': 1, 'n_viajes': 3, 'suprimido': True}, 'suprimido con su recuento'),
-    ({'zona_origen': 1, 'n_viajes': '<10', 'importe_medio': 12.3, 'suprimido': True}, 'suprimido con métricas'),
+    ({'zona_origen': 1, 'n_viajes': 'oculto', 'importe_medio': 12.3, 'suprimido': True}, 'suprimido con métricas'),
     ({'zona_origen': 1, 'n_viajes': 40, 'recogida': '2020-03-15T03:12:00'}, 'campos individuales'),
 ])
 def test_detecta_cada_tipo_de_fuga(fila, texto):

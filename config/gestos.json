@@ -1,0 +1,51 @@
+{
+  "descripcion": "Qué hace cada gesto de la parte 1 en los chatbots. La leen los dos chatbots de Chainlit (parte3_chatbot/gestos.py) y TAXI AI en el portal (parte4_frontend/web/src/gestos). Las acciones que un chatbot no tiene se ignoran: leer, abrir y cerrar solo existen en el portal. «preguntas»: las que hace ✌️, en orden y dando la vuelta; la última es una petición individual, para que 👍 confirme su alternativa.",
+  "confianza_minima": 0.85,
+  "estabilidad": 4,
+  "repetir_cada_s": 3,
+  "gestos": {
+    "thumbsup": {
+      "emoji": "👍",
+      "accion": "confirmar",
+      "titulo": "Confirmar",
+      "texto": "Ejecuta la alternativa agregada que propone el asistente tras un rechazo"
+    },
+    "paper": {
+      "emoji": "✋",
+      "accion": "cancelar",
+      "titulo": "Parar",
+      "texto": "Descarta la alternativa, corta la respuesta en curso o calla la lectura en voz alta"
+    },
+    "scissors": {
+      "emoji": "✌️",
+      "accion": "siguiente",
+      "titulo": "Otra pregunta",
+      "texto": "Hace la siguiente pregunta de ejemplo"
+    },
+    "ok": {
+      "emoji": "👌",
+      "accion": "leer",
+      "titulo": "Leer en voz alta",
+      "texto": "Lee en voz alta la última respuesta, para usarlo sin mirar la pantalla"
+    },
+    "rockandroll": {
+      "emoji": "🤘",
+      "accion": "abrir",
+      "titulo": "Abrir TAXI AI",
+      "texto": "Abre el panel del asistente desde cualquier página"
+    },
+    "rock": {
+      "emoji": "✊",
+      "accion": "cerrar",
+      "titulo": "Cerrar TAXI AI",
+      "texto": "Cierra el panel del asistente; la conversación sigue"
+    }
+  },
+  "preguntas": [
+    "¿Cuántos viajes salieron de JFK el 15 de enero entre las 8 y las 12?",
+    "¿Qué barrio tuvo más viajes el 3 de marzo?",
+    "¿Cuál fue la propina media en Manhattan la primera semana de febrero?",
+    "¿Cuántos viajes hubo de Queens a Manhattan el 10 de enero?",
+    "Dame el viaje de las 3:12 del 15 de enero desde Times Square"
+  ]
+}

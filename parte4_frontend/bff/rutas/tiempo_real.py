@@ -5,7 +5,7 @@ Todo sale de consultas normales a la API de acceso con `fuente=tiempo_real` (col
 - `por_hora`: las últimas N horas con datos (`hora_zona`), sumando solo los grupos visibles y contando los
   enmascarados. Un día entero con todas las zonas supera las 500 filas que la API devuelve como máximo, así que
   en ese caso se pide hora a hora desde el final (`servicios/acceso.py`).
-- `por_zona_ultima_hora`: las filas de la última hora tal cual las da la API (con sus `"<10"`).
+- `por_zona_ultima_hora`: las filas de la última hora tal cual las da la API (con sus `"oculto"`).
 - `frescura`: de Prometheus (`publico_ultima_actualizacion_timestamp_segundos`).
 
 La página se refresca cada 30 s y cada consulta queda en la auditoría: el resultado se guarda en memoria unos

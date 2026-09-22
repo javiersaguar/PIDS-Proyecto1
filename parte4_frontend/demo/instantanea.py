@@ -6,7 +6,7 @@ ningún BFF: un interceptor de `fetch` responde a `/api/*` con estos ficheros.
 
 Qué se graba y de dónde sale:
   - agregados: consultas normales a la API de acceso, que ya aplica el filtro de privacidad (los grupos de menos de
-    10 viajes llegan como "<10", sin cifras). Día y barrio y flujos entre barrios de todo 2020; hora y zona solo de
+    10 viajes llegan como "oculto", sin cifras). Día y barrio y flujos entre barrios de todo 2020; hora y zona solo de
     unos días (`DIAS_HORA_ZONA`);
   - estado de los servicios y contadores: Prometheus;
   - auditoría: `auditoria.decisiones` y `auditoria.cargas` con el usuario de solo lectura `pids_auditor`;
@@ -22,6 +22,10 @@ Uso (desde la raíz del repositorio, con la plataforma levantada):
     uv run python -m parte4_frontend.demo.instantanea
     uv run python -m parte4_frontend.demo.instantanea --sin-chat      # conserva las conversaciones grabadas
     uv run python -m parte4_frontend.demo.instantanea --solo-observabilidad   # solo los cuadros (portal levantado)
+    # solo las conversaciones, desde la red de Docker, porque Ollama no se publica en el equipo:
+    docker run --rm --network pids_servicios --user "$(id -u):$(id -g)" -v "$PWD:/repo" -w /repo \
+        -e ACCESO_URL=http://acceso:8000 -e OLLAMA_URL=http://ollama:11434 pids/frontend:local \
+        python -m parte4_frontend.demo.instantanea --solo-chat
 """
 from __future__ import annotations
 
@@ -334,8 +338,10 @@ async def conversaciones(cfg: dict) -> dict:
     import agente as AG
     from herramientas import ClienteAcceso
 
-    acceso = ClienteAcceso(url=f'http://127.0.0.1:{cfg.get("PUERTO_ACCESO", "8002")}', clave=cfg['ACCESO_CLAVE_EQUIPO'])
-    llm = AsyncClient(host=f'http://127.0.0.1:{cfg.get("PUERTO_OLLAMA", "11435")}')
+    # ACCESO_URL y OLLAMA_URL para grabar desde la red de Docker (Ollama no se publica en el equipo)
+    acceso = ClienteAcceso(url=cfg.get('ACCESO_URL') or f'http://127.0.0.1:{cfg.get("PUERTO_ACCESO", "8002")}',
+                           clave=cfg['ACCESO_CLAVE_EQUIPO'])
+    llm = AsyncClient(host=cfg.get('OLLAMA_URL') or f'http://127.0.0.1:{cfg.get("PUERTO_OLLAMA", "11435")}')
     modelo = cfg.get('OLLAMA_MODELO', 'llama3.1:8b')
 
     def eventos(turno) -> list[dict]:
@@ -374,11 +380,15 @@ def main() -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument('--sin-chat', action='store_true', help='no regraba las conversaciones del asistente')
     p.add_argument('--solo-observabilidad', action='store_true', help='graba solo los cuadros de observabilidad')
+    p.add_argument('--solo-chat', action='store_true', help='graba solo las conversaciones del asistente')
     args = p.parse_args()
     cfg = entorno()
     ahora = datetime.now(timezone.utc)
     if args.solo_observabilidad:
         observabilidad(cfg, ahora)
+        return 0
+    if args.solo_chat:
+        guardar(DESTINO / 'chat.json', asyncio.run(conversaciones(cfg)))
         return 0
     api = Acceso(f'http://127.0.0.1:{cfg.get("PUERTO_ACCESO", "8002")}', cfg['ACCESO_CLAVE_EQUIPO'])
     print('Instantánea de la plataforma para el modo demostración', flush=True)

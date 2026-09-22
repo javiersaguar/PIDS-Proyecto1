@@ -59,7 +59,7 @@ def test_enmascarar_oculta_cifras_y_no_da_totales():
     salida, ocultas = P.enmascarar(filas, ['importe_medio'])
     assert ocultas == 1
     assert '_id' not in salida[0]
-    assert salida[1]['n_viajes'] == f'<{P.config()["k_minimo"]}'
+    assert salida[1]['n_viajes'] == 'oculto'
     assert salida[1]['importe_medio'] is None
     assert P.resultado_final(ocultas) == P.Resultado.ENMASCARADA
 

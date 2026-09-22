@@ -193,10 +193,10 @@ def rechazo_individual(descripcion: str) -> Decision:
 def enmascarar(filas: list[dict], metricas: list[str]) -> tuple[list[dict], int]:
     """Oculta las cifras de los grupos suprimidos. Devuelve las filas y cuántas se han enmascarado.
 
-    Nunca se suman los grupos suprimidos a ningún total: el total menos lo visible revelaría
-    justo lo que se ha ocultado (ataque por diferencia).
+    La etiqueta es ``oculto`` para todos: un grupo suprimido puede tener menos de k viajes o ser
+    el complementario (10 o más), y esa marca no se publica, así que ``<10`` sería falso. Nunca se
+    suman a ningún total: el total menos lo visible revelaría justo lo oculto (ataque por diferencia).
     """
-    k = config()['k_minimo']
     salida, ocultas = [], 0
     for fila in filas:
         fila = {c: v for c, v in fila.items() if c != '_id'}
@@ -204,7 +204,7 @@ def enmascarar(filas: list[dict], metricas: list[str]) -> tuple[list[dict], int]
             ocultas += 1
             for m in metricas:
                 fila[m] = None
-            fila['n_viajes'] = f'<{k}'
+            fila['n_viajes'] = 'oculto'
         salida.append(fila)
     return salida, ocultas
 

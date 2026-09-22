@@ -20,7 +20,7 @@ function esNumero(valor: unknown): valor is number {
   return typeof valor === 'number' && Number.isFinite(valor)
 }
 
-/** `1234567` → `1.234.567`. Las cadenas (por ejemplo `"<10"`) se devuelven tal cual. */
+/** `1234567` → `1.234.567`. Las cadenas (por ejemplo `"oculto"`) se devuelven tal cual. */
 export function formatearEntero(valor: Numero | string): string {
   if (typeof valor === 'string') return valor
   if (!esNumero(valor)) return SIN_DATO
@@ -55,7 +55,7 @@ export function formatearDistancia(valor: Numero, decimales = 2): string {
   return `${formatearDecimal(valor, decimales)} mi`
 }
 
-/** El número de viajes de una fila: los grupos enmascarados llegan como `"<10"` y se muestran así. */
+/** El número de viajes de una fila: los grupos enmascarados llegan como `"oculto"` y se muestran así. */
 export function formatearViajes(valor: number | string | null | undefined): string {
   return formatearEntero(valor)
 }

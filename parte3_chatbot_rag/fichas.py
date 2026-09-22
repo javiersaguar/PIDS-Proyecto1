@@ -144,7 +144,7 @@ def ficha(fila: dict, nivel: str | None = None, fuente: str = 'historico') -> Do
     titulo = f'{origen} → {destino} · {dia}' if nivel == 'od_dia_barrio' else f'{origen} · {dia}'
     campos = {c: fila.get(c) for c in METRICAS}
     if enmascarada(fila):
-        campos = {**{c: None for c in METRICAS}, 'n_viajes': fila.get('n_viajes', '<10')}
+        campos = {**{c: None for c in METRICAS}, 'n_viajes': fila.get('n_viajes', 'oculto')}
     return documento(texto_ficha(fila, nivel, fuente), 'ficha', 'api:/consultas', titulo,
                      _id=identificador('ficha', fuente, nivel, dia, origen, destino or ''),
                      nivel=nivel, fuente_datos=fuente, dia=dia, mes=int(dia[5:7]), barrio_origen=origen,

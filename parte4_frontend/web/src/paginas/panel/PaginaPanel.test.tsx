@@ -170,6 +170,7 @@ describe('PaginaPanel', () => {
     expect(estado).toHaveTextContent(/actualizado hace \d+ s · siguiente en \d+ s/)
     // la señal sale de rutas que el BFF ya tenía (Operaciones y la auditoría, para los chatbots): ninguna nueva
     const rutas = new Set(espia.mock.calls.map(([entrada]) => new URL(String(entrada), 'http://localhost').pathname))
+    rutas.delete('/api/gestos/stream')          // lo abre el esqueleto de la app (gestos de la demo de Windows)
     expect(rutas).toEqual(new Set(['/api/sesion', '/api/panel', '/api/operaciones/simulacion', '/api/operaciones/airflow/ejecuciones',
       '/api/auditoria/decisiones']))
   })

@@ -82,8 +82,20 @@ describe('flujosDe', () => {
     const flujos = flujosDe(con({
       carga: { id: 'r', estado: 'running', mes: '2020-03', muestra: false, inicio: null, segundos: 10 },
       simulacion: SIMULACION, publicando: true, frescuraSegundos: 40, consultando: true,
-      chatOllama: true, chatHelmcode: true,
+      chatOllama: true, chatHelmcode: true, gesto: { gesto: 'thumbsup', enPlataforma: true },
     }))
     for (const clave of flujos.aristas.keys()) expect(existentes.has(clave), clave).toBe(true)
+  })
+
+  it('un gesto ilumina la cola si entró en la plataforma; en la demostración, solo la pastilla de los chatbots', () => {
+    const enPlataforma = flujosDe(con({ gesto: { gesto: 'thumbsup', enPlataforma: true } }))
+    expect(enPlataforma.aristas.has('captura-redpanda')).toBe(true)
+    expect(enPlataforma.nodos.get('captura')?.texto).toBe('Gesto 👍')
+    expect(enPlataforma.nodos.get('chatbots')?.texto).toBe('👍 Confirmar')
+    const enNavegador = flujosDe(con({ gesto: { gesto: 'scissors', enPlataforma: false } }))
+    expect(enNavegador.aristas.size).toBe(0)
+    expect(enNavegador.nodos.get('chatbots')?.texto).toBe('✌️ Otra pregunta')
+    // si el gesto ha lanzado una pregunta, manda la pastilla del chat
+    expect(flujosDe(con({ gesto: { gesto: 'scissors', enPlataforma: false }, chatOllama: true })).nodos.get('chatbots')?.texto).toBe('Preguntando')
   })
 })

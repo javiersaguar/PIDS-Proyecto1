@@ -73,7 +73,7 @@ FICHAS_TAL_CUAL = ('No he podido verificar las cifras de la respuesta. Estas son
 # Los campos de una fila de la API que puede traer la ficha (metadatos del documento)
 CAMPOS_FICHA = ('dia', 'barrio_origen', 'barrio_destino', 'suprimido', 'n_viajes', 'distancia_media',
                 'importe_medio', 'propina_media', 'pct_pago_tarjeta')
-MARCA_ENMASCARADO = '<10'          # lo que hoy devuelve la API para un grupo suprimido (privacidad.enmascarar)
+MARCA_ENMASCARADO = 'oculto'       # lo que devuelve la API para un grupo suprimido (privacidad.enmascarar)
 RAZONAMIENTO = re.compile(r'<think>.*?(?:</think>|$)', re.DOTALL)
 
 

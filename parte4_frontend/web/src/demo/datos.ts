@@ -1,7 +1,7 @@
 /**
  * Datos del modo demostración: la instantánea que graba `parte4_frontend/demo/instantanea.py` en `public/demo/`.
  * Son respuestas de la API de acceso con el filtro de privacidad ya aplicado (los grupos de menos de 10 viajes
- * vienen como `"<10"`, sin cifras), más el estado de los servicios, la auditoría y conversaciones grabadas del
+ * vienen como `"oculto"`, sin cifras), más el estado de los servicios, la auditoría y conversaciones grabadas del
  * asistente. Cada fichero se descarga la primera vez que hace falta.
  */
 import type { Zona } from '@/api/tipos'

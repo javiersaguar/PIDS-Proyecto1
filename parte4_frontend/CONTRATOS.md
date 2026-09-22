@@ -79,6 +79,7 @@ de Docker (misma técnica que `parte3_chatbot_rag/fabrica.py`, rama `rag/4-inter
 | `CAPTURA_URL` / `CAPTURA_CLAVE` | `http://captura:8000` / `${CAPTURA_CLAVE_SIMULADOR}` | `http://127.0.0.1:${PUERTO_CAPTURA}` / `CAPTURA_CLAVE_SIMULADOR` | Simulador integrado |
 | `PROMETHEUS_URL` | `http://prometheus:9090` | `http://127.0.0.1:${PUERTO_PROMETHEUS}` | Estado de servicios, frescura, KPIs y los datos de los cuadros de Observabilidad |
 | `GRAFANA_URL` | `http://grafana:3000` | `http://127.0.0.1:${PUERTO_GRAFANA}` | Estado de las alertas en Observabilidad (lectura anónima) |
+| `GESTOS_CLAVE` | `${CAPTURA_CLAVE_GESTOS}` | `CAPTURA_CLAVE_GESTOS` | Gestos del navegador hacia la API de captura (cliente `gestos`) y flujo de los de la plataforma |
 | `AIRFLOW_URL` / `AIRFLOW_USUARIO` / `AIRFLOW_CLAVE` | `http://airflow-apiserver:8080` / `${AIRFLOW_ADMIN_USER}` / `${AIRFLOW_ADMIN_PASSWORD}` | `http://127.0.0.1:${PUERTO_AIRFLOW}` | Cargas históricas (API REST v2 de Airflow 3: `POST /auth/token` → JWT) |
 | `AUDITORIA_MONGO_URI` | `mongodb://pids_auditor:${MONGO_AUDITOR_PASSWORD}@mongo:27017/?authSource=admin` | `mongodb://pids_auditor:…@127.0.0.1:${PUERTO_MONGO}/?authSource=admin` | Lectura de `auditoria.decisiones` y `auditoria.cargas` |
 | `OLLAMA_URL` / `OLLAMA_MODELO` | `http://ollama:11434` / `${OLLAMA_MODELO}` | `http://127.0.0.1:${PUERTO_OLLAMA}` | Motor de chat local |
@@ -128,7 +129,7 @@ export interface Consulta {                      // POST /api/consultas (cuerpo)
   nivel: Nivel; fuente?: Fuente; desde: string; hasta: string;             // ISO sin zona: 2020-01-15T08:00:00
   metricas?: Metrica[]; zona_origen?: number | null; barrio_origen?: string | null; barrio_destino?: string | null;
 }
-export interface Fila {                          // una fila de agregados; n_viajes es "<10" si el grupo está enmascarado
+export interface Fila {                          // una fila de agregados; n_viajes es "oculto" si el grupo está enmascarado
   hora?: string; dia?: string; zona_origen?: number; zona_origen_nombre?: string;
   barrio_origen?: string; barrio_destino?: string; n_viajes: number | string; suprimido: boolean;
   distancia_media?: number | null; importe_medio?: number | null; propina_media?: number | null; pct_pago_tarjeta?: number | null;
@@ -229,6 +230,12 @@ export interface PanelCuadro {
 }
 export interface Cuadro { uid: string; titulo: string; periodo: string; actualizado: number; disponible: boolean;
   paneles: PanelCuadro[]; grabado?: string }                // grabado: solo en la demostración
+
+// --- gestos de la parte 1 ---
+// POST /api/gestos {gesto: 'ok'|'paper'|'rock'|'rockandroll'|'scissors'|'thumbsup', confianza: 0..1,
+//                   dispositivo: 'portal-[a-z0-9]{6,32}'} -> 202 {enviado: boolean}   (demostración: {enviado: false, demostracion: true})
+// GET /api/gestos/stream -> text/event-stream: `gesto` {gesto, confianza, dispositivo, instante}; 503 sin clave de
+//   gestos; 404 en la demostración (el portal deja de escuchar)
 ```
 
 Detalles de implementación que no se negocian:
@@ -259,6 +266,10 @@ Detalles de implementación que no se negocian:
   nunca una consulta. Series con `query_range` (paso ≥ 15 s), stat, barras y tarta con `query`, alertas con
   `GET {GRAFANA_URL}/api/prometheus/grafana/api/v1/rules`. Leyendas repetidas se distinguen con la etiqueta que las
   diferencia (la instancia, si vale). Caché de 10 s por cuadro; Prometheus caído → 200 con `error` en cada panel.
+- Gestos: el BFF nunca recibe la imagen ni los puntos de la mano, solo la etiqueta y la confianza. Los reenvía a
+  `POST {CAPTURA_URL}/gestos` con `modelo: 'portal · mlp_muneca_escala_rot'` y retransmite `GET {CAPTURA_URL}/gestos/stream`
+  (solo `gesto`, `confianza`, `dispositivo` e `instante`; el cliente que lo envió no sale). Sin clave o con la captura
+  caída, `enviado: false`: el gesto sigue actuando en el navegador.
 
 ## 6. La SPA (`parte4_frontend/web`)
 
@@ -268,7 +279,7 @@ Rutas (`react-router`), todas protegidas por la guardia de sesión salvo `/acces
 |---|---|---|
 | `/acceso` | `paginas/acceso/PaginaAcceso.tsx` (F0) | Formulario de contraseña del portal |
 | `/` | `paginas/panel/PaginaPanel.tsx` (F3) | KPIs del último día publicado (total y por barrio, barras), frescura del tiempo real, decisiones de las últimas 24 h, estado de servicios, accesos directos |
-| `/explorador` | `paginas/explorador/PaginaExplorador.tsx` (F3) | Formulario de consulta (nivel, fuente, fechas y horas alineadas al nivel, zona con buscador, barrios, métricas) → tabla ordenable con los grupos enmascarados marcados (`<10`) + gráfico (líneas por hora, barras por barrio, matriz origen→destino para flujos) + nota de privacidad. Un 403 se muestra como tarjeta «Consulta rechazada» con los motivos y un botón «Consultar la alternativa» que rellena y lanza la alternativa |
+| `/explorador` | `paginas/explorador/PaginaExplorador.tsx` (F3) | Formulario de consulta (nivel, fuente, fechas y horas alineadas al nivel, zona con buscador, barrios, métricas) → tabla ordenable con los grupos enmascarados marcados (`oculto`) + gráfico (líneas por hora, barras por barrio, matriz origen→destino para flujos) + nota de privacidad. Un 403 se muestra como tarjeta «Consulta rechazada» con los motivos y un botón «Consultar la alternativa» que rellena y lanza la alternativa |
 | (sin ruta; antes `/asistente`, que hoy redirige a `/` con el panel abierto) | `paginas/asistente/Asistente.tsx` dentro de `componentes/shell/PanelAsistente.tsx` (T16) | TAXI AI: botón fijo abajo a la derecha en todas las páginas; el panel entra desde el borde derecho con el chat: selector de motor (Ollama / RAG), burbujas con Markdown, pasos de herramientas en directo (SSE), botón de alternativa tras un rechazo, «Fuentes» y tokens/segundos por turno. Cerrarlo lo esconde sin navegar y conserva la conversación |
 | `/tiempo-real` | `paginas/tiempo-real/PaginaTiempoReal.tsx` (F3) | Frescura con semáforo, viajes por hora (gráfico de barras), tabla de la última hora por zona; refresco cada 30 s |
 | `/privacidad` | `paginas/privacidad/PaginaPrivacidad.tsx` (F4) | Reglas E3 en lenguaje claro (k = 10, niveles, granularidad, rango, campos prohibidos; leídas de `/api/catalogo`), resumen de auditoría con filtros por horas/resultado/cliente, tabla de decisiones, cargas históricas con sus grupos publicados/suprimidos |
@@ -312,7 +323,7 @@ cálido por el amarillo del taxi como acento (nunca como fondo grande).
 | `--texto` / `--texto-suave` | `#111827` / `#6B7280` | Texto / etiquetas secundarias |
 | `--borde` | `#E5E7EB` | Bordes de tarjetas y tablas |
 | `--ok` / `--aviso` / `--peligro` | `#15803D` / `#B45309` / `#B91C1C` | Estado de servicios, semáforo de frescura, rechazos |
-| `--enmascarado` | `#7C3AED` (violeta) | Grupos `<10`: chip «enmascarado por privacidad» |
+| `--enmascarado` | `#7C3AED` (violeta) | Grupos `oculto`: chip «enmascarado por privacidad» |
 | Tipografía | Inter (`@fontsource/inter`), 14 px base, títulos 20/24/30 semibold; cifras con `font-variant-numeric: tabular-nums` | |
 | Radio / sombra | 8 px / sombra suave en tarjetas | |
 | Gráficos | Recharts; serie principal en `--acento`, secundarias en azules; grupos enmascarados en `--enmascarado` con patrón o barra vacía | |

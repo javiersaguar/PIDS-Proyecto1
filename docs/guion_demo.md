@@ -22,8 +22,10 @@ make rag-comprobar            # el proveedor del LLM externo responde
 - Hacer una pregunta cualquiera a TAXI AI con Ollama para que el modelo ya esté cargado en la GPU: la primera
   respuesta tarda más.
 - Entrar en el portal (http://localhost:8020) **antes** de empezar a grabar: la contraseña no debe salir en el vídeo.
-- Parte 1: en Windows, la demo de gestos lista y `GESTOS_ACTIVOS=true` en `.env` (ver
-  [`integracion/README.md`](../integracion/README.md)). Si algo falla, está el vídeo `docs/capturas/cu8_gesto.mp4`.
+- Parte 1: la cámara destapada y con luz de frente; probar una vez «Gestos» en TAXI AI (el navegador pide permiso la
+  primera vez y descarga MediaPipe). Para que también reaccionen los chatbots de Chainlit, `GESTOS_ACTIVOS=true` en
+  `.env` (ver [`integracion/README.md`](../integracion/README.md)). Con un solo chat abierto: el gesto llega a todos.
+  Si algo falla, está el vídeo `docs/capturas/cu8_gesto.mp4`.
 - Si se enseña la web pública en vivo: `make tunel`.
 - Navegador a pantalla completa, zoom al 100 %, sin otras pestañas ni notificaciones. Recordly en Windows graba la
   ventana del navegador.
@@ -35,14 +37,14 @@ públicas); terminales con variables de entorno a la vista.
 
 | Objetivo | Dónde se enseña | Escena |
 |---|---|---|
-| Parte 1 · reconocimiento de gestos | Demo de Windows y CU8 | 9 |
+| Parte 1 · reconocimiento de gestos | Cámara del portal (el MLP de la parte 1 en el navegador) y demo de Windows | 9 |
 | Parte 2 · captura | Grafo → «Capturar datos», API de captura | 2 |
 | Parte 2 · procesado (lotes y *streaming*) | Operaciones (Airflow → Spark) y tiempo real | 2, 3 |
 | Parte 2 · almacenamiento | Grafo (S3 restringido, MongoDB solo agregados), cuadros de S3 y MongoDB | 1, 10 |
 | Parte 2 · acceso | Explorador y API de acceso (filtro de privacidad) | 5 |
 | Parte 2 · visualización | Panel, Tiempo real, Observabilidad | 4, 10 |
 | Parte 3 · chatbot con acceso a los datos | TAXI AI (Ollama y RAG) y Chainlit | 8 |
-| Integración gestos ↔ chatbot | CU8 | 9 |
+| Integración gestos ↔ chatbots | TAXI AI y Chainlit manejados con la mano (CU8), también en Vercel | 9, 12 |
 | Escenario E3 · agregar antes de consultar | Grafo y Explorador | 1, 5 |
 | E3 · misma protección en histórico y tiempo real | Captura en directo | 2 |
 | E3 · enmascarar grupos pequeños | Explorador (Stapleton) | 5 |
@@ -157,12 +159,12 @@ para los agregados) y despliegue automatizado: todo se levanta con `make todo`, 
    > La zona se busca por su nombre gracias a una **fuente de datos nueva**, la tabla de zonas de la TLC, que también
    > nos da el barrio de cada viaje.
 
-2. Ejemplo **«Stapleton el 01/01 (enmascarado)»**: los grupos en violeta con `<10`.
+2. Ejemplo **«Stapleton el 01/01 (enmascarado)»**: los grupos en violeta con `oculto`.
 
-   > Los grupos con menos de 10 viajes salen enmascarados: sin cifras, y nunca se suman a un total. Es k-anonimato
-   > con k = 10. ¿Cuánto cuesta? Nuestra métrica **M2**: en el nivel más fino se ocultan 6 de cada 10 grupos, pero
-   > sigue publicado el **95,1 % de los viajes**. Los grupos que se esconden son justo los pequeños, los que podrían
-   > identificar a alguien.
+   > Esos grupos salen enmascarados, con la etiqueta «oculto» y sin cifras, y nunca se suman a un total. Unos tienen
+   > menos de 10 viajes (k-anonimato, k = 10) y otros se esconden para que no se deduzcan restando: por eso no se
+   > escribe «<10». ¿Cuánto cuesta? Nuestra métrica **M2**: en el nivel más fino se ocultan 6 de cada 10 grupos, pero
+   > sigue publicado el **95,1 % de los viajes**.
 
 3. Nivel «Día y barrio», **Desde 01/01/2020, Hasta 15/03/2020** → Consultar: tarjeta **«Consulta rechazada»**.
 
@@ -234,21 +236,32 @@ mientras responde.
 chatbots, en 2-3 s con Ollama y 1,1 s de mediana con el RAG ([`casos_uso.md`](casos_uso.md)). Las interfaces de
 Chainlit de la parte 3 siguen ahí (http://localhost:8010 y :8011); el portal las reúne con el resto.
 
-## 9 · Parte 1 e integración: un gesto confirma (1 min 30 s)
+## 9 · Parte 1 e integración: TAXI AI con la mano (2 min)
 
-**Pantalla:** la demo de gestos en Windows junto al chatbot de Chainlit (http://localhost:8010). Si no está
-preparado, reproducir `docs/capturas/cu8_gesto.mp4`.
+**Pantalla:** menú → **Grafo**, con TAXI AI abierto → botón **«Gestos»** → permitir la cámara. Sale la tarjeta con el
+vídeo en espejo, los 21 puntos de la mano, el gesto que ve el modelo y la chuleta de los seis gestos.
 
-1. Preguntar algo individual, por ejemplo «Dame el viaje de las 3:12 desde Times Square»: el bot lo rechaza y propone
-   la alternativa.
-2. Hacer 👍 a la cámara: la alternativa se ejecuta. En otra pregunta, el gesto de cancelar la descarta.
+1. **✊** cierra TAXI AI y **🤘** lo vuelve a abrir. En el grafo, la barra de arriba dice «Gesto 🤘 Abrir TAXI AI: API
+   de captura → Redpanda → chatbots» y se ilumina el tramo Captura → Redpanda.
+2. **✌️** hace la primera pregunta de ejemplo (JFK el 15 de enero) y el asistente responde.
+3. Escribir «Dame el viaje de las 3:12 del 15 de enero desde Times Square»: el bot lo rechaza y propone la
+   alternativa. **👍** la ejecuta (54 viajes).
+4. **👌** lee la respuesta en voz alta; **✋** la calla.
+5. *Opcional:* con el chatbot RAG de Chainlit abierto en otra ventana (http://localhost:8011), un ✌️ hace la pregunta
+   también allí: el gesto ha pasado por la cola de Redpanda y lo reciben todos los chatbots.
 
 **Qué se dice:**
 
 > La parte 1 reconoce 6 gestos con MediaPipe y un clasificador propio sobre los 21 puntos de la mano: **96,5 % de
 > aciertos con una persona que el modelo no ha visto nunca**. Lo entrenamos con nuestro propio dataset, 3000 fotos de
-> los cinco. Y se integra como una fuente de datos más: de la cámara solo sale la etiqueta del gesto y su confianza,
-> nunca la imagen. Entra por la API de captura y el chatbot lo recibe al instante.
+> los cinco. Ese mismo modelo lo hemos llevado al navegador: MediaPipe saca los puntos de la mano y nuestro MLP los
+> clasifica aquí mismo, con las mismas predicciones que en Python. **La imagen no sale del navegador**: a la
+> plataforma solo llega la etiqueta del gesto y su confianza, por la API de captura, como cualquier otra fuente de
+> datos, y de la cola de Redpanda la reciben los chatbots. El gesto más importante es 👍: es la persona la que acepta
+> la alternativa agregada que le ofrece el filtro de privacidad.
+
+**Plan B:** la demo de Windows (`parte1_gestos/demo/src/demo-gestures-PIDS.py` con `PIDS_CLAVE_GESTOS`) hace lo mismo
+desde fuera del navegador: sus gestos también manejan TAXI AI. Y si no hay cámara, el vídeo `docs/capturas/cu8_gesto.mp4`.
 
 Detalle: [`parte1_gestos/README.md`](../parte1_gestos/README.md) e [`integracion/README.md`](../integracion/README.md).
 
@@ -299,7 +312,11 @@ Detalle: [`arquitectura.md`](arquitectura.md#alta-disponibilidad).
 > través de un túnel, con la contraseña del portal; si no, una **demostración** con datos grabados, ya protegidos,
 > que funciona sin nada nuestro. El túnel solo expone el portal: ningún otro servicio sale del equipo.
 
-Enseñar el aviso de abajo a la izquierda («En vivo» / «Demostración») y cambiar de modo.
+Enseñar el aviso de abajo a la izquierda («En vivo» / «Demostración») y cambiar de modo. En la demostración,
+TAXI AI → «Gestos»: ✌️ recorre las preguntas grabadas y 👍 confirma la alternativa, todo en el navegador de quien mira.
+
+> Y la parte 1 también está ahí: cualquiera con una cámara puede manejar el asistente con la mano desde la web, sin
+> instalar nada. El modelo de gestos corre en su navegador.
 
 ## 13 · Cierre (45 s)
 
@@ -311,7 +328,7 @@ Enseñar el aviso de abajo a la izquierda («En vivo» / «Demostración») y ca
 > lo consultable son agregados con k = 10, con los rechazos auditados y una alternativa siempre. Tres métricas propias
 > medidas: cero fugas, 95 % de utilidad y 35 segundos de latencia. Y todos los extras: varios almacenamientos,
 > visualización, seguridad, código propio, despliegue automatizado, una fuente de datos nueva y alta disponibilidad.
-> Todo probado: 477 tests de Python, 17 de Scala y 186 del portal, en integración continua.
+> Todo probado: 492 tests de Python, 17 de Scala y 198 del portal, en integración continua.
 >
 > Como trabajo futuro: privacidad diferencial, la supresión complementaria también en tiempo real, y redundancia
 > para el resto de piezas.

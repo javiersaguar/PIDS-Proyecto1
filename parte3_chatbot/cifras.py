@@ -85,7 +85,7 @@ def _recoger(valor: Any, destino: set[float]) -> None:
     if isinstance(valor, (int, float)):
         destino.add(float(valor))
     elif isinstance(valor, str):
-        destino.update(numeros_en(valor))               # "<10", los motivos de un rechazo…
+        destino.update(numeros_en(valor))               # "oculto" no aporta cifra; un rechazo sí puede
     elif isinstance(valor, dict):
         for v in valor.values():
             _recoger(v, destino)
@@ -214,9 +214,9 @@ def respuesta_enmascarada(resultados: list) -> str:
     """Cuando todo está enmascarado no hay cifras que contar: la respuesta se da sin el LLM."""
     tablas = respuesta_con_datos(resultados) or ''
     return tablas.replace('Estos son los datos publicados para tu consulta:',
-                          'Todos los grupos de esta consulta están enmascarados por privacidad (tienen menos de 10 '
-                          'viajes, o se ocultan para que no se puedan deducir otros), así que no se muestran sus '
-                          'cifras:', 1)
+                          'Todos los grupos de esta consulta están enmascarados por privacidad (se publican como '
+                          '«oculto»: pueden tener menos de 10 viajes o esconderse para que no se deduzcan otros), '
+                          'así que no se muestran sus cifras:', 1)
 
 
 def respuesta_con_datos(resultados: list) -> str | None:

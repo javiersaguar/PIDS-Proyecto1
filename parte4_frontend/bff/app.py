@@ -25,7 +25,7 @@ from fastapi import APIRouter, Depends, FastAPI
 
 from . import configuracion as C
 from .estaticos import montar_estaticos
-from .rutas import auditoria, catalogo, chat, consultas, observabilidad, operaciones, panel, salud, sesion, tiempo_real
+from .rutas import auditoria, catalogo, chat, consultas, gestos, observabilidad, operaciones, panel, salud, sesion, tiempo_real
 from .seguridad import sesion_requerida
 
 log = logging.getLogger('pids.frontend')
@@ -33,7 +33,7 @@ log = logging.getLogger('pids.frontend')
 ROUTERS_PUBLICOS: tuple[APIRouter, ...] = (salud.router, sesion.router)
 ROUTERS_PROTEGIDOS: tuple[APIRouter, ...] = (
     consultas.router, catalogo.router, panel.router, tiempo_real.router, auditoria.router, operaciones.router,
-    chat.router, observabilidad.router,
+    chat.router, observabilidad.router, gestos.router,
 )
 TIEMPO_HTTP = httpx.Timeout(20.0, connect=5.0)
 

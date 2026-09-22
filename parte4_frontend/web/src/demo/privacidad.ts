@@ -262,7 +262,7 @@ export function proyectar(fila: FilaGuardada, consulta: ConsultaApi): FilaGuarda
   return Object.fromEntries(Object.entries(fila).filter(([campo, valor]) => campos.has(campo) && valor !== undefined))
 }
 
-/** Oculta las cifras de los grupos suprimidos: `n_viajes` pasa a `"<10"` y el resto de métricas a null. */
+/** Oculta las cifras de los grupos suprimidos: `n_viajes` pasa a `"oculto"` y el resto de métricas a null. */
 export function enmascarar(filas: FilaGuardada[], metricas: string[]): { filas: FilaGuardada[]; ocultas: number } {
   let ocultas = 0
   const salida = filas.map((fila) => {
@@ -270,7 +270,7 @@ export function enmascarar(filas: FilaGuardada[], metricas: string[]): { filas: 
     ocultas += 1
     const oculta: FilaGuardada = { ...fila }
     for (const metrica of metricas) oculta[metrica] = null
-    oculta.n_viajes = `<${K_MINIMO}`
+    oculta.n_viajes = 'oculto'
     return oculta
   })
   return { filas: salida, ocultas }

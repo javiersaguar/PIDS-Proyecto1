@@ -6,7 +6,7 @@ import { format, isValid, parseISO } from 'date-fns'
 
 const ENTEROS = new Intl.NumberFormat('es-ES', { maximumFractionDigits: 0 })
 
-/** `1234567` → `1.234.567`. Acepta también cadenas ya formateadas (por ejemplo `"<10"`), que devuelve tal cual. */
+/** `1234567` → `1.234.567`. Acepta también cadenas ya formateadas (por ejemplo `"oculto"`), que devuelve tal cual. */
 export function formatearNumero(valor: number | string | null | undefined): string {
   if (valor === null || valor === undefined) return '—'
   if (typeof valor === 'string') return valor

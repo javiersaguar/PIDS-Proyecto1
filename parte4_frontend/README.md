@@ -8,8 +8,8 @@ decisiones de la auditoría (que no contienen viajes).
 | Sección | Ruta | Qué hace |
 |---|---|---|
 | Panel | `/` | Viajes del último día publicado (total y por barrio, histórico y tiempo real), decisiones de las últimas 24 h, frescura del *streaming* con semáforo, estado de los servicios y accesos directos |
-| Explorador | `/explorador` | Consultas por nivel (hora-zona, día-barrio, flujos), fechas, zona con buscador, barrios y métricas → tabla ordenable, gráfico o matriz de flujos; los grupos `<10` van en violeta y **nunca se suman**; un rechazo muestra los motivos y un botón para lanzar la alternativa |
-| TAXI AI (asistente) | botón fijo abajo a la derecha, en todas las páginas | Panel que entra desde el borde derecho con el chat del agente (motor Ollama local o RAG con Helmcode), pasos de las herramientas en directo, fuentes, tokens y botón de alternativa tras un rechazo. Cerrarlo lo esconde sin cambiar de ruta y la conversación sigue viva |
+| Explorador | `/explorador` | Consultas por nivel (hora-zona, día-barrio, flujos), fechas, zona con buscador, barrios y métricas → tabla ordenable, gráfico o matriz de flujos; los grupos `oculto` van en violeta y **nunca se suman**; un rechazo muestra los motivos y un botón para lanzar la alternativa |
+| TAXI AI (asistente) | botón fijo abajo a la derecha, en todas las páginas | Panel que entra desde el borde derecho con el chat del agente (motor Ollama local o RAG con Helmcode), pasos de las herramientas en directo, fuentes, tokens y botón de alternativa tras un rechazo. Cerrarlo lo esconde sin cambiar de ruta y la conversación sigue viva. Con **«Gestos»**, la cámara del navegador y el MLP de la parte 1 lo manejan con la mano: 👍 confirma la alternativa, ✋ para, ✌️ hace otra pregunta de ejemplo, 👌 lee la respuesta en voz alta y 🤘/✊ abren y cierran el panel (también los gestos de la demo de Windows) |
 | Tiempo real | `/tiempo-real` | Frescura, viajes por hora de las últimas 6/12/24 h con datos y la última hora por zona; se refresca cada 30 s |
 | Privacidad | `/privacidad` | Reglas E3 leídas del catálogo, auditoría de decisiones (por resultado, cliente y motivo, con filtros) y cargas históricas |
 | Operaciones | `/operaciones` | Lanzar una carga histórica en Airflow (mes o muestra) y ver sus ejecuciones; iniciar y parar el simulador de tiempo real |
@@ -79,7 +79,7 @@ cd parte4_frontend/web && npm test -- --run       # 98 tests con Testing Library
 ```
 
 Ninguno necesita servicios levantados: la API de acceso falsa de los tests aplica el filtro de privacidad real
-(`parte2_plataforma.comun.privacidad`), así que los 403 y los `<10` son los de verdad.
+(`parte2_plataforma.comun.privacidad`), así que los 403 y los `oculto` son los de verdad.
 
 ## Estructura
 
@@ -91,13 +91,14 @@ parte4_frontend/
 │   ├── configuracion.py  variables de entorno; en el host lee .env y deriva las URL de los puertos publicados
 │   ├── seguridad.py      cookie de sesión firmada y dependencias (configuración, cliente HTTP compartido)
 │   ├── estaticos.py      sirve web/dist con fallback a index.html
-│   ├── rutas/            sesion · salud · catalogo · consultas · panel · tiempo_real · auditoria · operaciones · chat · observabilidad
+│   ├── rutas/            sesion · salud · catalogo · consultas · panel · tiempo_real · auditoria · operaciones · chat · observabilidad · gestos
 │   ├── servicios/        acceso · prometheus · auditoria · airflow · simulacion · chat · observabilidad
 │   └── Dockerfile        multi-stage: node:22 construye la SPA; python:3.12 instala el BFF (grupos frontend y chatbot)
 └── web/                  Vite + React 19 + TypeScript + Tailwind 4 + shadcn/ui
     └── src/
         ├── api/          cliente tipado (cliente.ts, tipos.ts) y hooks de TanStack Query por sección
         ├── componentes/  shell (barra, cabecera, estados), ui (shadcn), datos (tablas, formato), graficos (Recharts), chat
+        ├── gestos/       la parte 1 en el navegador: MediaPipe, el MLP exportado, el filtro y la tarjeta de la cámara
         ├── paginas/      una carpeta por sección
         └── estilos/      tema corporativo (marino, amarillo taxi, violeta para «enmascarado»)
 ```
@@ -119,6 +120,7 @@ Documentación interactiva en `http://localhost:8020/api/docs`.
 | `GET/POST/DELETE /api/operaciones/captura` | Captura en directo del grafo: viajes reales de 2020 enviados como si pasaran ahora |
 | `GET /api/chat/motores` · `POST /api/chat/sesiones` · `POST …/{id}/mensajes` · `POST …/{id}/alternativa` | Chat con eventos SSE `paso`, `respuesta` y `error` |
 | `GET /api/observabilidad/cuadros` · `GET /api/observabilidad/cuadros/{uid}` | Los cuadros de Grafana con los datos de cada panel (solo las consultas de sus JSON; caché de 10 s) |
+| `POST /api/gestos` · `GET /api/gestos/stream` | El gesto que reconoce el navegador entra en la API de captura (cliente `gestos`); los de la plataforma (demo de Windows) llegan por SSE |
 
 ## Decisiones y límites
 
@@ -138,3 +140,7 @@ Documentación interactiva en `http://localhost:8020/api/docs`.
   pide un uid, nunca una consulta); la SPA los dibuja en la rejilla de 24 columnas de Grafana con sus propios
   componentes. Así se ven igual en el equipo, por el túnel y, grabados, en la demostración. Grafana sigue siendo el
   sitio para editar los cuadros y las alertas. Un cuadro nuevo en `generar.py` aparece solo en el portal.
+- **Gestos en el navegador, no en el servidor**: la imagen de la cámara no sale del navegador (E3). MediaPipe para web
+  y el MLP de la parte 1 (pesos en `web/public/gestos/modelo.json`) se descargan solo al pulsar «Gestos»; al BFF solo
+  llega la etiqueta y la confianza, que reenvía a la API de captura con la clave del cliente `gestos`. La tabla de
+  acciones es `config/gestos.json`, la misma de los chatbots de Chainlit. Detalle en `integracion/README.md`.

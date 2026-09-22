@@ -4,22 +4,24 @@ Inventario del trabajo que aún no está cerrado. La lista corta del día a día
 esto es el mapa. Hecho de verdad es lo que ya está en [`../BITACORA.md`](../BITACORA.md).
 
 Hoy funciona, en este equipo: la plataforma de la parte 2 (captura, Spark, S3, MongoDB, Airflow, Grafana),
-el año 2020 cargado, los dos chatbots consultando la API de acceso, y el portal con datos reales en
-http://localhost:8020. La demo de Vercel es una foto, no la plataforma en vivo.
+el año 2020 cargado, los dos chatbots consultando la API de acceso, el portal con datos reales en
+http://localhost:8020 y los gestos de la parte 1 manejando los tres chatbots (con la demo de Windows o con la cámara
+del navegador). Vercel enseña la plataforma en vivo con el túnel encendido, o una demostración grabada.
 
 ## Parte 1 · gestos
 
 | Qué falta | Tarea |
 |---|---|
 | Subir la copia del dataset a un sitio solo del grupo y que otra persona reproduzca el preprocesado | T01 |
+| Probar los gestos del portal con la webcam de verdad, en local y en Vercel | T18 |
 
 ## Parte 2 · plataforma
 
 | Qué falta | Tarea |
 |---|---|
-| La API dice `"<10"` también de grupos ocultos por supresión complementaria, que pueden tener más viajes | T12 |
 | Supresión complementaria también en el tiempo real (hoy solo en la carga histórica) | idea en TAREAS |
 | Un DAG que cargue los 12 meses seguidos, con reintentos | idea |
+| Que la carga de la muestra no pise los agregados del año completo | T19 |
 | Contadores de la API de captura a 0 al arrancar, para que la alerta de frescura vea el primer lote | idea |
 | Bajar la latencia del streaming (M3 está en 35 s) | idea |
 
@@ -30,7 +32,6 @@ Lo que no está es el vídeo de esa conversación dentro de la entrega (T10).
 
 | Qué falta | Tarea |
 |---|---|
-| El grupo decide si el LLM externo se queda, se limita a la demo o se retira | T13 |
 | Cuando la barrera de cifras sustituye la respuesta del RAG, enseñar solo las fichas de la pregunta | idea |
 | Medir el rerank y reindexar Qdrant desde Airflow tras cada carga | idea |
 
@@ -47,6 +48,7 @@ publican. El camino con datos en vivo es `make frontend`.
 
 ## Entrega
 
-T10 junta el vídeo (levantar, cargar, panel, chatbot con un rechazo) y las diapositivas. El gesto ya
-está en [`capturas/cu8_gesto.mp4`](capturas/cu8_gesto.mp4) y se puede insertar. El checklist de
+T10 junta el vídeo (levantar, cargar, panel, chatbot con un rechazo) y las diapositivas, con el guion de
+[`guion_demo.md`](guion_demo.md). El gesto se graba en el propio portal (escena 9); si falla, está
+[`capturas/cu8_gesto.mp4`](capturas/cu8_gesto.mp4). El checklist de
 [`plan.md`](plan.md) sigue con la casilla de capturas o vídeo de la entrega abierta.

@@ -4,20 +4,19 @@ La lógica de cada mensaje está en agente.py (filtro previo, herramientas y bar
 la misma que usan las pruebas. Aquí solo va la interfaz:
   - cada llamada a una herramienta se muestra como un paso;
   - si la API rechaza la consulta, se muestra el motivo y un botón para lanzar la alternativa agregada.
-    Con la integración de gestos activa, 👍 confirma y ✋ cancela.
+    Con la integración de gestos activa, 👍 confirma, ✋ cancela y ✌️ hace la siguiente pregunta de ejemplo
+    (`gestos.py`, con la tabla de `config/gestos.json`).
 
 Arranque: chainlit run app.py --host 0.0.0.0 --port 8000 --headless
 """
 from __future__ import annotations
 
-import asyncio
 import os
 import secrets
 import sys
 from pathlib import Path
 
 import chainlit as cl
-from chainlit.context import context_var
 from ollama import AsyncClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -72,28 +71,31 @@ async def _ejecutar_alternativa() -> None:
     await _mostrar(await agente.responder_alternativa(alternativa, ejecutar=_con_paso))
 
 
+async def _cancelar_alternativa() -> None:
+    cl.user_session.set('alternativa', None)
+    await cl.Message(content='De acuerdo, consulta cancelada.').send()
+
+
+async def _pregunta_de_ejemplo() -> None:
+    """✌️: la siguiente pregunta de `config/gestos.json`, como si la hubiera escrito el usuario."""
+    pregunta, siguiente = gestos.siguiente_pregunta(cl.user_session.get('pregunta_gesto') or 0)
+    cl.user_session.set('pregunta_gesto', siguiente)
+    await cl.Message(content=pregunta, author='Tú', type='user_message').send()
+    agente: Agente = cl.user_session.get('agente')
+    await _mostrar(await agente.responder(pregunta, ejecutar=_con_paso))
+
+
 @cl.on_chat_start
 async def inicio() -> None:
     acceso = ClienteAcceso()
     cl.user_session.set('acceso', acceso)
     cl.user_session.set('agente', Agente(acceso, AsyncClient(host=OLLAMA_URL)))
     cl.user_session.set('alternativa', None)
-    if gestos.ACTIVOS:
-        ctx = context_var.get()
-
-        async def al_recibir(accion: str, evento: dict) -> None:
-            # El SSE llega en otra tarea; la sesión de Chainlit es la de este chat.
-            token = context_var.set(ctx)
-            try:
-                await cl.Message(content=f'✋ Gesto recibido: **{evento["gesto"]}** → {accion}').send()
-                if accion == 'confirmar':
-                    await _ejecutar_alternativa()
-                elif accion == 'cancelar':
-                    cl.user_session.set('alternativa', None)
-                    await cl.Message(content='De acuerdo, consulta cancelada.').send()
-            finally:
-                context_var.reset(token)
-        cl.user_session.set('tarea_gestos', asyncio.create_task(gestos.escuchar(al_recibir)))
+    cl.user_session.set('tarea_gestos', gestos.enganchar_a_chainlit({
+        'confirmar': _ejecutar_alternativa,
+        'cancelar': _cancelar_alternativa,
+        'siguiente': _pregunta_de_ejemplo,
+    }))
     await cl.Message(content=BIENVENIDA).send()
 
 
@@ -111,8 +113,7 @@ async def aceptar(accion: cl.Action) -> None:
 
 @cl.action_callback('cancelar')
 async def cancelar(_: cl.Action) -> None:
-    cl.user_session.set('alternativa', None)
-    await cl.Message(content='De acuerdo, consulta cancelada.').send()
+    await _cancelar_alternativa()
 
 
 @cl.on_chat_end

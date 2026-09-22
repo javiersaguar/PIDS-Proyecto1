@@ -24,23 +24,23 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 
 ## Estado actual
 
-**Última actualización: 22/09/2026 · Javier Saguar** (Observabilidad con los cuadros de Grafana dibujados por el portal, menú plegable y guion de la demo)
+**Última actualización: 22/09/2026 · Javier Saguar** (gestos de la parte 1 en los tres chatbots y en el navegador, también en Vercel; grupos ocultos como `oculto`; LLM de Helmcode vigente)
 
 | | |
 |---|---|
 | **Escenario** | E3 · privacidad total |
-| **Funciona y está probado en ejecución** | Núcleo (S3, Redpanda, MongoDB, APIs), carga histórica con Spark en modo cluster y supresión complementaria, tiempo real con streaming, filtro de privacidad (permitida / enmascarada / rechazada), DAG de Airflow, Prometheus (9 objetivos), ocho cuadros de Grafana con 3 alertas probadas, informe de auditoría, chatbot de Ollama con barreras sobre las cifras y **chatbot RAG** (LangChain + Qdrant + LLM externo en la UE) con las mismas barreras y una guardia de salida. 477 tests de Python, 17 de Scala y 186 del portal (Vitest) |
-| **Datos cargados** | Año 2020 completo, recargado el 21/09 con supresión complementaria: 23 684 852 viajes válidos; 287 003 grupos hora-zona publicados (430 126 ocultos). Índice de Qdrant: 376 documentos de conocimiento y 18 187 fichas de agregados gruesos |
+| **Funciona y está probado en ejecución** | Núcleo (S3, Redpanda, MongoDB, APIs), carga histórica con Spark en modo cluster y supresión complementaria, tiempo real con streaming, filtro de privacidad (permitida / enmascarada / rechazada), DAG de Airflow, Prometheus (9 objetivos), ocho cuadros de Grafana con 3 alertas probadas, informe de auditoría, chatbot de Ollama con barreras sobre las cifras y **chatbot RAG** (LangChain + Qdrant + LLM externo en la UE) con las mismas barreras y una guardia de salida. 492 tests de Python, 17 de Scala y 198 del portal (Vitest) |
+| **Datos cargados** | Año 2020 completo, recargado el 21/09 con supresión complementaria: 23 684 852 viajes válidos; 287 003 grupos hora-zona publicados (430 126 ocultos). Índice de Qdrant: 438 documentos de conocimiento (reindexados el 22/09 con la etiqueta `oculto`) y 18 187 fichas de agregados gruesos |
 | **Métricas** | M1: 0 fugas en la API (31 casos), en el chatbot de Ollama (105 ejecuciones) y en el chatbot RAG (105 ejecuciones) · M2: con k = 10 se publica el 95,1 % de los viajes en hora-zona · M3: p95 35,4 s (objetivo < 60 s) |
 | **Chatbots** | Ollama: `llama3.1:8b` en GPU a temperatura 0,2, 21/21 casos en 2-3 s · RAG: `deepseek-v4-flash` (Helmcode, UE), 21/21 casos con p50 1,1 s y unos 6 000 tokens por pregunta. Detalle en `docs/chatbot_rag.md` |
-| **Parte 1** | Se ejecuta desde el repositorio, con `PIDS_DATOS` apuntando a las imágenes (que siguen fuera de Git) |
+| **Parte 1** | Se ejecuta desde el repositorio, con `PIDS_DATOS` apuntando a las imágenes (que siguen fuera de Git). El MLP también corre en el navegador: TAXI AI → «Gestos» en el portal y en Vercel (`integracion/README.md`) |
 | **Portal web (parte 4)** | En `main` y levantado (`make frontend`, http://localhost:8020, contraseña `FRONTEND_CLAVE` de `.env`): panel, explorador, tiempo real, privacidad y auditoría, operaciones y el grafo de la plataforma, que ilumina los tramos en marcha (T15) y tiene «Capturar datos» (captura en directo con viajes reales de diciembre de 2020); el asistente TAXI AI (Ollama y RAG) es un botón fijo con panel derecho en todas las páginas (T16), y Observabilidad dibuja los ocho cuadros de Grafana con los datos de Prometheus. El menú lateral se pliega. Demostración pública en Vercel con datos grabados, o en vivo por túnel si el equipo está encendido (`parte4_frontend/demo`) |
 | **Sin empezar** | Vídeo de la entrega y presentación (T10); el guion está en `docs/guion_demo.md`. El gesto ya tiene el suyo: `docs/capturas/cu8_gesto.mp4` |
 | **Cómo levantarlo** | En Ubuntu (WSL2), paso a paso en el README («Puesta en marcha»): `make entorno`, pegar `LLM_API_KEY`, `make sync && make test`, `make construir && make todo`, `make historico-muestra` y `make rag-indexar`; cada día, `make todo` y `make tiempo-real` |
 | **Forma de trabajar** | Una rama por persona (tabla en el README) y cambios a `main` por *pull request*. Para trabajo en paralelo, una rama de tarea con contratos por bloque (`parte3_chatbot_rag/CONTRATOS.md`). Cada copia, con `make hooks`; el CI «Autoría» rechaza coautorías y firmas automáticas |
 | **Repositorio** | Recreado en GitHub el 22/09/2026 (mismo nombre) para eliminar una coautoría ajena al grupo: [`docs/repositorio.md`](docs/repositorio.md). Copias anteriores: sincronizar con `git reset --hard origin/main`. **Vercel (`happytaxi`, `yellowveil`) hay que volver a conectarlo al repositorio nuevo** (§4 de ese documento) |
 | **Siguientes tareas** | Ver [`TAREAS.md`](TAREAS.md) |
-| **Pendiente inmediato** | Confirmar en grupo la decisión del LLM externo (regla 9 de E3), preparar el vídeo y la presentación de la entrega (T10) y subir la copia del dataset de gestos, ya hecha y verificada (T01) |
+| **Pendiente inmediato** | Grabar el vídeo y preparar la presentación (T10, guion en `docs/guion_demo.md`), probar los gestos con la webcam de verdad (T17) y subir la copia del dataset de gestos, ya hecha y verificada (T01). Cada miembro pega su `LLM_API_KEY` en su `.env` (no se comparte) |
 | **Web pública** | https://happytaxi-rust.vercel.app: en vivo por el túnel (`make tunel`, dominio `street-humorous-squeezing.ngrok-free.dev`) con la contraseña del portal, o la demostración grabada si el túnel está apagado |
 | **Requisitos** | Todo instalado en este equipo (incluido el NVIDIA Container Toolkit). En equipos sin GPU: `make chatbot SIN_GPU=1` con `OLLAMA_MODELO=llama3.2:3b`, o el chatbot RAG, que no necesita GPU |
 
@@ -58,11 +58,13 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 | 21/09/2026 | Mantener k = 10 | Es el codo de la curva privacidad-utilidad (M2) | Javier Saguar | Propuesta: confirmar en grupo |
 | 21/09/2026 | En el chatbot, cada cifra tiene que salir de los datos del turno; LLM a temperatura 0,2 | Barrera determinista contra cifras inventadas o deducidas; con 0,2 acierta más y responde antes | Javier Saguar | Vigente |
 | 21/09/2026 | Una rama por persona y cambios a `main` por *pull request* | No pisarnos el trabajo | Javier Saguar | Vigente |
-| 21/09/2026 | **Segundo chatbot con LLM externo** (Helmcode, API compatible con OpenAI en la UE y sin registro de prompts) y RAG con Qdrant; el de Ollama se conserva | Modelo mayor sin depender de la GPU y con contexto recuperado; solo viajan la pregunta y agregados ya protegidos, con lista blanca de modelos UE y guardia de salida. Matiza la regla 9 de E3 («las preguntas no salen del equipo»), que sigue cumpliéndose con el chatbot de Ollama | Javier Saguar | Propuesta: confirmar en grupo |
+| 21/09/2026 | **Segundo chatbot con LLM externo** (Helmcode, API compatible con OpenAI en la UE y sin registro de prompts) y RAG con Qdrant; el de Ollama se conserva | Modelo mayor sin depender de la GPU y con contexto recuperado; solo viajan la pregunta y agregados ya protegidos, con lista blanca de modelos UE y guardia de salida. Matiza la regla 9 de E3 («las preguntas no salen del equipo»), que sigue cumpliéndose con el chatbot de Ollama | Javier Saguar | Sustituida: confirmada el 22/09 |
 | 21/09/2026 | Trabajo en paralelo por bloques con contratos escritos (`CONTRATOS.md`: propiedad de ficheros y firmas) y una rama de integración `tarea/rag-base` | Cinco bloques a la vez sin conflictos: las tres ramas se fusionaron limpias | Javier Saguar | Vigente |
 | 22/09/2026 | La regla de autoría se hace cumplir con un hook `commit-msg` y un CI «Autoría»; ningún commit lleva `Co-Authored-By` (ni entre miembros) | Una coautoría automática llegó a `main` en el PR #1 y solo se pudo quitar recreando el repositorio | Javier Saguar | Vigente |
 | 22/09/2026 | Grafana deja **ver** los cuadros sin clave (rol Viewer anónimo) para incrustarlos en el portal; editar sigue pidiendo `admin` | Solo escucha en 127.0.0.1 y los cuadros enseñan métricas y agregados ya protegidos, nunca viajes. Es la excepción a «solo se publica lo que tiene credencial» de T08 | Javier Saguar | Vigente |
 | 22/09/2026 | Se publica el vídeo del CU8 (`docs/capturas/cu8_gesto.mp4`), en el que se ven miembros del grupo; el dataset completo de gestos (3000 fotos) sigue fuera del repositorio | Es la prueba de la integración gestos ↔ chatbot; el propio repositorio de la asignatura trae fotos de los profesores como dataset de prueba | Javier Saguar | Vigente |
+| 22/09/2026 | Los gestos de la parte 1 se reconocen también **en el navegador** (MediaPipe para web y el MLP de la parte 1 exportado a JSON), con la tabla de acciones común en `config/gestos.json` | Hace la integración visible en la web pública sin Windows ni Python; la imagen no sale del navegador y a la plataforma solo llega la etiqueta, como desde la demo de Windows | Javier Saguar | Vigente |
+| 22/09/2026 | Se mantienen los dos chatbots y la demo enseña los dos. Cada miembro pone su `LLM_API_KEY` en su `.env` | Confirma la propuesta del 21/09. Ollama cumple la regla 9 sin que la pregunta salga del equipo. Helmcode (UE, sin registro de prompts) se queda: los dos pasan 21/21 y 0/105, y el portal ya los trata igual. La clave no se comparte por el chat | Javier Saguar | Vigente |
 
 ## Plantilla (copiar y rellenar)
 
@@ -86,6 +88,79 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 ---
 
 ## Entradas
+
+### 2026-09-22 · Javier Saguar · Gestos de la parte 1 en los tres chatbots y en el navegador; T12 terminado
+
+- **Rama / commits:** `main`
+- **Qué he hecho:**
+  - **Gestos en el portal (TAXI AI → «Gestos»).** El navegador reconoce la mano con la cámara: MediaPipe para web saca
+    los 21 puntos y **el MLP de la parte 1** los clasifica en el propio navegador. `exportar_web.py` exporta sus pesos
+    a JSON (98,4 % sobre las 2931 imágenes con mano, con numpy) y unas muestras reales; en TypeScript da las mismas
+    probabilidades que en Python, a 5 decimales. Mismo filtro que la demo de Windows (4 predicciones seguidas, 0,85,
+    3 s sin repetir). La tarjeta enseña el vídeo en espejo con los puntos, el gesto con su confianza y la chuleta.
+  - **Qué hace cada gesto** (tabla común `config/gestos.json`): 👍 confirma la alternativa, ✋ para (lectura,
+    alternativa o respuesta), ✌️ hace la siguiente pregunta de ejemplo, 👌 lee la respuesta en voz alta y 🤘/✊ abren
+    y cierran TAXI AI desde cualquier página.
+  - **A la plataforma y de vuelta.** El gesto va al BFF (`POST /api/gestos`, solo etiqueta y confianza) y de ahí a la
+    API de captura como cliente `gestos` → topic `gestos`. El portal escucha además `GET /api/gestos/stream`, así que
+    la demo de Windows también maneja TAXI AI. El grafo ilumina Captura → Redpanda y lo cuenta en su barra.
+  - **Chatbot RAG con gestos** y los dos de Chainlit con la misma tabla (`parte3_chatbot/gestos.py`); ✌️ también en
+    ellos. `GESTOS_ACTIVOS` para el RAG en `docker-compose.yml`.
+  - **Web pública:** en la demostración el gesto se reconoce y actúa en el navegador (no se envía a ningún sitio);
+    las cinco preguntas de ✌️ están grabadas.
+  - **T12, al integrarlo:** a lo de Cursor le faltaba `tests/test_apis.py` (esperaba «<10»), las respuestas reales de
+    referencia de la demo (`referencias.json`, 6 pruebas de Vitest en rojo) y las conversaciones grabadas (la de
+    Staten Island enseñaba «<10»). Regrabadas contra la API nueva (`--solo-chat` nuevo en `instantanea.py`, desde la
+    red de Docker porque Ollama no se publica). Qdrant: conocimiento reindexado (438 documentos) y las 8568 fichas
+    suprimidas pasan a `n_viajes: "oculto"` en sus metadatos sin recalcular embeddings.
+- **Por qué:** la integración de la parte 1 con la 3 solo se veía con Windows y Chainlit; ahora se ve en el portal y
+  en Vercel, con el modelo de la parte 1, y llega a los tres chatbots por la plataforma.
+- **Ficheros clave:** `config/gestos.json`, `parte1_gestos/entrenamiento/exportar_web.py`, `parte4_frontend/web/src/gestos/`,
+  `parte4_frontend/web/public/gestos/modelo.json`, `parte4_frontend/bff/rutas/gestos.py`, `parte3_chatbot/gestos.py`,
+  `parte3_chatbot/app.py`, `parte3_chatbot_rag/app.py`, `integracion/README.md`, `docs/guion_demo.md` (escena 9)
+- **Cómo comprobarlo:** http://localhost:8020 → TAXI AI → «Gestos»; sin cámara,
+  `source .env && python integracion/cliente_gestos.py --clave "$CAPTURA_CLAVE_GESTOS" --gesto scissors` con el portal
+  o un Chainlit abiertos. Tests: `uv run pytest tests/test_gestos.py tests/test_frontend_bff_gestos.py` y, en
+  `parte4_frontend/web`, `npx vitest run src/gestos`.
+- **Resultado:** 492 tests de Python y 198 de Vitest en verde, `tsc` y lint limpios. En Chromium con una cámara
+  simulada hecha con fotos del dataset (solo en local): ✌️ al 99 %, entra en la cola `gestos` y TAXI AI pregunta
+  y responde. Un ✌️ como el de la demo de Windows: los dos Chainlit preguntan y responden; en el portal 🤘 abre, ✌️
+  pregunta y ✊ cierra.
+- **Pendiente y riesgos:** falta probarlo con la webcam del portátil (T17: el 22/09 daba fotogramas negros). El gesto
+  llega a todos los chats abiertos a la vez. MediaPipe se descarga de jsDelivr y de Google al activar los gestos:
+  sin internet, la tarjeta lo dice y el resto del portal sigue igual.
+- **Contexto para quien siga:** no se usa el reconocedor de gestos que trae MediaPipe: solo sus puntos, y clasifica
+  nuestro MLP. Si se reentrena el modelo, volver a ejecutar `exportar_web.py` (reescribe el JSON y las muestras del
+  test). La cámara solo funciona en https o localhost.
+
+### 2026-09-22 · Javier Saguar · Etiqueta `oculto` y LLM externo vigente
+
+- **Rama / commits:** `main`
+- **Qué he hecho:**
+  - **T12.** `privacidad.enmascarar` devuelve `n_viajes: "oculto"` en todos los grupos suprimidos. Con la supresión
+    complementaria algunos tienen 10 o más viajes, y esa marca no se publica, así que `"<10"` era falso. El chatbot
+    (prompt y respuesta cuando todo está enmascarado), el portal (tabla, barras y matriz) y la demo usan la misma
+    palabra. No se da ninguna cifra de esos grupos.
+  - **T13.** Se confirma la propuesta del 21/09: Helmcode se queda (decisión **Vigente**). La demo enseña los dos
+    chatbots. Ollama es el que cumple la regla 9 sin salida de datos; el RAG envía la pregunta, el historial, el
+    contexto y los agregados ya protegidos, nunca un viaje individual (`docs/chatbot_rag.md`, «Qué sale del equipo y
+    qué no»). Cada miembro pega su propia `LLM_API_KEY` en su `.env`.
+- **Por qué:** una etiqueta `"<10"` miente cuando el grupo oculto es complementario; y la regla 9 de E3 no puede
+  seguir en propuesta si la demo ya enseña los dos asistentes.
+- **Ficheros clave:** `parte2_plataforma/comun/privacidad.py`, `parte3_chatbot/prompts.py`, `parte3_chatbot/cifras.py`,
+  `docs/escenario_E3.md`, `docs/casos_uso.md`, `docs/plan.md`, `BITACORA.md`
+- **Cómo comprobarlo:**
+  ```bash
+  uv run pytest tests/test_privacidad.py tests/test_frontend_bff_plataforma.py tests/test_chatbot.py
+  docker compose exec -T chatbot python casos_de_uso.py --repeticiones 1
+  docker compose exec -T chatbot python bateria_trampa.py --repeticiones 1
+  ```
+- **Resultado:** 284 tests de Python de privacidad, BFF, chatbot y RAG, y 33 de Vitest del portal. Casos de uso del chatbot: 21/21 (CU1–CU7; CU8 avisa porque en este equipo `GESTOS_ACTIVOS=true`, que es la demo de T06). Batería trampa: 0/105. En el explorador, Stapleton el 01/01 muestra `oculto` y no `"<10"`.
+- **Pendiente y riesgos:** el índice de Qdrant se construyó con el texto viejo («<10» en las preguntas frecuentes).
+  Hasta `make rag-indexar`, el RAG puede recuperar ese párrafo. Las fichas ya decían «enmascarado por privacidad»
+  sin cifra. Cada copia del repo necesita su propia `LLM_API_KEY`.
+- **Contexto para quien siga:** no se distingue en la respuesta qué grupos son pequeños y cuáles complementarios,
+  porque esa marca no está en MongoDB. `"oculto"` vale para los dos.
 
 ### 2026-09-22 · Javier Saguar · Observabilidad nativa, menú plegable y guion de la demo
 

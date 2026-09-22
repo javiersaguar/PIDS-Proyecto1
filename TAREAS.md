@@ -1,8 +1,8 @@
 # Próximas tareas
 
 Lista viva de las **10 tareas siguientes**, en orden de prioridad. Si te pones a trabajar, coge la
-primera que esté libre. Las tareas del chatbot RAG que quedaron por hacer están en «Ideas y trabajo futuro» y la
-decisión pendiente en T13. El mapa de todo lo que falta para cerrar el proyecto está en
+primera que esté libre. Las tareas del chatbot RAG que quedaron por hacer están en «Ideas y trabajo futuro».
+El mapa de todo lo que falta para cerrar el proyecto está en
 [`docs/pendiente.md`](docs/pendiente.md).
 
 ## Cómo se usa
@@ -55,38 +55,38 @@ decisión pendiente en T13. El mapa de todo lo que falta para cerrar el proyecto
   2. Presentación: reparto del trabajo, comparativa, arquitectura, casos de uso, demo y conclusiones.
   3. Repasar el checklist de `docs/plan.md`.
 - **Notas:** el guion está escrito: [`docs/guion_demo.md`](docs/guion_demo.md) (escenas, qué se dice, qué objetivo
-  cubre cada una y plan B). Grabar con el portal ya abierto: la contraseña no sale en el vídeo.
+  cubre cada una y plan B). El gesto ya no necesita Windows: la escena 9 se hace en el portal con TAXI AI →
+  «Gestos» (antes, probarlo: T18). Grabar con el portal ya abierto: la contraseña no sale en el vídeo. No lanzar cargas durante
+  la grabación (T19).
 - **Hecha cuando:** el vídeo y las diapositivas están listos y enlazados desde el README.
 - **Dónde:** `docs/`, README
 
-## T12 · Etiqueta de los grupos ocultos en la API
-
-- **Estado:** libre · **Responsable:** — · **Estimación:** 1 h · **Dificultad:** baja
-- **Por qué:** con la supresión complementaria (T02) hay grupos ocultos con 10 o más viajes, pero la API los
-  sigue mostrando todos como `"<10"`, que para esos es falso. El chatbot ya dice «enmascarado por privacidad»
-  sin dar el número.
-- **Qué hay que hacer:** en `parte2_plataforma/comun/privacidad.enmascarar`, devolver `"oculto"` para todos
-  los suprimidos (no se puede distinguir cuáles son complementarios: esa marca no se publica); actualizar sus
-  tests, `docs/escenario_E3.md` y `docs/casos_uso.md`, y pasar `casos_de_uso.py` y `bateria_trampa.py` del
-  chatbot.
-- **Hecha cuando:** ninguna respuesta afirma `"<10"` de un grupo que puede tener más.
-- **Dónde:** `parte2_plataforma/comun/privacidad.py`, `tests/`, `docs/`
-
-## T13 · Decidir en grupo el LLM externo del chatbot RAG
+## T18 · Probar los gestos con la webcam de verdad
 
 - **Estado:** libre · **Responsable:** — · **Estimación:** 30 min · **Dificultad:** baja
-- **Por qué:** el chatbot RAG (`parte3_chatbot_rag/`) envía la pregunta y los agregados protegidos a Helmcode
-  (UE, sin registro de prompts). Matiza la regla 9 de E3 y está anotado en la bitácora como **propuesta**: hay que
-  confirmarla o retirarla entre todos, y decidir qué chatbot va en la demo (los dos pasan 21/21 y 0/105).
+- **Por qué:** los gestos del portal están probados con una cámara simulada hecha con fotos del dataset, pero no con
+  una webcam real, con su luz y su encuadre; y el 22/09 la del portátil daba fotogramas negros (obturador o tapa).
+  Es la escena 9 de la demo.
 - **Qué hay que hacer:**
-  1. Leer [`docs/chatbot_rag.md`](docs/chatbot_rag.md) («Qué sale del equipo y qué no») y la decisión del 21/09 en la
-     bitácora.
-  2. Decidir: se mantiene (y pasa a «Vigente»), se limita a la demo, o se retira (basta con no levantar el perfil
-     `rag`).
-  3. Si se mantiene, cada miembro pega su propia `LLM_API_KEY` en su `.env` (la clave no se comparte por el chat).
-- **Hecha cuando:** la decisión figura como «Vigente» o «Retirada» en la bitácora y `docs/plan.md` dice qué chatbot
-  se enseña.
-- **Dónde:** `BITACORA.md`, `docs/plan.md`
+  1. En el portátil, http://localhost:8020 → TAXI AI → «Gestos»: los seis gestos, con la mano a distintas distancias
+     y con las dos manos. Apuntar cuáles cuestan.
+  2. Lo mismo en https://happytaxi-rust.vercel.app, en vivo y en la demostración (y en un móvil, que también vale).
+  3. Si algún gesto no entra, probar a subir o bajar `confianza_minima` en `config/gestos.json` (0,85) antes de
+     tocar el modelo.
+- **Hecha cuando:** los seis gestos funcionan con la cámara que se va a usar en la demo, en local y en Vercel.
+- **Dónde:** `config/gestos.json`, `integracion/README.md`
+
+## T19 · Que la muestra no pise el histórico
+
+- **Estado:** libre · **Responsable:** — · **Estimación:** 1 h · **Dificultad:** media
+- **Por qué:** los agregados se guardan por sus dimensiones, así que la carga de la muestra (999 viajes del 1 de
+  enero) sustituye los grupos del 1 de enero cargados con el año completo. Pasó el 22/09 con tres cargas desde
+  Operaciones y se reparó repitiendo la carga del año.
+- **Qué hay que hacer:** que `POST /api/operaciones/airflow/cargas` y el DAG respondan 409 a `muestra` si
+  `auditoria.cargas` ya tiene una carga que no sea de la muestra, con un mensaje que lo explique; en Operaciones,
+  la casilla de la muestra deshabilitada con ese motivo. Tests del BFF y del DAG.
+- **Hecha cuando:** con el año cargado, la muestra no se puede lanzar ni desde el portal ni desde Airflow.
+- **Dónde:** `parte4_frontend/bff/rutas/operaciones.py`, `parte2_plataforma/airflow/`, `web/src/paginas/operaciones/`
 
 ---
 
@@ -104,10 +104,8 @@ decisión pendiente en T13. El mapa de todo lo que falta para cerrar el proyecto
 - Privacidad diferencial (OpenDP) sobre los agregados, además del umbral k.
 - Detectar patrones de consultas sospechosos por cliente (muchas consultas solapadas).
 - Airflow: un DAG que cargue los 12 meses en cadena, con reintentos.
-- Cargas: impedir que la muestra (999 viajes del 1 de enero) pise un histórico ya cargado. Los agregados se guardan
-  por sus dimensiones, así que la muestra sustituye los grupos del 1 de enero del año completo; pasó el 22/09 (tres
-  cargas desde Operaciones) y se reparó repitiendo la carga del año. Idea: que el BFF y el DAG respondan 409 a
-  `muestra` si `auditoria.cargas` ya tiene una carga que no sea de la muestra.
+- Gestos: un tramo propio en el grafo (Redpanda → Chatbots) en vez de la pastilla; un gesto para «pulgar abajo»
+  (reentrenar con una clase más); los gestos también en el explorador (siguiente ejemplo, consultar).
 - Comparar la exportación completa con los Parquet mensuales de la TLC (¿mismos viajes?).
 - Committer de S3A más rápido para las escrituras de Spark.
 - Supresión complementaria también en tiempo real: un trabajo por lotes que cierre cada día cuando la
@@ -150,3 +148,6 @@ decisión pendiente en T13. El mapa de todo lo que falta para cerrar el proyecto
 | 22/09/2026 | T16 Botón «TAXI AI» con el chatbot en un panel derecho, disponible en todas las páginas | Javier Saguar | entrada del 22/09 |
 | 22/09/2026 | T15 Animaciones en vivo del portal: el grafo ilumina los tramos en marcha, indicador «En vivo» y gráficas que se mueven con los datos nuevos | Javier Saguar | entrada del 22/09 |
 | 22/09/2026 | T11 Tiempo real desde cero (`make tiempo-real-reiniciar`) y captura en directo con viajes reales de diciembre de 2020 (`make capturar`, botón del grafo) | Javier Saguar | entrada del 22/09 |
+| 22/09/2026 | T12 La API etiqueta todos los grupos suprimidos como `oculto` (un complementario puede tener 10 o más viajes) | Javier Saguar | entrada del 22/09 |
+| 22/09/2026 | T13 El LLM externo de Helmcode se queda (Vigente): la demo enseña los dos chatbots | Javier Saguar | entrada del 22/09 |
+| 22/09/2026 | T17 Gestos de la parte 1 en los tres chatbots (Chainlit de Ollama y RAG, y TAXI AI) y reconocidos en el navegador con el MLP de la parte 1, también en Vercel | Javier Saguar | entrada del 22/09 |

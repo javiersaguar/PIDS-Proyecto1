@@ -18,7 +18,7 @@ import recuperador as R  # noqa: E402
 
 FILA_DIA = {'dia': '2020-03-03T00:00:00', 'barrio_origen': 'Manhattan', 'n_viajes': 203866, 'distancia_media': 2.9,
             'importe_medio': 18.5, 'propina_media': 2.07, 'pct_pago_tarjeta': 71.2, 'suprimido': False}
-FILA_OCULTA = {'dia': '2020-01-01T00:00:00', 'barrio_origen': 'Staten Island', 'n_viajes': '<10',
+FILA_OCULTA = {'dia': '2020-01-01T00:00:00', 'barrio_origen': 'Staten Island', 'n_viajes': 'oculto',
                'distancia_media': None, 'importe_medio': None, 'propina_media': None, 'pct_pago_tarjeta': None,
                'suprimido': True}
 FILA_FLUJO = {'dia': '2020-01-01T00:00:00', 'barrio_origen': 'Manhattan', 'barrio_destino': 'Bronx', 'n_viajes': 1311,

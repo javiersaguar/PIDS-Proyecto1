@@ -133,6 +133,7 @@ class Configuracion:
     ollama_url: str
     ollama_modelo: str
     grafana_url: str = 'http://127.0.0.1:3000'
+    gestos_clave: str = ''            # clave del cliente `gestos` de la API de captura (el mismo que la demo de Windows)
     enlaces: dict[str, str] = field(default_factory=lambda: dict(ENLACES_POR_DEFECTO))
     duracion_sesion: timedelta = DURACION_SESION
     dist_spa: Path = DIST_SPA
@@ -158,6 +159,7 @@ class Configuracion:
             ollama_url=url_servicio('OLLAMA_URL', cfg, contenedor),
             ollama_modelo=cfg.get('OLLAMA_MODELO') or OLLAMA_MODELO_POR_DEFECTO,
             grafana_url=url_servicio('GRAFANA_URL', cfg, contenedor),
+            gestos_clave=cfg.get('GESTOS_CLAVE') or cfg.get('CAPTURA_CLAVE_GESTOS') or '',
             enlaces=enlaces(cfg),
         )
 
