@@ -1,12 +1,12 @@
 /**
- * Las siete secciones del portal (§6): ruta, título, descripción e icono. Es la única lista; la usan la barra
- * lateral, la cabecera (título de la sección activa) y las páginas «En construcción».
+ * Las seis secciones del portal (§6): ruta, título, descripción e icono. Es la única lista; la usan la barra
+ * lateral y la cabecera (título de la sección activa). El asistente (TAXI AI) no es una sección: es el botón fijo
+ * de la esquina inferior derecha y su panel, disponibles en todas las páginas (`PanelAsistente.tsx`).
  */
 import {
   Activity,
   BookOpen,
   LayoutDashboard,
-  MessageSquareText,
   ShieldCheck,
   SlidersHorizontal,
   Table2,
@@ -32,12 +32,6 @@ export const SECCIONES: readonly Seccion[] = [
     titulo: 'Explorador',
     descripcion: 'Consultas agregadas por hora y zona, por día y barrio o flujos entre barrios, siempre con k = 10.',
     icono: Table2,
-  },
-  {
-    ruta: '/asistente',
-    titulo: 'Asistente',
-    descripcion: 'Conversación con el agente (Ollama o RAG) sobre los agregados publicados.',
-    icono: MessageSquareText,
   },
   {
     ruta: '/tiempo-real',

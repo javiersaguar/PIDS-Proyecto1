@@ -135,22 +135,6 @@ decisión pendiente en T13. El mapa de todo lo que falta para cerrar el proyecto
 - **Dónde:** `parte4_frontend/web/src/paginas/documentacion/`, `parte4_frontend/web/src/paginas/panel/`,
   `parte4_frontend/web/src/paginas/tiempo-real/`
 
-## T16 · Botón «TAXI AI» con el chatbot en un panel derecho
-
-- **Estado:** libre · **Responsable:** — · **Estimación:** 5 h · **Dificultad:** media
-- **Por qué:** el asistente es una sección más del menú izquierdo. Tiene que estar siempre a mano, como
-  un acceso del producto, no como otra página.
-- **Qué hay que hacer:**
-  1. Quitar «Asistente» de la barra izquierda (`navegacion.ts` y la ruta que deja de ser una sección).
-  2. Un botón fijo en la esquina inferior derecha con el texto «TAXI AI».
-  3. Al pulsarlo, un panel entra desde el borde derecho y ahí está el chatbot (el mismo agente de Ollama o
-     RAG que ya usa `/asistente`). Cerrarlo lo esconde; no navega a otra ruta.
-- **Hecha cuando:** desde cualquier página del portal se abre y se cierra el chat con ese botón, y el menú
-  izquierdo ya no tiene la entrada del asistente.
-- **Dónde:** `parte4_frontend/web/src/componentes/shell/`, `parte4_frontend/web/src/paginas/asistente/`
-
----
-
 ## Ideas y trabajo futuro
 
 - Chatbot RAG: cuando la barrera de cifras sustituye la respuesta, enseñar solo las fichas relacionadas con la
@@ -200,3 +184,4 @@ decisión pendiente en T13. El mapa de todo lo que falta para cerrar el proyecto
 | 21/09/2026 | T14 Portal web en `main` y levantado desde la carpeta principal (8020), demostración pública en Vercel y capturas | Javier Saguar | entrada del 21/09 |
 | 22/09/2026 | T08 Servicios sin login fuera de Docker, login de los chatbots y modelo de amenazas | Javier Saguar | entrada del 22/09 |
 | 22/09/2026 | T09 API de acceso con dos réplicas detrás de Caddy: 2555 peticiones con una réplica parada y otra tirada, 0 fallos | Javier Saguar | entrada del 22/09 |
+| 22/09/2026 | T16 Botón «TAXI AI» con el chatbot en un panel derecho, disponible en todas las páginas | Javier Saguar | entrada del 22/09 |

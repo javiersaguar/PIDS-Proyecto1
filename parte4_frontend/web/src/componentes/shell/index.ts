@@ -6,6 +6,8 @@
 export { AppShell } from './AppShell'
 export { BarraLateral } from './BarraLateral'
 export { Cabecera } from './Cabecera'
+export { BotonTaxiAI } from './BotonTaxiAI'
+export { PanelAsistente, ID_PANEL_ASISTENTE } from './PanelAsistente'
 export { Pie, AVISO_E3 } from './Pie'
 export { GuardiaSesion } from './GuardiaSesion'
 export { EncabezadoPagina } from './EncabezadoPagina'

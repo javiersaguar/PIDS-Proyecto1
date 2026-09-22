@@ -1,23 +1,37 @@
 /**
- * Esqueleto de la aplicación autenticada: barra lateral fija y contenido (`<Outlet />`).
- * Documentación y el asistente ocupan todo el hueco, sin cabecera. El panel, el explorador,
- * privacidad, tiempo real y operaciones tampoco llevan cabecera: el título de la sección
- * ya está en la barra lateral.
+ * Esqueleto de la aplicación autenticada: barra lateral fija, contenido (`<Outlet />`) y TAXI AI, el asistente,
+ * como botón fijo abajo a la derecha con su panel deslizante (disponible en todas las páginas, sin ruta propia).
+ * Documentación ocupa todo el hueco, sin cabecera. El panel, el explorador, privacidad, tiempo real y
+ * operaciones tampoco llevan cabecera: el título de la sección ya está en la barra lateral.
  */
+import { useCallback, useRef, useState } from 'react'
 import { Outlet, useLocation } from 'react-router'
 
 import { cn } from '@/lib/utils'
 
 import { BarraLateral } from './BarraLateral'
+import { BotonTaxiAI } from './BotonTaxiAI'
 import { Cabecera } from './Cabecera'
+import { PanelAsistente } from './PanelAsistente'
 
 export function AppShell() {
-  const { pathname } = useLocation()
-  const lienzo =
-    pathname === '/documentacion' ||
-    pathname.startsWith('/documentacion/') ||
-    pathname === '/asistente' ||
-    pathname.startsWith('/asistente/')
+  const { pathname, state, key } = useLocation()
+  const [asistenteAbierto, setAsistenteAbierto] = useState(false)
+  const [navegacionAtendida, setNavegacionAtendida] = useState<string | null>(null)
+  const botonRef = useRef<HTMLButtonElement>(null)
+
+  // La antigua ruta /asistente redirige a la portada pidiendo abrir el panel (rutas.tsx): se atiende una vez por
+  // navegación (estado derivado de la ubicación, ajustado en el render).
+  const pideAbrir = (state as { asistente?: boolean } | null)?.asistente === true
+  if (pideAbrir && key !== navegacionAtendida) {
+    setNavegacionAtendida(key)
+    setAsistenteAbierto(true)
+  }
+
+  const cerrarAsistente = useCallback(() => setAsistenteAbierto(false), [])
+  const alternarAsistente = useCallback(() => setAsistenteAbierto((abierto) => !abierto), [])
+
+  const lienzo = pathname === '/documentacion' || pathname.startsWith('/documentacion/')
   const esPanel = pathname === '/'
   const esPrivacidad = pathname === '/privacidad' || pathname.startsWith('/privacidad/')
   const esExplorador = pathname === '/explorador' || pathname.startsWith('/explorador/')
@@ -50,6 +64,8 @@ export function AppShell() {
           )}
         </main>
       </div>
+      <BotonTaxiAI ref={botonRef} abierto={asistenteAbierto} alPulsar={alternarAsistente} />
+      <PanelAsistente abierto={asistenteAbierto} alCerrar={cerrarAsistente} botonRef={botonRef} />
     </div>
   )
 }

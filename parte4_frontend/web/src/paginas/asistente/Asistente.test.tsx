@@ -41,6 +41,19 @@ function flujoSse() {
   }
 }
 
+/**
+ * Renderiza el portal en `ruta` y abre TAXI AI con el botón fijo, como hace el usuario. Por defecto en una página
+ * sin llamadas a la API («No encontrado»), para que el único `role="alert"` posible sea el del chat.
+ */
+async function abrirAsistente(ruta = '/no-existe') {
+  renderizarRutas(ruta)
+  const usuario = userEvent.setup()
+  await usuario.click(await screen.findByRole('button', { name: 'Abrir TAXI AI, el asistente de datos' }))
+  return usuario
+}
+
+const panelAsistente = () => screen.getByRole('complementary', { name: 'TAXI AI, asistente de datos' })
+
 function apiBase(extra: Record<string, unknown> = {}) {
   return simularApi({
     'GET /api/sesion': { autenticado: true },
@@ -51,10 +64,10 @@ function apiBase(extra: Record<string, unknown> = {}) {
   } as Parameters<typeof simularApi>[0])
 }
 
-describe('PaginaAsistente', () => {
+describe('Asistente (panel TAXI AI)', () => {
   it('muestra los motores, deshabilita el que no está disponible y abre una sesión con el primero disponible', async () => {
     const espia = apiBase()
-    renderizarRutas('/asistente')
+    await abrirAsistente()
 
     const grupo = await screen.findByRole('radiogroup', { name: 'Motor del asistente' })
     const ollama = within(grupo).getByRole('radio', { name: /Ollama/ })
@@ -81,8 +94,7 @@ describe('PaginaAsistente', () => {
   it('envía con Enter, pinta los pasos en directo y la respuesta en Markdown con segundos y tokens', async () => {
     const flujo = flujoSse()
     const espia = apiBase({ 'POST /api/chat/sesiones/ses-1/mensajes': () => flujo.respuesta })
-    renderizarRutas('/asistente')
-    const usuario = userEvent.setup()
+    const usuario = await abrirAsistente()
 
     const entrada = await screen.findByLabelText('Mensaje para el asistente')
     await waitFor(() => expect(entrada).toBeEnabled())
@@ -138,8 +150,7 @@ describe('PaginaAsistente', () => {
       'POST /api/chat/sesiones/ses-1/mensajes': () => primero.respuesta,
       'POST /api/chat/sesiones/ses-1/alternativa': () => segundo.respuesta,
     })
-    renderizarRutas('/asistente')
-    const usuario = userEvent.setup()
+    const usuario = await abrirAsistente()
 
     const entrada = await screen.findByLabelText('Mensaje para el asistente')
     await waitFor(() => expect(entrada).toBeEnabled())
@@ -187,8 +198,7 @@ describe('PaginaAsistente', () => {
   it('«✖ Cancelar» descarta la alternativa sin llamar al servidor', async () => {
     const flujo = flujoSse()
     const espia = apiBase({ 'POST /api/chat/sesiones/ses-1/mensajes': () => flujo.respuesta })
-    renderizarRutas('/asistente')
-    const usuario = userEvent.setup()
+    const usuario = await abrirAsistente()
 
     const entrada = await screen.findByLabelText('Mensaje para el asistente')
     await waitFor(() => expect(entrada).toBeEnabled())
@@ -211,8 +221,7 @@ describe('PaginaAsistente', () => {
   it('un evento error del flujo se muestra como alerta en la burbuja', async () => {
     const flujo = flujoSse()
     apiBase({ 'POST /api/chat/sesiones/ses-1/mensajes': () => flujo.respuesta })
-    renderizarRutas('/asistente')
-    const usuario = userEvent.setup()
+    const usuario = await abrirAsistente()
 
     const entrada = await screen.findByLabelText('Mensaje para el asistente')
     await waitFor(() => expect(entrada).toBeEnabled())
@@ -220,34 +229,37 @@ describe('PaginaAsistente', () => {
     flujo.emitir('error', { detail: 'Ollama no responde' })
     flujo.cerrar()
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Ollama no responde')
+    expect(await within(panelAsistente()).findByRole('alert')).toHaveTextContent('Ollama no responde')
     await waitFor(() => expect(entrada).toBeEnabled())
   })
 
-  it('«Nueva conversación» cierra la sesión y abre otra; al salir de la página también se cierra', async () => {
+  it('«Nueva conversación» cierra la sesión y abre otra; cerrar el panel o cambiar de sección conserva la conversación', async () => {
     const espia = apiBase()
-    renderizarRutas('/asistente')
-    const usuario = userEvent.setup()
+    const usuario = await abrirAsistente()
+    const cierres = () =>
+      espia.mock.calls.filter(([url, init]) => String(url).endsWith('/api/chat/sesiones/ses-1') && init?.method === 'DELETE')
+    const creaciones = () =>
+      espia.mock.calls.filter(([url, init]) => String(url).endsWith('/api/chat/sesiones') && init?.method === 'POST')
 
     const entrada = await screen.findByLabelText('Mensaje para el asistente')
     await waitFor(() => expect(entrada).toBeEnabled())
 
     await usuario.click(screen.getByRole('button', { name: 'Nueva conversación' }))
-    await waitFor(() => {
-      const cierres = espia.mock.calls.filter(([url, init]) => String(url).endsWith('/api/chat/sesiones/ses-1') && init?.method === 'DELETE')
-      expect(cierres).toHaveLength(1)
-    })
-    await waitFor(() => {
-      const creaciones = espia.mock.calls.filter(([url, init]) => String(url).endsWith('/api/chat/sesiones') && init?.method === 'POST')
-      expect(creaciones).toHaveLength(2)
-    })
+    await waitFor(() => expect(cierres()).toHaveLength(1))
+    await waitFor(() => expect(creaciones()).toHaveLength(2))
 
+    // Cerrar el panel y volver a abrirlo: misma sesión, nada se cierra ni se crea.
+    await usuario.click(screen.getByRole('button', { name: 'Cerrar el asistente' }))
+    await usuario.click(screen.getByRole('button', { name: 'Abrir TAXI AI, el asistente de datos' }))
+    expect(cierres()).toHaveLength(1)
+    expect(creaciones()).toHaveLength(2)
+
+    // Cambiar de sección tampoco: el asistente vive en el shell, no en la página.
     await usuario.click(screen.getByRole('link', { name: 'Privacidad' }))
     expect(await screen.findByRole('heading', { level: 1, name: 'Privacidad' })).toBeInTheDocument()
-    await waitFor(() => {
-      const cierres = espia.mock.calls.filter(([url, init]) => String(url).endsWith('/api/chat/sesiones/ses-1') && init?.method === 'DELETE')
-      expect(cierres).toHaveLength(2)
-    })
+    expect(screen.getByLabelText('Mensaje para el asistente')).toBeInTheDocument()
+    expect(cierres()).toHaveLength(1)
+    expect(creaciones()).toHaveLength(2)
   })
 
   it('sin motores disponibles muestra «no disponible» y con error del BFF, «Reintentar»', async () => {
@@ -255,7 +267,7 @@ describe('PaginaAsistente', () => {
       'GET /api/sesion': { autenticado: true },
       'GET /api/chat/motores': MOTORES.map((m) => ({ ...m, disponible: false })),
     })
-    renderizarRutas('/asistente')
+    await abrirAsistente()
     expect(await screen.findByText('Asistente no disponible')).toBeInTheDocument()
     expect(screen.queryByLabelText('Mensaje para el asistente')).not.toBeInTheDocument()
   })
@@ -265,8 +277,8 @@ describe('PaginaAsistente', () => {
       'GET /api/sesion': { autenticado: true },
       'GET /api/chat/motores': { status: 503, json: { detail: 'El motor de chat no está configurado' } },
     })
-    renderizarRutas('/asistente')
-    const alerta = await screen.findByRole('alert')
+    await abrirAsistente()
+    const alerta = await within(panelAsistente()).findByRole('alert')
     expect(alerta).toHaveTextContent('El motor de chat no está configurado')
     expect(within(alerta).getByRole('button', { name: 'Reintentar' })).toBeInTheDocument()
   })
