@@ -1,6 +1,7 @@
 /**
  * Las cuatro tarjetas del panel. La cifra va en una sola línea; al lado, barras de lo que la compone.
- * La frescura no usa la frase larga: el número y la unidad quedan juntos.
+ * La frescura no usa la frase larga: el número y la unidad quedan juntos. Cuando el panel se refresca y una
+ * cifra cambia, el número recorre el camino hasta el valor nuevo (`useNumeroAnimado`) y las barras con él.
  */
 import { Activity, MapPinned, Route, ShieldCheck, type LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
@@ -8,6 +9,7 @@ import type { ReactNode } from 'react'
 import type { PanelExtendido } from '@/api/panel'
 import { describirAntiguedad, formatearEntero } from '@/componentes/datos/formato'
 import { useSegundosDesde } from '@/componentes/datos/useAhora'
+import { useNumeroAnimado } from '@/componentes/datos/useNumeroAnimado'
 import { Semaforo } from '@/componentes/graficos/Semaforo'
 import { nivelFrescura, TEXTO_FRESCURA, type NivelFrescura } from '@/componentes/graficos/frescura'
 import { cn } from '@/lib/utils'
@@ -149,12 +151,14 @@ export function TarjetasPanel({ panel, actualizadoEn }: Props) {
   const acceso = panel.acceso_disponible !== false
   const serie = serieDescendente(historico?.por_barrio)
   const sinDia = !acceso && !historico
+  const viajesAnimados = useNumeroAnimado(historico?.total ?? null)
+  const decisionesAnimadas = useNumeroAnimado(prometheus && decisiones ? totalDecisiones : null)
 
   return (
     <section aria-label="Indicadores" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <Kpi
         titulo="Viajes"
-        valor={sinDia ? 'API de acceso no disponible' : historico ? formatearEntero(historico.total) : 'Sin datos'}
+        valor={sinDia ? 'API de acceso no disponible' : historico ? formatearEntero(viajesAnimados) : 'Sin datos'}
         icono={Route}
         iconoClase="bg-[#e8faf2] text-[#17875a]"
         grafico={historico ? <MiniBarras valores={serie} color={VERDE} /> : undefined}
@@ -168,7 +172,7 @@ export function TarjetasPanel({ panel, actualizadoEn }: Props) {
       />
       <Kpi
         titulo="Decisiones"
-        valor={prometheus && decisiones ? formatearEntero(totalDecisiones) : 'Prometheus no disponible'}
+        valor={prometheus && decisiones ? formatearEntero(decisionesAnimadas) : 'Prometheus no disponible'}
         icono={ShieldCheck}
         iconoClase={prometheus && decisiones ? 'bg-[#e7f8f8] text-[#0e7c7c]' : 'bg-slate-100 text-slate-400'}
         grafico={

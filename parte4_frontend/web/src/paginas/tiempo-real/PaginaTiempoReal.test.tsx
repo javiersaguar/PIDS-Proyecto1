@@ -93,6 +93,24 @@ describe('PaginaTiempoReal', () => {
     expect(screen.getByRole('link', { name: 'Ir a Operaciones' })).toHaveAttribute('href', '/operaciones')
   })
 
+  it('con el simulador en marcha, el indicador «En vivo» lo dice; la frescura reciente cuenta como Spark publicando', async () => {
+    simularApi({
+      'GET /api/sesion': { autenticado: true },
+      'GET /api/tiempo-real': TIEMPO_REAL,
+      'GET /api/panel': { servicios: [], enlaces: {}, frescura_tiempo_real: { instante: null, segundos: 45 } },
+      'GET /api/operaciones/simulacion': {
+        activa: true, lote: 'portal-muestra', fichero: 'yellow_tripdata_2020_muestra.csv', enviados: 450, total: 999,
+        ritmo: 50, inicio: '2026-09-22T09:59:50+00:00', fin: null, error: null,
+      },
+    })
+    renderizarRutas('/tiempo-real')
+
+    const estado = await screen.findByRole('status', { name: 'Actividad de la plataforma' })
+    await waitFor(() => expect(estado).toHaveTextContent('2 procesos en marcha'))
+    expect(screen.queryByText(/Nueva hora/)).not.toBeInTheDocument()       // la primera respuesta no es una hora nueva
+    expect(screen.getByRole('img', { name: 'Viajes por hora, últimas 6 horas con datos' }).querySelectorAll('.recharts-bar-rectangle')).toHaveLength(3)
+  })
+
   it('si el BFF falla, muestra el error con «Reintentar»', async () => {
     conSesion({ status: 503, json: { detail: 'La API de acceso no responde' } })
     renderizarRutas('/tiempo-real')

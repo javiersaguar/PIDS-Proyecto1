@@ -1,18 +1,24 @@
 /**
  * Tiempo real (§6): tres indicadores, viajes por hora (barras, últimas 6/12/24 h con datos)
- * y la última hora por zona. `GET /api/tiempo-real?horas=` se refresca cada 10 s.
- * Los datos son agregados protegidos: los grupos enmascarados se cuentan, nunca se suman.
+ * y la última hora por zona. `GET /api/tiempo-real?horas=` se refresca cada 10 s y, mientras el simulador
+ * envía viajes o Spark está publicando, cada 5 s; el indicador «En vivo» dice qué está pasando. Al llegar un dato
+ * nuevo las barras se deslizan a su valor, la cifra de la última hora recorre el camino y, si aparece una hora
+ * nueva, se anuncia. Los datos son agregados protegidos: los grupos enmascarados se cuentan, nunca se suman.
  */
 import { Activity, CalendarDays, Clock3, type LucideIcon } from 'lucide-react'
 import { useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 
-import { HORAS_TIEMPO_REAL, INTERVALO_TIEMPO_REAL_MS, useTiempoReal, type HorasTiempoReal } from '@/api/tiempoReal'
+import { resumirActividad, useActividad } from '@/api/actividad'
+import { HORAS_TIEMPO_REAL, INTERVALO_TIEMPO_REAL_ACTIVO_MS, INTERVALO_TIEMPO_REAL_MS, useTiempoReal, type HorasTiempoReal } from '@/api/tiempoReal'
 import type { TiempoReal } from '@/api/tipos'
 import { TablaAgregados } from '@/componentes/datos'
 import { totalesDe } from '@/componentes/datos/agregados'
+import { EnVivo } from '@/componentes/datos/EnVivo'
 import { describirAntiguedad, formatearEntero, formatearFecha, formatearFechaCorta, formatearFechaHora, formatearHora } from '@/componentes/datos/formato'
 import { useSegundosDesde } from '@/componentes/datos/useAhora'
+import { useCambioDe, useInstanteDe } from '@/componentes/datos/useCambioDe'
+import { useNumeroAnimado } from '@/componentes/datos/useNumeroAnimado'
 import { GraficoBarras, type Barra } from '@/componentes/graficos'
 import { Semaforo } from '@/componentes/graficos/Semaforo'
 import { nivelFrescura, TEXTO_FRESCURA, type NivelFrescura } from '@/componentes/graficos/frescura'
@@ -33,6 +39,20 @@ const TONO: Record<NivelFrescura, { icono: string; cifra: string; serie: string 
   ok: { icono: 'bg-emerald-50 text-emerald-600', cifra: 'text-slate-900', serie: VERDE },
   aviso: { icono: 'bg-amber-50 text-amber-600', cifra: 'text-amber-700', serie: AMBAR },
   peligro: { icono: 'bg-rose-50 text-rose-500', cifra: 'text-rose-600', serie: CORAL },
+}
+/** Cuánto se anuncia una hora nueva tras aparecer. */
+const MOSTRAR_HORA_NUEVA_S = 30
+
+/** «Nueva hora: 23:00» durante un rato cuando el streaming abre otra hora. */
+function ChipHoraNueva({ ultimaHora }: { ultimaHora: string | null }) {
+  const cambio = useCambioDe(ultimaHora)
+  const segundos = useSegundosDesde(useInstanteDe(cambio?.n))
+  if (!cambio || !cambio.anterior || !cambio.actual || segundos == null || segundos > MOSTRAR_HORA_NUEVA_S) return null
+  return (
+    <span key={cambio.n} role="status" className="destello-datos cifra rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+      Nueva hora: {formatearHora(cambio.actual)}
+    </span>
+  )
 }
 
 function Esqueleto() {
@@ -113,16 +133,22 @@ function IndicadorFrescura({ segundos, actualizadoEn }: { segundos: number | nul
 
 export default function PaginaTiempoReal() {
   const [horas, setHoras] = useState<HorasTiempoReal>(6)
-  const tiempoReal = useTiempoReal(horas)
+  const actividad = useActividad()
+  // con viajes entrando o Spark publicando, el BFF guarda la respuesta 20 s: preguntar cada 5 s la trae en cuanto cambia
+  const intervaloMs = actividad.simulacion || actividad.publicando ? INTERVALO_TIEMPO_REAL_ACTIVO_MS : INTERVALO_TIEMPO_REAL_MS
+  const tiempoReal = useTiempoReal(horas, { intervaloMs })
   const datos = tiempoReal.data
 
   const ultimaHora = useMemo(() => datos?.por_zona_ultima_hora?.[0]?.hora ?? datos?.por_hora?.at(-1)?.hora ?? null, [datos])
   const totalesUltimaHora = useMemo(() => totalesDe(datos?.por_zona_ultima_hora ?? []), [datos])
+  const totalUltimaHoraAnimado = useNumeroAnimado(ultimaHora ? totalesUltimaHora.total : null)
   const barras = useMemo(() => barrasPorHora(datos?.por_hora ?? []), [datos])
   const serieHoras = useMemo(() => (datos?.por_hora ?? []).map((h) => h.n_viajes), [datos])
   const variosDias = useMemo(() => new Set(barras.map((b) => b.etiqueta.slice(0, 10))).size > 1, [barras])
   const sinDatos = !!datos && datos.por_hora.length === 0 && !datos.ultimo_dia
   const accesoCaido = !!datos && datos.acceso_disponible === false
+  // las barras se deslizan solo a partir del segundo dato: la primera pintura sale ya en su sitio
+  const animar = useCambioDe(tiempoReal.dataUpdatedAt, String(horas)) !== null
 
   return (
     <>
@@ -148,6 +174,16 @@ export default function PaginaTiempoReal() {
               reintentando={tiempoReal.isFetching}
             />
           )}
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <ChipHoraNueva ultimaHora={ultimaHora} />
+            <EnVivo
+              activo={actividad.enMarcha}
+              texto={resumirActividad(actividad)}
+              actualizadoEn={tiempoReal.dataUpdatedAt}
+              intervaloMs={intervaloMs}
+              refrescando={tiempoReal.isFetching}
+            />
+          </div>
           <section aria-label="Indicadores" className="grid gap-4 sm:grid-cols-3">
             <IndicadorFrescura segundos={datos.frescura?.segundos ?? null} actualizadoEn={tiempoReal.dataUpdatedAt} />
             <Indicador
@@ -160,7 +196,7 @@ export default function PaginaTiempoReal() {
             />
             <Indicador
               titulo="Última hora"
-              valor={ultimaHora ? formatearEntero(totalesUltimaHora.total) : 'Sin datos'}
+              valor={ultimaHora ? formatearEntero(totalUltimaHoraAnimado) : 'Sin datos'}
               icono={Clock3}
               iconoClase="bg-indigo-50 text-indigo-600"
               serie={serieHoras}
@@ -211,6 +247,7 @@ export default function PaginaTiempoReal() {
                     <GraficoBarras
                       datos={barras}
                       orientacion="vertical"
+                      animado={animar}
                       nombreSerie="Viajes"
                       formatearEtiqueta={(h) => (variosDias ? `${formatearFechaCorta(h)} ${formatearHora(h)}` : formatearHora(h))}
                       formatearEtiquetaCompleta={formatearFechaHora}

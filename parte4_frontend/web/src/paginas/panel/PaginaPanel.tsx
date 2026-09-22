@@ -1,9 +1,12 @@
 /**
  * Panel de inicio: indicadores, viajes por barrio y la tabla de servicios o accesos.
- * Sin título de página ni aviso de refresco: `GET /api/panel` sigue actualizándose solo cada 60 s.
- * En esta ruta el shell tampoco pinta cabecera ni pie.
+ * Sin título de página: `GET /api/panel` se actualiza solo cada 60 s y, mientras la plataforma trabaja (una carga,
+ * el simulador, Spark publicando), cada 20 s; el indicador «En vivo» dice qué pasa y cuándo llega el siguiente dato.
+ * Las cifras y las barras se mueven hacia el valor nuevo en vez de saltar. En esta ruta el shell no pinta cabecera ni pie.
  */
-import { usePanel } from '@/api/panel'
+import { resumirActividad, useActividad } from '@/api/actividad'
+import { INTERVALO_PANEL_ACTIVO_MS, INTERVALO_PANEL_MS, usePanel } from '@/api/panel'
+import { EnVivo } from '@/componentes/datos/EnVivo'
 import { EstadoError } from '@/componentes/shell'
 
 import { TablaPlataforma } from './ServiciosYEnlaces'
@@ -25,7 +28,9 @@ function Esqueleto() {
 }
 
 export default function PaginaPanel() {
-  const panel = usePanel()
+  const actividad = useActividad()
+  const intervaloMs = actividad.enMarcha ? INTERVALO_PANEL_ACTIVO_MS : INTERVALO_PANEL_MS
+  const panel = usePanel({ intervaloMs })
 
   return (
     <>
@@ -41,6 +46,15 @@ export default function PaginaPanel() {
         />
       ) : (
         <div className="space-y-4">
+          <div className="flex justify-end">
+            <EnVivo
+              activo={actividad.enMarcha}
+              texto={resumirActividad(actividad)}
+              actualizadoEn={panel.dataUpdatedAt}
+              intervaloMs={intervaloMs}
+              refrescando={panel.isFetching}
+            />
+          </div>
           <TarjetasPanel panel={panel.data} actualizadoEn={panel.dataUpdatedAt} />
           <ViajesPorBarrio ultimoDia={panel.data.ultimo_dia} accesoDisponible={panel.data.acceso_disponible !== false} />
           <TablaPlataforma servicios={panel.data.servicios ?? []} enlaces={panel.data.enlaces} />

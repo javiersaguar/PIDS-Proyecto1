@@ -34,8 +34,7 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 | **Métricas** | M1: 0 fugas en la API (31 casos), en el chatbot de Ollama (105 ejecuciones) y en el chatbot RAG (105 ejecuciones) · M2: con k = 10 se publica el 95,1 % de los viajes en hora-zona · M3: p95 35,4 s (objetivo < 60 s) |
 | **Chatbots** | Ollama: `llama3.1:8b` en GPU a temperatura 0,2, 21/21 casos en 2-3 s · RAG: `deepseek-v4-flash` (Helmcode, UE), 21/21 casos con p50 1,1 s y unos 6 000 tokens por pregunta. Detalle en `docs/chatbot_rag.md` |
 | **Parte 1** | Se ejecuta desde el repositorio, con `PIDS_DATOS` apuntando a las imágenes (que siguen fuera de Git) |
-| **Portal web (parte 4)** | En `main` y levantado (`make frontend`, http://localhost:8020, contraseña `FRONTEND_CLAVE` de `.env`): panel, explorador, tiempo real, privacidad y auditoría, operaciones y documentación, y el asistente TAXI AI (Ollama y RAG) como botón fijo con panel derecho en todas las páginas (T16). Demostración pública en Vercel con datos grabados (`parte4_frontend/demo`). 429 tests de Python, 17 de Scala y 139 de Vitest |
-| **Sin empezar** | Vídeo y presentación (T10). De T06 queda el vídeo con la webcam |
+| **Portal web (parte 4)** | En `main` y levantado (`make frontend`, http://localhost:8020, contraseña `FRONTEND_CLAVE` de `.env`): panel, explorador, tiempo real, privacidad y auditoría, operaciones y el grafo de la plataforma, que ilumina los tramos en marcha (T15) y tiene «Capturar datos» (captura en directo con viajes reales de diciembre de 2020); el asistente TAXI AI (Ollama y RAG) es un botón fijo con panel derecho en todas las páginas (T16). Demostración pública en Vercel con datos grabados, o en vivo por túnel si el equipo está encendido (`parte4_frontend/demo`) |
 | **Cómo levantarlo** | En Ubuntu (WSL2), paso a paso en el README («Puesta en marcha»): `make entorno`, pegar `LLM_API_KEY`, `make sync && make test`, `make construir && make todo`, `make historico-muestra` y `make rag-indexar`; cada día, `make todo` y `make tiempo-real` |
 | **Forma de trabajar** | Una rama por persona (tabla en el README) y cambios a `main` por *pull request*. Para trabajo en paralelo, una rama de tarea con contratos por bloque (`parte3_chatbot_rag/CONTRATOS.md`). Cada copia, con `make hooks`; el CI «Autoría» rechaza coautorías y firmas automáticas |
 | **Repositorio** | Recreado en GitHub el 22/09/2026 (mismo nombre) para eliminar una coautoría ajena al grupo: [`docs/repositorio.md`](docs/repositorio.md). Copias anteriores: sincronizar con `git reset --hard origin/main`. **Vercel (`happytaxi`, `yellowveil`) hay que volver a conectarlo al repositorio nuevo** (§4 de ese documento) |
@@ -159,6 +158,61 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
   desmonta); el panel no usa el `Sheet` de shadcn porque ese desmonta el contenido al cerrar y perdería la conversación.
   Las clases de Tailwind del desplazamiento del botón (`right-[31.5rem]`) van escritas literales: Tailwind no genera
   clases construidas en tiempo de ejecución.
+### 2026-09-22 · Javier Saguar · T15 · Animaciones en vivo del portal
+
+- **Rama / commits:** `tarea/portal-animaciones` · `3671ccf`
+- **Qué he hecho:**
+  - `useActividad` (`parte4_frontend/web/src/api/actividad.ts`): qué está haciendo la plataforma ahora, con lo que el
+    BFF ya sabe: ejecuciones de Airflow (`running` o en cola → carga en marcha, con su mes y desde cuándo), simulador
+    activo (enviados de total, ritmo), frescura del tiempo real (Spark escribió hace menos de 2 min → publicando) y si
+    el propio portal está pidiendo agregados. Sin rutas ni puertos nuevos: reutiliza las consultas de Operaciones y del
+    panel, que TanStack Query comparte entre páginas. Si Airflow o el simulador no responden, esa parte cuenta como
+    «sin actividad» y la página no se entera.
+  - Documentación: una barra sobre el lienzo («En marcha ahora · Carga histórica de marzo de 2020 en ejecución desde
+    hace 2 min · Simulación en marcha: 450 de 999 viajes · 50 viajes/s»; sin nada, la última carga y un enlace a
+    Operaciones) y el lienzo ilumina los tramos del proceso: halo, trazo discontinuo que avanza en el sentido del dato
+    y dos puntos que recorren la curva (SMIL `animateMotion`); las piezas que trabajan llevan un anillo que late y una
+    pastilla con su estado («Cargando marzo de 2020», «450 de 999 viajes», «Publicó hace 25 s»); el resto se atenúa.
+    Carga: Airflow → S3 → Spark → MongoDB. Simulación: Simulador → Captura → Redpanda → Spark. Spark publicando:
+    Redpanda → Spark → MongoDB. Consultas del portal: MongoDB → API de acceso → Portal.
+  - Panel y tiempo real: indicador «En vivo» (qué pasa y «actualizado hace X s · siguiente en Y s»); refresco
+    adaptativo mientras hay actividad (panel de 60 a 20 s, tiempo real de 10 a 5 s); las cifras recorren el camino
+    hasta el valor nuevo (`useNumeroAnimado`), las minibarras y chispas se deslizan, las barras de Recharts se animan
+    solo a partir del segundo dato (la primera pintura sale ya en su sitio), y aparecen los chips «+1.234 viajes desde
+    el dato anterior» y «Nueva hora: 23:00».
+  - Con `prefers-reduced-motion` no hay puntos ni trazos en movimiento: quedan el halo, las pastillas y los textos.
+- **Por qué:** en la demo tiene que verse que la plataforma trabaja mientras entra una carga o corre el simulador (T15).
+- **Ficheros clave:** `parte4_frontend/web/src/api/{actividad,panel,tiempoReal}.ts`,
+  `parte4_frontend/web/src/paginas/documentacion/{Lienzo,BarraActividad,PaginaDocumentacion}.tsx` y `actividad.ts`,
+  `parte4_frontend/web/src/paginas/panel/{PaginaPanel,TarjetasPanel,ViajesPorBarrio,MiniBarras,MiniSerie}.tsx`,
+  `parte4_frontend/web/src/paginas/tiempo-real/PaginaTiempoReal.tsx`,
+  `parte4_frontend/web/src/componentes/datos/{EnVivo.tsx,useNumeroAnimado.ts,useCambioDe.ts,useMovimientoReducido.ts}`,
+  `parte4_frontend/web/src/componentes/graficos/GraficoBarras.tsx` (prop `animado`), `parte4_frontend/web/src/estilos/globales.css`
+- **Cómo comprobarlo:**
+  ```bash
+  cd parte4_frontend/web && npm run lint && npm test -- --run && npm run build
+  # con el portal levantado: lanzar el simulador (o una carga) en Operaciones y mirar Documentación, Panel y Tiempo real
+  ```
+- **Resultado:** 165 tests de Vitest (30 nuevos: lógica de la actividad, mapa de tramos, hooks de animación, lienzo con
+  procesos en marcha e indicadores), lint y build limpios. Probado con una simulación real de 999 viajes a 4 viajes/s: la
+  barra y el tramo Simulador → Spark se encienden en menos de 2 s (el simulador se sondea cada 2 s) y el panel pasa a
+  refrescarse cada 20 s. El BFF no cambia.
+- **Pendiente y riesgos:**
+  - Airflow solo da el estado de la ejecución, no la tarea: una carga ilumina el camino entero (Airflow → S3 → Spark →
+    MongoDB) aunque esté descargando el fichero. Para el detalle habría que pedir las *task instances* al BFF (idea en
+    TAREAS.md).
+  - La muestra que envía el simulador es de enero de 2020 y queda por detrás de la *watermark* del streaming (T11): se ve
+    entrar por Captura y Redpanda, pero Spark no publica agregados nuevos, así que «publicando» y las gráficas de tiempo
+    real no se mueven hasta que T11 esté hecha o se simule un fichero de diciembre.
+  - El BFF cachea el panel 60 s y el tiempo real 20 s: sondear más deprisa no adelanta el dato, solo lo recoge en cuanto
+    la caché caduca.
+  - En la demostración de Vercel la frescura grabada es fija (27,6 s), así que el tramo de Spark publicando está siempre
+    encendido; las operaciones no se lanzan, luego no se ven cargas ni simulaciones.
+- **Contexto para quien siga:** el BFF no se toca; todo es SPA (bloques F3 y F4 de `parte4_frontend/CONTRATOS.md`). Las
+  reglas nuevas de `eslint-plugin-react-hooks` (v7) obligan a dos patrones: nada de `Date.now()` en el render (por eso
+  `useCambioDe` guarda el cambio y `useInstanteDe` toma la hora en un efecto) y `setState` en efectos solo dentro de
+  un *callback* (temporizador o `requestAnimationFrame`). `useValoresAnimados` depende de la firma de los valores, no
+  del array: los componentes construyen arrays nuevos en cada render y el efecto cancelaría la animación.
 
 ### 2026-09-22 · Javier Saguar · Repositorio recreado en GitHub y barreras de autoría
 
