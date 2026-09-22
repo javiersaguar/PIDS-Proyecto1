@@ -42,8 +42,8 @@ export function montarAviso(modo: Modo): void {
     const textos = TEXTOS[modo]
     const aviso = document.createElement('aside')
     aviso.setAttribute('aria-label', textos.titulo)
-    // abajo a la izquierda, del ancho de la barra lateral: en escritorio tapa solo su pie, que es texto fijo
-    aviso.className = 'fixed bottom-3 left-3 z-50 max-w-[216px] rounded-lg border bg-superficie text-xs text-texto shadow-lg'
+    // abajo a la izquierda, del ancho de la barra lateral y por encima de su pie, para no tapar «Cerrar sesión»
+    aviso.className = 'fixed bottom-[4.5rem] left-3 z-50 max-w-[216px] rounded-lg border bg-superficie text-xs text-texto shadow-lg'
     aviso.innerHTML = `
       <div class="flex items-center gap-2 px-3 py-2">
         <span class="size-2 shrink-0 rounded-full ${modo === 'vivo' ? 'bg-ok' : 'bg-aviso'}" aria-hidden="true"></span>
