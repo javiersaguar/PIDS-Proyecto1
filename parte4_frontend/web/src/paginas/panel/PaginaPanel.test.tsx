@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 
@@ -152,5 +152,33 @@ describe('PaginaPanel', () => {
     const indicadores = await screen.findByRole('region', { name: 'Indicadores' })
     expect(within(indicadores).getByText('219.509')).toBeInTheDocument()
     expect(intentos).toBe(2)
+  })
+
+  it('el indicador «En vivo» cuenta lo que la plataforma está haciendo y cuándo llega el siguiente dato', async () => {
+    const espia = simularApi({
+      'GET /api/sesion': { autenticado: true },
+      'GET /api/panel': { ...PANEL, frescura_tiempo_real: { instante: null, segundos: 900 } },
+      'GET /api/operaciones/simulacion': {
+        activa: true, lote: 'portal-muestra', fichero: 'yellow_tripdata_2020_muestra.csv', enviados: 450, total: 999,
+        ritmo: 50, inicio: '2026-09-22T09:59:50+00:00', fin: null, error: null,
+      },
+    })
+    renderizarRutas('/')
+
+    const estado = await screen.findByRole('status', { name: 'Actividad de la plataforma' })
+    await waitFor(() => expect(estado).toHaveTextContent('Simulación en marcha: 450 de 999 viajes · 50 viajes/s'))
+    expect(estado).toHaveTextContent(/actualizado hace \d+ s · siguiente en \d+ s/)
+    // la señal sale de lo que Operaciones ya consulta: no hay ninguna ruta nueva
+    const rutas = new Set(espia.mock.calls.map(([entrada]) => new URL(String(entrada), 'http://localhost').pathname))
+    expect(rutas).toEqual(new Set(['/api/sesion', '/api/panel', '/api/operaciones/simulacion', '/api/operaciones/airflow/ejecuciones']))
+  })
+
+  it('sin procesos en marcha (y sin Airflow ni simulador), el indicador lo dice y el panel sigue igual', async () => {
+    conSesion({ ...PANEL, frescura_tiempo_real: { instante: null, segundos: 900 } })
+    renderizarRutas('/')
+
+    const estado = await screen.findByRole('status', { name: 'Actividad de la plataforma' })
+    expect(estado).toHaveTextContent('Sin procesos en marcha')
+    expect(await screen.findByRole('img', { name: 'Viajes por barrio el 31/12/2020 (histórico)' })).toBeInTheDocument()
   })
 })

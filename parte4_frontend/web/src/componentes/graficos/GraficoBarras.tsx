@@ -36,10 +36,14 @@ interface Props {
   formatearEtiquetaCompleta?: (etiqueta: string) => string
   /** Cifras al final de cada barra. */
   conEtiquetas?: boolean
+  /** Las barras se deslizan hasta su valor nuevo cuando cambian los datos (para las páginas que se refrescan solas). */
+  animado?: boolean
   /** Descripción accesible del gráfico. */
   titulo: string
   className?: string
 }
+
+const DURACION_ANIMACION_MS = 700
 
 interface PuntoBarra extends Barra {
   /** Lo que se dibuja: 0 en los enmascarados (la barra mínima la pone `minPointSize`). */
@@ -56,6 +60,7 @@ export function GraficoBarras({
   formatearEtiqueta = (e) => e,
   formatearEtiquetaCompleta,
   conEtiquetas = true,
+  animado = false,
   titulo,
   className,
 }: Props) {
@@ -127,7 +132,9 @@ export function GraficoBarras({
               fill={color}
               radius={horizontal ? [0, 3, 3, 0] : [3, 3, 0, 0]}
               minPointSize={(_valor, indice) => (puntos[indice]?.enmascarado ? 8 : 0)}
-              isAnimationActive={false}
+              isAnimationActive={animado}
+              animationDuration={DURACION_ANIMACION_MS}
+              animationEasing="ease-out"
               maxBarSize={horizontal ? 26 : 48}
             >
               {puntos.map((p) => (

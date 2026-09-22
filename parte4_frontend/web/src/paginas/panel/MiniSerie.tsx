@@ -1,9 +1,11 @@
 /**
  * Chispa decorativa de las tarjetas KPI: una línea con el relleno desvanecido, como en un cuadro de mando.
- * No es una serie temporal; solo resume la forma de los valores que ya muestra la tarjeta.
+ * No es una serie temporal; solo resume la forma de los valores que ya muestra la tarjeta. Cuando los valores
+ * cambian, la línea se desliza hacia la forma nueva.
  */
 import { useId } from 'react'
 
+import { useValoresAnimados } from '@/componentes/datos/useNumeroAnimado'
 import { cn } from '@/lib/utils'
 
 interface Props {
@@ -14,7 +16,7 @@ interface Props {
 
 export function MiniSerie({ valores, color, className }: Props) {
   const id = `mini-${useId().replace(/:/g, '')}`
-  const limpios = valores.filter((valor) => Number.isFinite(valor))
+  const limpios = useValoresAnimados(valores.filter((valor) => Number.isFinite(valor)))
   if (limpios.length < 2) return null
 
   const ancho = 96

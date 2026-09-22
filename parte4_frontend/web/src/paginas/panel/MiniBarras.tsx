@@ -1,7 +1,8 @@
 /**
  * Barras pequeñas de un KPI: cada valor es una barra, con escala de raíz para que los barrios
- * pequeños no desaparezcan junto al mayor.
+ * pequeños no desaparezcan junto al mayor. Cuando los valores cambian, las barras se mueven hacia el nuevo.
  */
+import { useValoresAnimados } from '@/componentes/datos/useNumeroAnimado'
 import { cn } from '@/lib/utils'
 
 interface Props {
@@ -13,7 +14,7 @@ interface Props {
 }
 
 export function MiniBarras({ valores, color = '#3b82f6', colores, className }: Props) {
-  const limpios = valores.filter((valor) => Number.isFinite(valor) && valor >= 0)
+  const limpios = useValoresAnimados(valores.filter((valor) => Number.isFinite(valor) && valor >= 0))
   if (limpios.length === 0) return null
   const ancho = 92
   const alto = 46

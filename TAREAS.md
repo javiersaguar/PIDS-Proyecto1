@@ -129,23 +129,6 @@ decisión pendiente en T13. El mapa de todo lo que falta para cerrar el proyecto
   se enseña.
 - **Dónde:** `BITACORA.md`, `docs/plan.md`
 
-## T15 · Animaciones en vivo del portal
-
-- **Estado:** libre · **Responsable:** — · **Estimación:** 6 h · **Dificultad:** media
-- **Por qué:** el panel y el grafo de documentación se quedan quietos aunque estén entrando viajes o
-  corriendo una carga. En la demo tiene que verse que la plataforma trabaja.
-- **Qué hay que hacer:**
-  1. Actualizar las gráficas del panel y de tiempo real cuando cambian los agregados (el sondeo ya existe
-     en operaciones; aquí el dibujo tiene que moverse con los datos nuevos).
-  2. En el grafo del pipeline (`parte4_frontend/web/src/paginas/documentacion/`), animar los caminos que
-     corresponden al proceso en curso: un DAG de carga histórica, o datos nuevos entrando por la captura.
-  3. La señal sale de lo que el BFF ya conoce (ejecuciones de Airflow, frescura del tiempo real, simulación
-     activa), sin abrir un puerto nuevo.
-- **Hecha cuando:** al lanzar un DAG o el simulador, el grafo marca el tramo que está trabajando y las
-  gráficas cambian sin recargar la página.
-- **Dónde:** `parte4_frontend/web/src/paginas/documentacion/`, `parte4_frontend/web/src/paginas/panel/`,
-  `parte4_frontend/web/src/paginas/tiempo-real/`
-
 ## T16 · Botón «TAXI AI» con el chatbot en un panel derecho
 
 - **Estado:** libre · **Responsable:** — · **Estimación:** 5 h · **Dificultad:** media
@@ -170,6 +153,9 @@ decisión pendiente en T13. El mapa de todo lo que falta para cerrar el proyecto
 - Chatbot RAG: probar `qwen3.6` con `LLM_RAZONAMIENTO=none` (responde en ~1 s) con la suite y la batería completas.
 - Portal web: usuarios y roles (hoy una contraseña única), exportar a CSV la tabla del explorador, persistir en la URL el
   selector de horas del tiempo real, y modo oscuro con las variables del tema.
+- Portal web, actividad en vivo (T15): pedir al BFF las *task instances* del DAG para iluminar solo la tarea en curso
+  de una carga (hoy se enciende el camino entero, porque Airflow solo da el estado de la ejecución); y empujar la
+  actividad por SSE desde el BFF en vez de sondear cada 2-15 s.
 - Privacidad diferencial (OpenDP) sobre los agregados, además del umbral k.
 - Detectar patrones de consultas sospechosos por cliente (muchas consultas solapadas).
 - Airflow: un DAG que cargue los 12 meses en cadena, con reintentos.
@@ -210,3 +196,4 @@ decisión pendiente en T13. El mapa de todo lo que falta para cerrar el proyecto
 | 21/09/2026 | Chatbot RAG con LLM externo (LangChain + Qdrant + Helmcode) en cinco bloques: 21/21 casos, 0/105 fugas, 340 tests | Javier Saguar | entrada del 21/09 |
 | 21/09/2026 | T14 Portal web en `main` y levantado desde la carpeta principal (8020), demostración pública en Vercel y capturas | Javier Saguar | entrada del 21/09 |
 | 22/09/2026 | T08 Servicios sin login fuera de Docker, login de los chatbots y modelo de amenazas | Javier Saguar | entrada del 22/09 |
+| 22/09/2026 | T15 Animaciones en vivo del portal: el grafo ilumina los tramos en marcha, indicador «En vivo» y gráficas que se mueven con los datos nuevos | Javier Saguar | entrada del 22/09 |

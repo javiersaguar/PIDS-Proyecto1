@@ -1,15 +1,25 @@
 /**
  * Lienzo de la arquitectura: fondo de puntos, tarjetas y curvas. Al pulsar una pieza se abre
  * una ficha breve (qué es, qué hace y cómo se conecta).
+ *
+ * Con `flujos` (lo que está pasando ahora, `actividad.ts`), las aristas por las que circula un proceso se
+ * iluminan: un halo, un trazo discontinuo que avanza en el sentido del dato y dos puntos que recorren la curva
+ * (SMIL `animateMotion`); las piezas que trabajan llevan un anillo que late y una pastilla con su estado. El resto
+ * del grafo se atenúa. Con `prefers-reduced-motion` quedan el halo y las pastillas, sin movimiento.
  */
 import { useLayoutEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
 
 import type { Panel } from '@/api/tipos'
+import { useMovimientoReducido } from '@/componentes/datos/useMovimientoReducido'
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/componentes/ui/dialog'
 import { cn } from '@/lib/utils'
 
+import { claveArista, SIN_FLUJOS, type Flujos } from './actividad'
 import { ARISTAS, LIENZO, NODOS, TARJETA, TONOS, type Arista, type Lado, type Nodo } from './nodos'
+
+/** Segundos que tarda un punto en recorrer una arista activa. */
+const DURACION_RECORRIDO_S = 2.2
 
 const DIR: Record<Lado, { x: number; y: number }> = {
   derecha: { x: 1, y: 0 },
@@ -118,13 +128,28 @@ function Bloque({ titulo, parrafos }: { titulo: string; parrafos: string[] }) {
   )
 }
 
-export function Lienzo({ enlaces }: { enlaces: Panel['enlaces'] }) {
+/** Los dos puntos que recorren una arista activa, desfasados media vuelta (el `begin` negativo arranca en marcha). */
+function Puntos({ d, color }: { d: string; color: string }) {
+  return (
+    <>
+      {[0, 1].map((indice) => (
+        <circle key={indice} r={4.5} fill={color} stroke="white" strokeWidth={1.5} className="punto-flujo">
+          <animateMotion dur={`${DURACION_RECORRIDO_S}s`} repeatCount="indefinite" begin={`${(-indice * DURACION_RECORRIDO_S) / 2}s`} path={d} />
+        </circle>
+      ))}
+    </>
+  )
+}
+
+export function Lienzo({ enlaces, flujos = SIN_FLUJOS }: { enlaces: Panel['enlaces']; flujos?: Flujos }) {
   const marco = useRef<HTMLDivElement>(null)
   const [ajuste, setAjuste] = useState(1)
   const [activoId, setActivoId] = useState<string | null>(null)
+  const reducido = useMovimientoReducido()
   const porId = new Map(NODOS.map((nodo) => [nodo.id, nodo]))
   const curvas = ARISTAS.map((arista) => ({ arista, ...trazo(arista, porId) }))
   const activo = NODOS.find((nodo) => nodo.id === activoId) ?? null
+  const hayFlujos = flujos.aristas.size > 0
 
   useLayoutEffect(() => {
     const el = marco.current
@@ -163,9 +188,22 @@ export function Lienzo({ enlaces }: { enlaces: Panel['enlaces'] }) {
           </defs>
           {curvas.map(({ arista, d, medio, color }) => {
             const ancho = arista.etiqueta.length * 6.3 + 18
+            const flujo = flujos.aristas.get(claveArista(arista.desde, arista.hasta))
+            const colorFlujo = flujo?.tono ? TONOS[flujo.tono].linea : color
             return (
-              <g key={`${arista.desde}-${arista.hasta}`}>
-                <path d={d} fill="none" stroke={color} strokeWidth={2} markerEnd={`url(#punta-${arista.tono})`} />
+              <g
+                key={claveArista(arista.desde, arista.hasta)}
+                data-arista={claveArista(arista.desde, arista.hasta)}
+                data-activa={flujo ? 'true' : undefined}
+                className="transition-opacity duration-500"
+                style={{ opacity: hayFlujos && !flujo ? 0.38 : 1 }}
+              >
+                {flujo && <path d={d} fill="none" stroke={colorFlujo} strokeWidth={11} strokeOpacity={0.16} strokeLinecap="round" />}
+                <path d={d} fill="none" stroke={color} strokeWidth={flujo ? 2.5 : 2} markerEnd={`url(#punta-${arista.tono})`} />
+                {flujo && (
+                  <path d={d} fill="none" stroke={colorFlujo} strokeWidth={3.5} strokeLinecap="round" className="arista-flujo" />
+                )}
+                {flujo && !reducido && <Puntos d={d} color={colorFlujo} />}
                 <rect x={medio.x - ancho / 2} y={medio.y - 11} width={ancho} height={22} rx={11} fill="white" stroke={color} strokeOpacity={0.45} />
                 <text x={medio.x} y={medio.y + 4} textAnchor="middle" fill={color} style={{ fontSize: 11, fontWeight: 600 }}>
                   {arista.etiqueta}
@@ -179,20 +217,37 @@ export function Lienzo({ enlaces }: { enlaces: Panel['enlaces'] }) {
           const tono = TONOS[nodo.tono]
           const Icono = nodo.icono
           const seleccionado = nodo.id === activoId
+          const realce = flujos.nodos.get(nodo.id)
+          const colorRealce = realce ? TONOS[realce.tono].linea : tono.linea
           return (
             <button
               key={nodo.id}
               type="button"
               onClick={() => setActivoId(nodo.id)}
-              className="absolute flex flex-col rounded-2xl border border-[#e7eef6] bg-white px-3.5 py-3 text-left shadow-[0_8px_24px_rgba(15,23,42,0.06)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_32px_rgba(15,23,42,0.1)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#60a5fa]"
+              data-activo={realce ? 'true' : undefined}
+              className={cn(
+                'absolute flex flex-col rounded-2xl border border-[#e7eef6] bg-white px-3.5 py-3 text-left shadow-[0_8px_24px_rgba(15,23,42,0.06)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_32px_rgba(15,23,42,0.1)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#60a5fa]',
+                hayFlujos && !realce && !seleccionado && 'opacity-70',
+              )}
               style={{
                 left: nodo.x,
                 top: nodo.y,
                 width: TARJETA.ancho,
                 height: TARJETA.alto,
-                boxShadow: seleccionado ? `0 0 0 2px white, 0 0 0 4px ${tono.linea}` : undefined,
+                boxShadow: seleccionado || realce ? `0 0 0 2px white, 0 0 0 4px ${seleccionado ? tono.linea : colorRealce}` : undefined,
               }}
             >
+              {realce && (
+                <>
+                  <span className="anillo-activo" style={{ borderColor: colorRealce }} aria-hidden />
+                  <span
+                    className="absolute -top-2.5 right-3 max-w-[85%] truncate rounded-full px-2 py-0.5 text-[10px] font-semibold text-white shadow-sm"
+                    style={{ backgroundColor: colorRealce }}
+                  >
+                    {realce.texto}
+                  </span>
+                </>
+              )}
               <span className="flex min-w-0 items-start gap-2.5">
                 <span className={cn('flex size-9 shrink-0 items-center justify-center rounded-xl', tono.fondo, tono.texto)} aria-hidden>
                   <Icono className="size-4" />
