@@ -1,9 +1,10 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 
 import { renderizarRutas, simularApi } from '@/pruebas/utilidades'
 
+import { CLAVE_MENU_CONTRAIDO } from './menuLateral'
 import { SECCIONES } from './navegacion'
 
 const PANEL = {
@@ -19,6 +20,8 @@ const CHAT = {
 }
 
 describe('AppShell', () => {
+  beforeEach(() => localStorage.removeItem(CLAVE_MENU_CONTRAIDO))
+
   it('pinta la navegación con las seis secciones (sin el asistente) y marca la activa', async () => {
     simularApi({ 'GET /api/sesion': { autenticado: true }, 'GET /api/panel': PANEL })
     renderizarRutas('/explorador')
@@ -157,6 +160,46 @@ describe('AppShell', () => {
     await waitFor(() =>
       expect(screen.getByRole('complementary', { name: 'TAXI AI, asistente de datos' })).toHaveAttribute('aria-hidden', 'false'),
     )
+  })
+
+  it('el menú izquierdo se contrae y se expande con su botón, sin perder las secciones, y recuerda la preferencia', async () => {
+    simularApi({ 'GET /api/sesion': { autenticado: true }, 'GET /api/panel': PANEL })
+    renderizarRutas('/explorador')
+    const usuario = userEvent.setup()
+
+    const barra = (await screen.findByRole('navigation', { name: 'Secciones del portal' })).closest('aside')!
+    expect(barra).toHaveAttribute('data-estado', 'expandido')
+    const boton = screen.getByRole('button', { name: 'Contraer el menú' })
+    expect(boton).toHaveAttribute('aria-expanded', 'true')
+    expect(boton).toHaveAttribute('aria-controls', 'menu-secciones')
+
+    await usuario.click(boton)
+
+    expect(barra).toHaveAttribute('data-estado', 'contraido')
+    expect(barra.className).toContain('w-16')
+    expect(barra.closest('div')!.querySelector('main')!.parentElement!.className).toContain('pl-16')
+    // Los enlaces siguen ahí con su nombre (texto solo para lectores de pantalla) y la sección activa marcada.
+    const navegacion = screen.getByRole('navigation', { name: 'Secciones del portal' })
+    expect(within(navegacion).getAllByRole('link')).toHaveLength(6)
+    expect(within(navegacion).getByRole('link', { name: 'Explorador' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('button', { name: 'Cerrar sesión' })).toBeInTheDocument()
+    expect(localStorage.getItem(CLAVE_MENU_CONTRAIDO)).toBe('1')
+
+    const expandir = screen.getByRole('button', { name: 'Expandir el menú' })
+    expect(expandir).toHaveAttribute('aria-expanded', 'false')
+    await usuario.click(expandir)
+    expect(barra).toHaveAttribute('data-estado', 'expandido')
+    expect(localStorage.getItem(CLAVE_MENU_CONTRAIDO)).toBe('0')
+  })
+
+  it('arranca contraído si esa era la preferencia guardada', async () => {
+    localStorage.setItem(CLAVE_MENU_CONTRAIDO, '1')
+    simularApi({ 'GET /api/sesion': { autenticado: true }, 'GET /api/panel': PANEL })
+    renderizarRutas('/')
+
+    const barra = (await screen.findByRole('navigation', { name: 'Secciones del portal' })).closest('aside')!
+    expect(barra).toHaveAttribute('data-estado', 'contraido')
+    expect(screen.getByRole('button', { name: 'Expandir el menú' })).toBeInTheDocument()
   })
 
   it('cerrar sesión llama a DELETE /api/sesion y vuelve al acceso', async () => {

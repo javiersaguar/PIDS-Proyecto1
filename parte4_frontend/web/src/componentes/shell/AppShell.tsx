@@ -1,5 +1,5 @@
 /**
- * Esqueleto de la aplicación autenticada: barra lateral fija, contenido (`<Outlet />`) y TAXI AI, el asistente,
+ * Esqueleto de la aplicación autenticada: barra lateral fija (contraíble), contenido (`<Outlet />`) y TAXI AI, el asistente,
  * como botón fijo abajo a la derecha con su panel deslizante (disponible en todas las páginas, sin ruta propia).
  * Documentación ocupa todo el hueco, sin cabecera. El panel, el explorador, privacidad, tiempo real y
  * operaciones tampoco llevan cabecera: el título de la sección ya está en la barra lateral.
@@ -12,11 +12,13 @@ import { cn } from '@/lib/utils'
 import { BarraLateral } from './BarraLateral'
 import { BotonTaxiAI } from './BotonTaxiAI'
 import { Cabecera } from './Cabecera'
+import { RELLENO_CONTENIDO, useMenuContraido } from './menuLateral'
 import { PanelAsistente } from './PanelAsistente'
 
 export function AppShell() {
   const { pathname, state, key } = useLocation()
   const [asistenteAbierto, setAsistenteAbierto] = useState(false)
+  const [menuContraido, alternarMenu] = useMenuContraido()
   const [navegacionAtendida, setNavegacionAtendida] = useState<string | null>(null)
   const botonRef = useRef<HTMLButtonElement>(null)
 
@@ -47,8 +49,13 @@ export function AppShell() {
       >
         Saltar al contenido
       </a>
-      <BarraLateral />
-      <div className="flex min-h-svh flex-col pl-60">
+      <BarraLateral contraida={menuContraido} alAlternar={alternarMenu} />
+      <div
+        className={cn(
+          'flex min-h-svh flex-col transition-[padding] duration-200 ease-out motion-reduce:transition-none',
+          menuContraido ? RELLENO_CONTENIDO.contraido : RELLENO_CONTENIDO.expandido,
+        )}
+      >
         {!lienzo && !amplio && !esPrivacidad && <Cabecera />}
         <main
           id="contenido"

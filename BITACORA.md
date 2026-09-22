@@ -104,6 +104,10 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
     (`componentes/shell/LogoTaxi.tsx`): amarillo con el letrero del techo, el parabrisas, la banda ajedrezada, la
     rejilla y las ruedas en negro, sobre el mismo recuadro azul. Se usa en la barra lateral, en la página de acceso y
     en `public/favicon.svg` (el mismo dibujo, para que la pestaña del navegador coincida).
+  - También aparte de T16, el menú izquierdo se puede contraer y expandir con un botón propio (abajo, junto a «Cerrar
+    sesión»): contraído queda en 4 rem con solo los iconos, el título de cada sección como descripción emergente y
+    como texto para lectores de pantalla; el contenido gana el ancho. La preferencia se guarda en el navegador
+    (`componentes/shell/menuLateral.ts`) y sobrevive a la recarga.
 - **Por qué:** T16: el asistente es un acceso del producto, no otra página; tiene que estar a mano desde cualquier sección.
 - **Ficheros clave:** `parte4_frontend/web/src/componentes/shell/{AppShell,BotonTaxiAI,PanelAsistente,navegacion}.ts(x)`,
   `parte4_frontend/web/src/paginas/asistente/Asistente.tsx`, `parte4_frontend/web/src/rutas.tsx`

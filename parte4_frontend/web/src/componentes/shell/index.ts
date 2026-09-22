@@ -5,6 +5,7 @@
  */
 export { AppShell } from './AppShell'
 export { BarraLateral } from './BarraLateral'
+export { useMenuContraido, ANCHO_BARRA, RELLENO_CONTENIDO } from './menuLateral'
 export { Cabecera } from './Cabecera'
 export { LogoTaxi, TaxiNuevaYork } from './LogoTaxi'
 export { BotonTaxiAI } from './BotonTaxiAI'
