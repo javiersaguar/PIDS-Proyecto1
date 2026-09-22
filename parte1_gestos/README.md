@@ -47,6 +47,17 @@ C:\Users\Javier\PIDS_HandPose\.venv\Scripts\python.exe parte1_gestos\entrenamien
 C:\Users\Javier\PIDS_HandPose\.venv\Scripts\python.exe parte1_gestos\demo\src\demo-gestures-PIDS.py
 ```
 
+Para que la demo confirme o cancele consultas del chatbot, la plataforma tiene que estar levantada en WSL
+con `GESTOS_ACTIVOS=true` y, en esta misma consola de Windows, la clave de captura:
+
+```powershell
+$env:PIDS_CLAVE_GESTOS = "<CAPTURA_CLAVE_GESTOS del .env>"
+# $env:PIDS_CAPTURA_URL = "http://localhost:8001"   # ya es el valor por defecto
+```
+
+Sin esa variable no se envía nada: la demo de la parte 1 funciona igual. Detalle del ciclo en
+[`integracion/README.md`](../integracion/README.md).
+
 El entorno de Python (`.venv` con MediaPipe 0.10.35, Keras 3 sobre PyTorch y CUDA) es el que ya está
 creado en `C:\Users\Javier\PIDS_HandPose`. Sus dependencias exactas están en
 `entrenamiento/requirements.txt`, por si hay que rehacerlo en otro equipo.

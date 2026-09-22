@@ -18,6 +18,11 @@ Uso (con el entorno del proyecto, que tiene Keras):
     ... demo-gestures-PIDS.py --modelo C:/.../entrenamiento/modelos/<exportado>   (modelo del pipeline)
     ... demo-gestures-PIDS.py --imagenes <carpeta con subcarpetas por gesto> --sin-ventana   (prueba sin camara)
 Tecla q: salir.
+
+Integracion con el chatbot (T06): si existe PIDS_CLAVE_GESTOS, cada prediccion estable se envia a la
+API de captura (solo etiqueta y confianza). En Windows, con la plataforma en WSL:
+    $env:PIDS_CLAVE_GESTOS = "<CAPTURA_CLAVE_GESTOS del .env>"
+    $env:PIDS_CAPTURA_URL = "http://localhost:8001"   # opcional; es el valor por defecto
 """
 from pathlib import Path
 import argparse
@@ -31,6 +36,7 @@ import numpy as np
 # [PIDS] rutas desde este fichero
 PROJECT_DIR = Path(__file__).resolve().parent.parent          # .../parte1_gestos/demo
 PARTE1_DIR = PROJECT_DIR.parent                               # .../parte1_gestos
+REPO_DIR = PARTE1_DIR.parent                                  # raíz del repositorio (integracion/)
 for p in (PROJECT_DIR / 'src', PROJECT_DIR / 'common', PARTE1_DIR / 'entrenamiento'):
     if str(p) not in sys.path:
         sys.path.insert(0, str(p))
@@ -107,18 +113,47 @@ def texto_prediccion(pred, conf):
     return "Gesto: %s (%0.2f)%s" % (pred, conf, ("  ->  %s" % comando) if comando else '')
 
 
+def crear_emisor(nombre_modelo):
+    """Emisor hacia la API de captura, o None si no hay clave (la demo sigue valiendo sola)."""
+    clave = os.environ.get('PIDS_CLAVE_GESTOS', '').strip()
+    if not clave:
+        print('[gestos] sin PIDS_CLAVE_GESTOS: la demo no envía gestos a la plataforma')
+        return None
+    ruta = str(REPO_DIR / 'integracion')
+    if ruta not in sys.path:
+        sys.path.insert(0, ruta)
+    from cliente_gestos import EmisorGestos
+    url = os.environ.get('PIDS_CAPTURA_URL', 'http://localhost:8001')
+    emisor = EmisorGestos(clave=clave, modelo=nombre_modelo[:100], url=url)
+    print('[gestos] enviando a %s (confianza >= %.2f, %d predicciones seguidas)'
+          % (emisor.url, emisor.confianza_minima, emisor.estabilidad))
+    return emisor
+
+
+def observar_si(emisor, pred, conf):
+    """Una predicción. Devuelve True solo cuando el gesto estable sale hacia la plataforma."""
+    if emisor is None:
+        return False
+    enviado = emisor.observar(pred, conf)
+    if enviado:
+        print('[gestos] enviado: %s (%.2f)' % (pred, conf))
+    return enviado
+
+
 def detectar(detector, image):
     image_rgb = image if ON_RASPBERRY_PI else cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     return detector.detect(mp.Image(image_format=mp.ImageFormat.SRGB, data=image_rgb))
 
 
-def demo_camara(modelo, detector, colors):
+def demo_camara(modelo, detector, colors, emisor=None):
     if ON_RASPBERRY_PI:
         cam = PICamera(recording_res=cam_config.resolution)
     else:
         cam = CVCamera(recording_res=cam_config.resolution, index_cam=0)
     cam.start()
     last, num_frames, pred, conf = 0.0, 0, 'None', 1.0
+    habia_mano, aviso = False, ''
+    pie = "q: salir" + (" | gestos -> plataforma" if emisor else "")
     try:
         while True:
             image = cam.read_frame()
@@ -134,13 +169,18 @@ def demo_camara(modelo, detector, colors):
                 if now - last > 0.25:                     # como el original: una prediccion cada 0,25 s
                     pred, conf = modelo.predecir(detection_result, ancho, alto)
                     last = time.time()
+                    aviso = "  [enviado]" if observar_si(emisor, pred, conf) else ""
                     if debug_HAR:
                         print('Prediction:', pred, 'Confidence:', conf)
+                habia_mano = True
             else:
                 pred, conf = 'None', 1.0
+                if habia_mano:                            # suelta la racha; no se envía 'None'
+                    observar_si(emisor, pred, conf)
+                    habia_mano, aviso = False, ''
             color1 = colors.color['black'] if pred == 'None' else colors.GetColorForClass(pred)
-            WindowMessage(txt1=texto_prediccion(pred, conf), pos1=(10, alto - 20), col1=color1,
-                          txt2="q: salir", pos2=(10, 30), col2=colors.color['white']).ShowWindowMessages(image)
+            WindowMessage(txt1=texto_prediccion(pred, conf) + aviso, pos1=(10, alto - 20), col1=color1,
+                          txt2=pie, pos2=(10, 30), col2=colors.color['white']).ShowWindowMessages(image)
             cv2.imshow(window_title, image)
             if (cv2.waitKey(int(1 / cam_config.FPS * 1000)) & 0xFF) == ord('q'):
                 break
@@ -148,7 +188,7 @@ def demo_camara(modelo, detector, colors):
         cam.stop()
 
 
-def demo_imagenes(modelo, detector, carpeta, mostrar):
+def demo_imagenes(modelo, detector, carpeta, mostrar, emisor=None):
     """[PIDS] Misma logica sobre fotos guardadas (carpeta/<gesto>/*.jpg): sirve para probar sin camara."""
     carpeta = Path(carpeta)
     aciertos = total = sin_mano = 0
@@ -159,8 +199,10 @@ def demo_imagenes(modelo, detector, carpeta, mostrar):
             res = detectar(detector, image)
             if not res.hand_landmarks:
                 sin_mano += 1
+                observar_si(emisor, 'None', 1.0)
                 continue
             pred, conf = modelo.predecir(res, ancho, alto)
+            observar_si(emisor, pred, conf)
             total += 1
             aciertos += int(pred == d_clase.name)
             if mostrar:
@@ -190,10 +232,12 @@ def main():
     Config(classes=modelo.clases, use_landmarks=True)
     detector = ConfigMediapipeDetector()
 
+    nombre_modelo = Path(args.modelo).name if args.modelo else MODEL_PATH.stem
+    emisor = crear_emisor(nombre_modelo)
     if args.imagenes:
-        demo_imagenes(modelo, detector, args.imagenes, mostrar=not args.sin_ventana)
+        demo_imagenes(modelo, detector, args.imagenes, mostrar=not args.sin_ventana, emisor=emisor)
     else:
-        demo_camara(modelo, detector, colors)
+        demo_camara(modelo, detector, colors, emisor)
     cv2.destroyAllWindows()
 
 

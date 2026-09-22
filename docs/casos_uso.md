@@ -246,4 +246,4 @@ Hechas con la interfaz real (http://localhost:8010) en la versión final, en `do
 | [`cu6.png`](capturas/cu6.png) | CU6: diez grupos por hora y zona, todos enmascarados |
 | [`cu7.png`](capturas/cu7.png) | CU7: última hora de tiempo real (lote sintético de 15 viajes) |
 
-CU8 (gestos) queda para la integración (T06).
+CU8 (gestos): el ciclo está probado el 22/09 (👍 ejecuta la alternativa, ✋ la cancela). Falta el vídeo con la webcam (T06).
