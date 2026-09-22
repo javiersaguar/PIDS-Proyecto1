@@ -2,7 +2,8 @@
 
 Lista viva de las **10 tareas siguientes**, en orden de prioridad. Si te pones a trabajar, coge la
 primera que esté libre. Las tareas del chatbot RAG que quedaron por hacer están en «Ideas y trabajo futuro» y la
-decisión pendiente en T13.
+decisión pendiente en T13. El mapa de todo lo que falta para cerrar el proyecto está en
+[`docs/pendiente.md`](docs/pendiente.md).
 
 ## Cómo se usa
 
@@ -46,7 +47,7 @@ decisión pendiente en T13.
 
 ## T06 · Integración de los gestos (última fase del esquema)
 
-- **Estado:** libre (T05 ya está hecha) · **Responsable:** — · **Estimación:** 3 h · **Dificultad:** media
+- **Estado:** en curso · **Responsable:** Javier Saguar · **Estimación:** 3 h · **Dificultad:** media
 - **Por qué:** es la caja «Integración» de la diapositiva 5 (opcional, pero puntúa). El chatbot ya ofrece
   la alternativa con botón tras un rechazo y la lanza tal cual al aceptarla; el gesto 👍 hace lo mismo.
 - **Qué hay que hacer:**
@@ -55,20 +56,9 @@ decisión pendiente en T13.
   3. Probar el ciclo completo: el bot propone una alternativa → 👍 la ejecuta, ✋ la cancela.
 - **Hecha cuando:** se graba un vídeo corto en el que un gesto confirma una consulta del chatbot.
 - **Dónde:** `integracion/`, `parte1_gestos/demo/src/`
-
-## T08 · Repaso de seguridad y modelo de amenazas
-
-- **Estado:** libre · **Responsable:** — · **Estimación:** 3 h · **Dificultad:** media
-- **Por qué:** «elementos de autenticación / seguridad» puntúa, y conviene tener escrito qué se protege
-  y qué no.
-- **Qué hay que hacer:**
-  1. Revisar qué puertos se publican y con qué credenciales (la pasarela REST de Spark y la consola de
-     Redpanda no tienen autenticación: dejarlas solo en la red interna o detrás de un proxy).
-  2. Rotación de claves: comprobar que `make entorno --forzar` y recrear volúmenes funciona.
-  3. Escribir `docs/seguridad.md`: qué atacante se considera, qué se protege y qué queda fuera.
-- **Hecha cuando:** existe `docs/seguridad.md` y no hay ningún servicio sin autenticación accesible
-  fuera de Docker.
-- **Dónde:** `docker-compose.yml`, `docs/seguridad.md`
+- **Notas (22/09):** la demo ya llama a `observar`, `GESTOS_ACTIVOS=true` y el ciclo está probado sin cámara
+  (el mismo POST que enviaría la demo): 👍 ejecuta la alternativa y ✋ la cancela. Falta el vídeo con la webcam
+  en Windows (`PIDS_CLAVE_GESTOS` en la consola de la demo; ver `integracion/README.md`).
 
 ## T09 · Alta disponibilidad de la API de acceso
 
@@ -139,6 +129,37 @@ decisión pendiente en T13.
   se enseña.
 - **Dónde:** `BITACORA.md`, `docs/plan.md`
 
+## T15 · Animaciones en vivo del portal
+
+- **Estado:** libre · **Responsable:** — · **Estimación:** 6 h · **Dificultad:** media
+- **Por qué:** el panel y el grafo de documentación se quedan quietos aunque estén entrando viajes o
+  corriendo una carga. En la demo tiene que verse que la plataforma trabaja.
+- **Qué hay que hacer:**
+  1. Actualizar las gráficas del panel y de tiempo real cuando cambian los agregados (el sondeo ya existe
+     en operaciones; aquí el dibujo tiene que moverse con los datos nuevos).
+  2. En el grafo del pipeline (`parte4_frontend/web/src/paginas/documentacion/`), animar los caminos que
+     corresponden al proceso en curso: un DAG de carga histórica, o datos nuevos entrando por la captura.
+  3. La señal sale de lo que el BFF ya conoce (ejecuciones de Airflow, frescura del tiempo real, simulación
+     activa), sin abrir un puerto nuevo.
+- **Hecha cuando:** al lanzar un DAG o el simulador, el grafo marca el tramo que está trabajando y las
+  gráficas cambian sin recargar la página.
+- **Dónde:** `parte4_frontend/web/src/paginas/documentacion/`, `parte4_frontend/web/src/paginas/panel/`,
+  `parte4_frontend/web/src/paginas/tiempo-real/`
+
+## T16 · Botón «TAXI AI» con el chatbot en un panel derecho
+
+- **Estado:** libre · **Responsable:** — · **Estimación:** 5 h · **Dificultad:** media
+- **Por qué:** el asistente es una sección más del menú izquierdo. Tiene que estar siempre a mano, como
+  un acceso del producto, no como otra página.
+- **Qué hay que hacer:**
+  1. Quitar «Asistente» de la barra izquierda (`navegacion.ts` y la ruta que deja de ser una sección).
+  2. Un botón fijo en la esquina inferior derecha con el texto «TAXI AI».
+  3. Al pulsarlo, un panel entra desde el borde derecho y ahí está el chatbot (el mismo agente de Ollama o
+     RAG que ya usa `/asistente`). Cerrarlo lo esconde; no navega a otra ruta.
+- **Hecha cuando:** desde cualquier página del portal se abre y se cierra el chat con ese botón, y el menú
+  izquierdo ya no tiene la entrada del asistente.
+- **Dónde:** `parte4_frontend/web/src/componentes/shell/`, `parte4_frontend/web/src/paginas/asistente/`
+
 ---
 
 ## Ideas y trabajo futuro
@@ -188,3 +209,4 @@ decisión pendiente en T13.
 | 21/09/2026 | Integración de los tres bloques en `main` y una rama por persona | Javier Saguar | entrada del 21/09 |
 | 21/09/2026 | Chatbot RAG con LLM externo (LangChain + Qdrant + Helmcode) en cinco bloques: 21/21 casos, 0/105 fugas, 340 tests | Javier Saguar | entrada del 21/09 |
 | 21/09/2026 | T14 Portal web en `main` y levantado desde la carpeta principal (8020), demostración pública en Vercel y capturas | Javier Saguar | entrada del 21/09 |
+| 22/09/2026 | T08 Servicios sin login fuera de Docker, login de los chatbots y modelo de amenazas | Javier Saguar | entrada del 22/09 |

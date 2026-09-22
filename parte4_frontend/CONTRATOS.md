@@ -81,7 +81,7 @@ de Docker (misma técnica que `parte3_chatbot_rag/fabrica.py`, rama `rag/4-inter
 | `AIRFLOW_URL` / `AIRFLOW_USUARIO` / `AIRFLOW_CLAVE` | `http://airflow-apiserver:8080` / `${AIRFLOW_ADMIN_USER}` / `${AIRFLOW_ADMIN_PASSWORD}` | `http://127.0.0.1:${PUERTO_AIRFLOW}` | Cargas históricas (API REST v2 de Airflow 3: `POST /auth/token` → JWT) |
 | `AUDITORIA_MONGO_URI` | `mongodb://pids_auditor:${MONGO_AUDITOR_PASSWORD}@mongo:27017/?authSource=admin` | `mongodb://pids_auditor:…@127.0.0.1:${PUERTO_MONGO}/?authSource=admin` | Lectura de `auditoria.decisiones` y `auditoria.cargas` |
 | `OLLAMA_URL` / `OLLAMA_MODELO` | `http://ollama:11434` / `${OLLAMA_MODELO}` | `http://127.0.0.1:${PUERTO_OLLAMA}` | Motor de chat local |
-| `ENLACES_*` | `ENLACES_GRAFANA=http://localhost:3000`, `ENLACES_AIRFLOW=http://localhost:8085`, `ENLACES_SPARK=http://localhost:8090`, `ENLACES_CHATBOT=http://localhost:8010`, `ENLACES_CHATBOT_RAG=http://localhost:8011`, `ENLACES_API_ACCESO=http://localhost:8002/docs`, `ENLACES_API_CAPTURA=http://localhost:8001/docs` | iguales | Enlaces del menú (son URL del navegador del usuario, no del contenedor) |
+| `ENLACES_*` | `ENLACES_GRAFANA=http://localhost:3000`, `ENLACES_AIRFLOW=http://localhost:8085`, `ENLACES_CHATBOT=http://localhost:8010`, `ENLACES_CHATBOT_RAG=http://localhost:8011`, `ENLACES_API_ACCESO=http://localhost:8002/docs`, `ENLACES_API_CAPTURA=http://localhost:8001/docs`. `ENLACES_SPARK` vacío: la interfaz no se publica | iguales | Enlaces del menú (son URL del navegador del usuario, no del contenedor) |
 
 Nuevas en `.env.example` (F0): `ACCESO_CLAVE_FRONTEND=`, `FRONTEND_CLAVE=`, `FRONTEND_SECRETO=`, `PUERTO_FRONTEND=8020`.
 `scripts/generar_env.py` ya rellena con aleatorio cualquier valor vacío. En `docker-compose.yml`, el servicio `acceso`
@@ -324,5 +324,6 @@ make frontend            # docker compose --profile frontend up -d --build front
 ```
 
 Plataforma levantada en este equipo (para pruebas manuales desde el host, claves en `.env`): API de acceso
-`127.0.0.1:8002`, captura `:8001`, Prometheus `:9090`, Grafana `:3000`, Airflow `:8085`, Spark `:8090`, MongoDB `:27018`,
-Ollama `:11435`, Qdrant `:6333`. Los datos publicados son de todo 2020 (23,7 M de viajes; k = 10).
+`127.0.0.1:8002`, captura `:8001`, Grafana `:3000`, Airflow `:8085`, MongoDB `:27018`, chatbots `:8010` y `:8011`,
+portal `:8020`. Prometheus, Spark, Ollama, Qdrant y Kafka no se publican (no tienen login). Los datos publicados
+son de todo 2020 (23,7 M de viajes; k = 10).

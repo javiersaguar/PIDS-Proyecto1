@@ -12,10 +12,12 @@ from __future__ import annotations
 
 import asyncio
 import os
+import secrets
 import sys
 from pathlib import Path
 
 import chainlit as cl
+from chainlit.context import context_var
 from ollama import AsyncClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -26,6 +28,15 @@ from herramientas import ClienteAcceso  # noqa: E402
 from prompts import BIENVENIDA  # noqa: E402
 
 OLLAMA_URL = os.environ.get('OLLAMA_URL', 'http://ollama:11434')
+
+
+@cl.password_auth_callback
+def autenticar(usuario: str, clave: str) -> cl.User | None:
+    """Una sola cuenta de equipo. Sin CHATBOT_CLAVE no entra nadie."""
+    esperada = os.environ.get('CHATBOT_CLAVE', '')
+    if esperada and usuario == os.environ.get('CHATBOT_USUARIO', 'equipo') and secrets.compare_digest(clave, esperada):
+        return cl.User(identifier=usuario)
+    return None
 
 
 def _acciones(alternativa: dict) -> list[cl.Action]:
@@ -68,12 +79,20 @@ async def inicio() -> None:
     cl.user_session.set('agente', Agente(acceso, AsyncClient(host=OLLAMA_URL)))
     cl.user_session.set('alternativa', None)
     if gestos.ACTIVOS:
+        ctx = context_var.get()
+
         async def al_recibir(accion: str, evento: dict) -> None:
-            await cl.Message(content=f'✋ Gesto recibido: **{evento["gesto"]}** → {accion}').send()
-            if accion == 'confirmar':
-                await _ejecutar_alternativa()
-            elif accion == 'cancelar':
-                cl.user_session.set('alternativa', None)
+            # El SSE llega en otra tarea; la sesión de Chainlit es la de este chat.
+            token = context_var.set(ctx)
+            try:
+                await cl.Message(content=f'✋ Gesto recibido: **{evento["gesto"]}** → {accion}').send()
+                if accion == 'confirmar':
+                    await _ejecutar_alternativa()
+                elif accion == 'cancelar':
+                    cl.user_session.set('alternativa', None)
+                    await cl.Message(content='De acuerdo, consulta cancelada.').send()
+            finally:
+                context_var.reset(token)
         cl.user_session.set('tarea_gestos', asyncio.create_task(gestos.escuchar(al_recibir)))
     await cl.Message(content=BIENVENIDA).send()
 

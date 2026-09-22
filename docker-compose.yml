@@ -4,7 +4,10 @@
 # Perfiles:  spark · airflow · observabilidad · chatbot · rag · rag-indexar · frontend · herramientas · simulador
 # Ejemplo:   docker compose --profile spark --profile observabilidad up -d   (o: make todo)
 #
-# Todos los puertos se publican solo en 127.0.0.1. Las redes separan lo que puede ver cada servicio:
+# Los puertos publicados van solo a 127.0.0.1 y solo si el servicio exige credencial.
+# Sin credencial (Spark, Prometheus, Ollama, Qdrant, Kafka y la consola de Redpanda) no se publican:
+# se usan por el nombre del contenedor. Detalle en docs/seguridad.md.
+# Las redes separan lo que puede ver cada servicio:
 #   datos       almacenamiento y cola (S3, MongoDB, Redpanda) y quien los usa
 #   servicios   APIs, chatbots, Qdrant, portal web, Grafana y Prometheus
 # Los chatbots y Grafana no están en la red de datos: solo llegan a la información a través de la API de acceso.
@@ -138,8 +141,8 @@ services:
       - --advertise-rpc-addr=redpanda:33145
     volumes:
       - redpanda-datos:/var/lib/redpanda/data
-    ports:
-      - "127.0.0.1:19092:19092"
+    # 19092 sigue escuchando dentro del contenedor, pero no se publica: Kafka no tiene SASL y
+    # viajes-crudos lleva viajes individuales. Quien procesa usa redpanda:9092, en la red «datos».
     healthcheck:
       test: ["CMD-SHELL", "rpk cluster health | grep -E 'Healthy:.+true'"]
       interval: 5s
@@ -231,8 +234,7 @@ services:
     command: >-
       /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
       --host spark-master --port 7077 --webui-port 8080
-    ports:
-      - "127.0.0.1:${PUERTO_SPARK:-8090}:8080"
+    # La interfaz (8080) y la pasarela REST (6066) no tienen autenticación: solo la red de Docker.
     depends_on:
       s3-init:
         condition: service_completed_successfully
@@ -243,13 +245,9 @@ services:
 
   spark-worker-1:
     <<: *spark-worker
-    ports:
-      - "127.0.0.1:8091:8081"
 
   spark-worker-2:
     <<: *spark-worker
-    ports:
-      - "127.0.0.1:8092:8081"
 
   # ---------------------------------------------------------------- Airflow
   airflow-db:
@@ -324,8 +322,7 @@ services:
     volumes:
       - ./parte2_plataforma/observabilidad/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus-datos:/prometheus
-    ports:
-      - "127.0.0.1:${PUERTO_PROMETHEUS:-9090}:9090"
+    # Sin autenticación: Grafana y el portal lo consultan por prometheus:9090, dentro de Docker.
 
   grafana:
     image: grafana/grafana:11.5.1
@@ -355,8 +352,8 @@ services:
     networks: [servicios]
     volumes:
       - ollama-modelos:/root/.ollama
-    ports:
-      - "127.0.0.1:${PUERTO_OLLAMA:-11435}:11434"   # 11434 lo usa el Ollama instalado en Windows
+    # Sin autenticación y sin publicar: el chatbot y el portal hablan con ollama:11434.
+    # 11434 en el anfitrión lo usa el Ollama de Windows, por eso este no se mapea ahí.
     deploy:
       resources:
         reservations:
@@ -401,6 +398,9 @@ services:
       CAPTURA_URL: http://captura:8000
       CAPTURA_CLAVE: ${CAPTURA_CLAVE_CHATBOT}
       GESTOS_ACTIVOS: ${GESTOS_ACTIVOS:-false}
+      CHATBOT_USUARIO: ${CHATBOT_USUARIO:-equipo}
+      CHATBOT_CLAVE: ${CHATBOT_CLAVE}
+      CHAINLIT_AUTH_SECRET: ${CHAINLIT_AUTH_SECRET}
     ports:
       - "127.0.0.1:${PUERTO_CHATBOT:-8010}:8000"
     depends_on:
@@ -421,8 +421,7 @@ services:
     networks: [servicios]
     volumes:
       - qdrant-datos:/qdrant/storage
-    ports:
-      - "127.0.0.1:${PUERTO_QDRANT:-6333}:6333"
+    # Sin autenticación: el índice solo se alcanza como qdrant:6333 desde el chatbot RAG y el portal.
     healthcheck:
       # la imagen no trae curl ni wget: basta con abrir el puerto
       test: ["CMD-SHELL", "bash -c ':> /dev/tcp/127.0.0.1/6333' || exit 1"]
@@ -454,6 +453,9 @@ services:
       RAG_RERANK: ${RAG_RERANK:-false}
       ACCESO_URL: http://acceso:8000
       ACCESO_CLAVE: ${ACCESO_CLAVE_CHATBOT_RAG}
+      CHATBOT_USUARIO: ${CHATBOT_USUARIO:-equipo}
+      CHATBOT_CLAVE: ${CHATBOT_CLAVE}
+      CHAINLIT_AUTH_SECRET: ${CHAINLIT_AUTH_SECRET}
     ports:
       - "127.0.0.1:${PUERTO_CHATBOT_RAG:-8011}:8000"
     depends_on:
@@ -520,7 +522,6 @@ services:
       # Enlaces del menú: URL del navegador del usuario (puertos publicados en el anfitrión), no del contenedor
       ENLACES_GRAFANA: http://localhost:${PUERTO_GRAFANA:-3000}
       ENLACES_AIRFLOW: http://localhost:${PUERTO_AIRFLOW:-8085}
-      ENLACES_SPARK: http://localhost:${PUERTO_SPARK:-8090}
       ENLACES_CHATBOT: http://localhost:${PUERTO_CHATBOT:-8010}
       ENLACES_CHATBOT_RAG: http://localhost:${PUERTO_CHATBOT_RAG:-8011}
       ENLACES_API_ACCESO: http://localhost:${PUERTO_ACCESO:-8002}/docs
@@ -544,8 +545,7 @@ services:
     networks: [datos]
     environment:
       KAFKA_BROKERS: redpanda:9092
-    ports:
-      - "127.0.0.1:${PUERTO_CONSOLA:-8088}:8080"
+    # No se publica: la consola enseña los mensajes crudos de viajes-crudos y no tiene login.
     depends_on:
       redpanda:
         condition: service_healthy

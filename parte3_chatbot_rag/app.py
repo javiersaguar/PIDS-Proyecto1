@@ -13,6 +13,8 @@ Arranque: chainlit run app.py --host 0.0.0.0 --port 8000 --headless   (make chat
 """
 from __future__ import annotations
 
+import os
+import secrets
 import sys
 from pathlib import Path
 
@@ -27,6 +29,15 @@ from herramientas import ClienteAcceso  # noqa: E402
 from prompts import BIENVENIDA  # noqa: E402
 
 TIPOS = {'doc': 'documentación', 'catalogo': 'catálogo', 'zona': 'zona', 'ejemplo': 'ejemplo', 'ficha': 'ficha de agregados'}
+
+
+@cl.password_auth_callback
+def autenticar(usuario: str, clave: str) -> cl.User | None:
+    """La misma cuenta que el chatbot de Ollama (CHATBOT_USUARIO / CHATBOT_CLAVE)."""
+    esperada = os.environ.get('CHATBOT_CLAVE', '')
+    if esperada and usuario == os.environ.get('CHATBOT_USUARIO', 'equipo') and secrets.compare_digest(clave, esperada):
+        return cl.User(identifier=usuario)
+    return None
 
 
 def fuentes_markdown(fuentes: list[dict], tokens: int | None = None) -> str:

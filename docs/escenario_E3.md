@@ -125,8 +125,8 @@ source .env && uv run python scripts/ataque_diferencia.py --dias 366
   día para toda la ciudad), habrá que añadir su partición a `Privacidad.particionPadre` y repetir el ataque.
 - **Consultas repetidas y solapadas:** se registran en la auditoría; un detector de patrones sospechosos
   (por cliente) es trabajo futuro.
-- **Pasarela REST de Spark y consola de Redpanda sin autenticación:** solo accesibles dentro de Docker
-  o en `127.0.0.1`; la consola solo se levanta en el perfil `herramientas`.
+- **Pasarela REST de Spark, su interfaz, Kafka, Prometheus, Ollama, Qdrant y la consola de Redpanda**
+  no tienen login y no se publican en el anfitrión. El reparto está en [`seguridad.md`](seguridad.md).
 - **LLM externo del chatbot RAG:** la conversación y los agregados protegidos salen del equipo hacia un
   proveedor de la UE que declara no guardar nada. Es una confianza contractual, no técnica: si el grupo no la
   acepta, el chatbot de Ollama da el mismo servicio sin salida de datos. Qué viaja exactamente, en

@@ -108,8 +108,9 @@ notificación de `notificaciones.json` las silencia siempre, así que Grafana no
 ## Redes y puertos
 
 Dos redes Docker: `datos` (S3, Redpanda, MongoDB y quien los usa) y `servicios` (APIs, chatbots, Qdrant,
-Grafana). **Los chatbots, Qdrant y Grafana no están en la red de datos.** Todos los puertos se publican solo
-en `127.0.0.1`:
+Grafana). **Los chatbots, Qdrant y Grafana no están en la red de datos.** En el anfitrión solo se publican
+servicios con credencial, y solo en `127.0.0.1`. Spark, Prometheus, Ollama, Qdrant, Kafka y la consola de
+Redpanda se quedan en la red de Docker ([`seguridad.md`](seguridad.md)).
 
 | Servicio | URL |
 |---|---|
@@ -117,12 +118,8 @@ en `127.0.0.1`:
 | API de acceso | http://localhost:8002/docs |
 | Chatbot (Ollama) | http://localhost:8010 |
 | Chatbot RAG | http://localhost:8011 (`PUERTO_CHATBOT_RAG`) |
-| Qdrant | http://localhost:6333/dashboard |
 | Portal web | http://localhost:8020 (`PUERTO_FRONTEND`) |
-| Spark (máster) | http://localhost:8090 |
 | Airflow | http://localhost:8085 |
 | Grafana | http://localhost:3000 |
-| Prometheus | http://localhost:9090 |
-| Consola de Redpanda | http://localhost:8088 |
 | S3 | http://localhost:8333 |
 | MongoDB | mongodb://localhost:27018 |

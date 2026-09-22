@@ -23,8 +23,8 @@ ayuda: ## Muestra esta ayuda
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  make %-18s %s\n", $$1, $$2}'
 
 # --- preparación ----------------------------------------------------------------------------
-entorno: ## Genera .env con claves aleatorias (no sobrescribe uno existente)
-	python3 scripts/generar_env.py
+entorno: ## Genera .env con claves aleatorias (no sobrescribe; FORZAR=1 regenera y obliga a recrear volúmenes)
+	python3 scripts/generar_env.py $(if $(FORZAR),--forzar,)
 
 entorno-completar: ## Añade a un .env existente las variables nuevas de .env.example (sin tocar las demás)
 	python3 scripts/generar_env.py --completar
@@ -68,10 +68,10 @@ frontend: _env ## Portal web (http://localhost:8020)
 	$(COMPOSE) --profile frontend up -d --build frontend
 
 frontend-dev: _env ## BFF del portal en el host con recarga (puerto 8020); la SPA, aparte: cd parte4_frontend/web && npm run dev
-	@echo "BFF en http://localhost:8020 (lee .env y usa los puertos publicados). En otra terminal: cd $(WEB) && npm run dev"
+	@echo "BFF en http://localhost:8020. Prometheus, Ollama y Qdrant no están publicados: el chat y el pulso salen con «make frontend». En otra terminal: cd $(WEB) && npm run dev"
 	uv run uvicorn parte4_frontend.bff.app:app --port 8020 --reload
 
-herramientas: _env ## Consola de Redpanda (http://localhost:8088). Muestra mensajes crudos: solo desarrollo
+herramientas: _env ## Consola de Redpanda en la red interna (no se publica: muestra mensajes crudos)
 	$(COMPOSE) --profile herramientas up -d
 
 todo: _env ## Toda la plataforma

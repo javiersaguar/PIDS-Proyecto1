@@ -42,7 +42,7 @@ el código 13 (*Unauthorized*) de MongoDB.
 `make latencia` mide cuánto tarda un viaje en ser consultable (métrica M3): envía 20 lotes de 15 viajes por la
 API de captura, cada uno a una hora y zona nuevas (por defecto, horas del 31/12/2020 en la zona 265), y consulta
 la API de acceso cada segundo hasta que aparece el grupo con sus 15 viajes. Necesita **un único** trabajo
-`pids-tiempo-real` en marcha (se comprueba en http://localhost:8090) y deja la evidencia en `informes/latencia-*`.
+`pids-tiempo-real` en marcha (el script lo comprueba dentro del contenedor de Spark: la interfaz no se publica) y deja la evidencia en `informes/latencia-*`.
 
 Los viajes sintéticos son válidos, llevan un lote `latencia-...` y se quedan en el archivo restringido
 (`s3://crudo/validos/tiempo_real`) y en `publico.tr_viajes_hora_zona`. Cuidado: al usar horas de finales de 2020

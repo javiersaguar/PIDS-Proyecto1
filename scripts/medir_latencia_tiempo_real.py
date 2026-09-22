@@ -6,6 +6,7 @@ import csv
 import json
 import math
 import random
+import subprocess
 import sys
 import time
 import uuid
@@ -76,10 +77,16 @@ def filas_consulta(http: httpx.Client, url: str, clave: str, pedida: dict) -> li
     return datos['filas']
 
 
-def trabajo_activo(http: httpx.Client, url: str) -> str:
-    respuesta = http.get(f'{url}/json/')
-    respuesta.raise_for_status()
-    activos = [a for a in respuesta.json().get('activeapps', []) if a.get('name') == 'pids-tiempo-real']
+def trabajo_activo() -> str:
+    """La interfaz de Spark no se publica (no tiene login). Se lee dentro del contenedor."""
+    resultado = subprocess.run(
+        ['docker', 'compose', 'exec', '-T', 'spark-master', 'curl', '-sf', 'http://127.0.0.1:8080/json/'],
+        capture_output=True, text=True, check=False)
+    if resultado.returncode != 0:
+        detalle = (resultado.stderr or resultado.stdout).strip()
+        raise ValueError(f'No se pudo leer la interfaz de Spark dentro del contenedor: {detalle}')
+    cuerpo = json.loads(resultado.stdout)
+    activos = [a for a in cuerpo.get('activeapps', []) if a.get('name') == 'pids-tiempo-real']
     if len(activos) != 1:
         raise ValueError(f'Se requiere exactamente una aplicación pids-tiempo-real; hay {len(activos)}')
     return activos[0]['id']
@@ -145,7 +152,6 @@ def main() -> int:
         p.error('Faltan las claves de acceso y captura en el entorno o en .env')
     acceso = f'http://127.0.0.1:{cfg.get("PUERTO_ACCESO", "8002")}'
     captura = f'http://127.0.0.1:{cfg.get("PUERTO_CAPTURA", "8001")}'
-    spark = f'http://127.0.0.1:{cfg.get("PUERTO_SPARK", "8090")}'
     identificador = 'latencia-' + datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S') + '-' + uuid.uuid4().hex[:6]
     salida = args.salida or RAIZ / 'informes' / identificador
     if salida.exists():
@@ -160,7 +166,7 @@ def main() -> int:
                      'reloj': 'monotonic; desde antes de POST /viajes hasta fin de consulta que confirma el grupo'}
     try:
         with httpx.Client(timeout=15) as http:
-            aplicacion = trabajo_activo(http, spark)
+            aplicacion = trabajo_activo()
             catalogo = http.get(f'{acceso}/catalogo', headers={'X-API-Key': cfg['ACCESO_CLAVE_EQUIPO']})
             catalogo.raise_for_status()
             if args.viajes < catalogo.json()['k_minimo']:

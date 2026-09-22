@@ -22,7 +22,7 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 
 ## Estado actual
 
-**Última actualización: 21/09/2026 · Javier Saguar** (portal web en `main`)
+**Última actualización: 22/09/2026 · Javier Saguar** (T08 seguridad)
 
 | | |
 |---|---|
@@ -33,11 +33,11 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 | **Chatbots** | Ollama: `llama3.1:8b` en GPU a temperatura 0,2, 21/21 casos en 2-3 s · RAG: `deepseek-v4-flash` (Helmcode, UE), 21/21 casos con p50 1,1 s y unos 6 000 tokens por pregunta. Detalle en `docs/chatbot_rag.md` |
 | **Parte 1** | Se ejecuta desde el repositorio, con `PIDS_DATOS` apuntando a las imágenes (que siguen fuera de Git) |
 | **Portal web (parte 4)** | En `main` y levantado (`make frontend`, http://localhost:8020, contraseña `FRONTEND_CLAVE` de `.env`): panel, explorador, asistente (Ollama y RAG), tiempo real, privacidad y auditoría, operaciones y documentación. Demostración pública en Vercel con datos grabados (`parte4_frontend/demo`). 429 tests de Python, 17 de Scala y 132 de Vitest |
-| **Sin empezar** | Integración de gestos (T06), seguridad (T08), alta disponibilidad (T09), vídeo y presentación (T10) |
+| **Sin empezar** | Alta disponibilidad (T09), vídeo y presentación (T10). De T06 queda el vídeo con la webcam |
 | **Cómo levantarlo** | En Ubuntu (WSL2), paso a paso en el README («Puesta en marcha»): `make entorno`, pegar `LLM_API_KEY`, `make sync && make test`, `make construir && make todo`, `make historico-muestra` y `make rag-indexar`; cada día, `make todo` y `make tiempo-real` |
 | **Forma de trabajar** | Una rama por persona (tabla en el README) y cambios a `main` por *pull request*. Para trabajo en paralelo, una rama de tarea con contratos por bloque (`parte3_chatbot_rag/CONTRATOS.md`) |
 | **Siguientes tareas** | Ver [`TAREAS.md`](TAREAS.md) |
-| **Pendiente inmediato** | Confirmar en grupo la decisión del LLM externo (regla 9 de E3), dejar el tiempo real listo para la demo (T11) y subir la copia del dataset de gestos, ya hecha y verificada (T01) |
+| **Pendiente inmediato** | Grabar el vídeo de T06 en Windows (el ciclo ya responde a 👍 y ✋). Confirmar en grupo la decisión del LLM externo (regla 9 de E3), dejar el tiempo real listo para la demo (T11) y subir la copia del dataset de gestos, ya hecha y verificada (T01) |
 | **Requisitos** | Todo instalado en este equipo (incluido el NVIDIA Container Toolkit). En equipos sin GPU: `make chatbot SIN_GPU=1` con `OLLAMA_MODELO=llama3.2:3b`, o el chatbot RAG, que no necesita GPU |
 
 ## Decisiones tomadas
@@ -79,6 +79,65 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 ---
 
 ## Entradas
+
+### 2026-09-22 · Javier Saguar · T08 · Servicios sin login fuera del anfitrión y modelo de amenazas
+
+- **Rama / commits:** `main` · pendiente de commit
+- **Qué he hecho:**
+  - Dejé de publicar Kafka, la consola de Redpanda, la interfaz de Spark y sus workers, Prometheus,
+    Ollama y Qdrant. No tienen credencial. Siguen usándose por el nombre del contenedor.
+  - Los dos chatbots de Chainlit piden `CHATBOT_USUARIO` / `CHATBOT_CLAVE`. La sesión la firma
+    `CHAINLIT_AUTH_SECRET`.
+  - `make entorno FORZAR=1` regenera `.env`. GNU make no acepta `make entorno --forzar`.
+  - Escrito [`docs/seguridad.md`](docs/seguridad.md).
+- **Por qué:** T08. En `127.0.0.1` se podía leer la interfaz de Spark, Prometheus, Qdrant y Ollama sin
+  clave, y Kafka (`19092`) aceptaba conexiones hacia `viajes-crudos`.
+- **Ficheros clave:** `docker-compose.yml`, `docs/seguridad.md`, `parte3_chatbot/app.py`,
+  `parte3_chatbot_rag/app.py`, `Makefile`
+- **Cómo comprobarlo:**
+  ```bash
+  uv run pytest tests/test_publicacion.py tests/test_generar_env.py -q
+  make entorno FORZAR=1    # solo si se van a recrear los volúmenes de Mongo, Airflow y Grafana
+  ```
+- **Resultado:** los puertos 8090, 8091, 8092, 9090, 6333, 11435, 19092, 6066 y 8088 no aceptan
+  conexión en el anfitrión. La pasarela 6066 sí responde desde Airflow (`spark-master:6066`). Login del
+  chatbot: clave mala 401, clave buena 200 (8010 y 8012). Grafana sin sesión 401, S3 sin clave 403,
+  consultas sin clave 401. MongoDB de prueba con `01_usuarios.js`: sin borrar el volumen sigue valiendo
+  la contraseña vieja; con el volumen nuevo solo la nueva, y sin contraseña `listDatabases` da 13.
+  El trabajo `pids-tiempo-real` se relanzó después de recrear el máster.
+- **Pendiente y riesgos:** `/salud`, `/metrics` y `/docs` de las APIs siguen sin clave (no llevan viajes).
+  `make frontend-dev` ya no alcanza Prometheus, Ollama ni Qdrant. No he recreado los volúmenes reales:
+  eso borraría los agregados del año 2020.
+- **Contexto para quien siga:** la rotación de verdad es `make entorno FORZAR=1` y luego
+  `docker volume rm pids_mongo-datos pids_airflow-db pids_grafana-datos`. S3 no necesita borrar su volumen.
+
+### 2026-09-22 · Javier Saguar · T06 (en curso) · La demo de gestos confirma y cancela consultas del chatbot
+
+- **Rama / commits:** `main` · pendiente de commit
+- **Qué he hecho:**
+  - `demo-gestures-PIDS.py` llama a `EmisorGestos.observar` en cada predicción (cada 0,25 s, y al soltar la mano).
+    Solo si existe `PIDS_CLAVE_GESTOS`; sin esa variable la demo de la parte 1 no cambia.
+  - `GESTOS_ACTIVOS=true` en `.env` y chatbot recreado. 👍 ejecuta la alternativa pendiente y ✋ la cancela,
+    con el mismo aviso que el botón.
+  - La sesión de Chainlit se vuelve a fijar al llegar el SSE: el gesto no se procesa en la tarea del chat.
+- **Por qué:** es la caja «Integración» de la diapositiva 5. El rechazo con alternativa ya existía; faltaba
+  que el gesto de la parte 1 hiciera lo mismo que el botón.
+- **Ficheros clave:** `parte1_gestos/demo/src/demo-gestures-PIDS.py`, `integracion/cliente_gestos.py`,
+  `parte3_chatbot/app.py`
+- **Cómo comprobarlo:**
+  ```bash
+  uv run pytest tests/test_cliente_gestos.py -q
+  # con el chatbot levantado, el mismo POST que envía la demo:
+  python integracion/cliente_gestos.py --clave "$CAPTURA_CLAVE_GESTOS" --gesto thumbsup
+  ```
+  En Windows, con la plataforma en WSL: `$env:PIDS_CLAVE_GESTOS` y la demo. 👍 tras un rechazo individual.
+- **Resultado:** 6 tests del anti-rebote. Ciclo real contra el chatbot: una petición individual se rechaza,
+  `thumbsup` lanza la alternativa (Times Square, 15/01/2020, 3:00-4:00: 54 viajes, consulta permitida) y
+  `paper` responde «consulta cancelada».
+- **Pendiente y riesgos:** el vídeo con la webcam no está. Desde WSL no hay cámara (la parte 1 va en Windows).
+  El gesto se envía tras ~1 s de la misma predicción (4 veces × 0,25 s) y no se repite en 3 s.
+- **Contexto para quien siga:** `paper` es ✋ (cancelar) y `thumbsup` es 👍. `GESTOS_ACTIVOS` se lee al arrancar
+  el proceso: hay que recrear el contenedor. El cliente solo manda etiqueta y confianza.
 
 ### 2026-09-21 · Javier Saguar · T14 · Portal web en `main`, levantado, y demostración pública en Vercel
 

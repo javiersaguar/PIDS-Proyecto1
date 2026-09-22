@@ -22,7 +22,7 @@ import type { EjecucionAirflow, Panel, Simulacion } from './tipos'
 export const ENLACES_POR_DEFECTO: Panel['enlaces'] = {
   grafana: 'http://localhost:3000',
   airflow: 'http://localhost:8085',
-  spark: 'http://localhost:8090',
+  spark: '',
   chatbot: 'http://localhost:8010',
   chatbot_rag: 'http://localhost:8011',
   api_acceso: 'http://localhost:8002/docs',

@@ -43,7 +43,9 @@ describe('PaginaDocumentacion', () => {
 
     const lienzo = await screen.findByRole('region', { name: 'Arquitectura de la plataforma' })
     await usuario.click(within(lienzo).getByRole('button', { name: /Spark/ }))
-    expect(await screen.findByRole('link', { name: 'Abrir Spark' })).toHaveAttribute('href', 'http://localhost:8090')
+    const fichaSpark = await screen.findByRole('dialog')
+    expect(within(fichaSpark).getByRole('heading', { name: 'Spark' })).toBeInTheDocument()
+    expect(within(fichaSpark).queryByRole('link', { name: 'Abrir Spark' })).not.toBeInTheDocument()
 
     await usuario.click(screen.getByRole('button', { name: 'Cerrar' }))
     await usuario.click(within(lienzo).getByRole('button', { name: /API de acceso/ }))

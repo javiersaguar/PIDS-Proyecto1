@@ -46,6 +46,21 @@ def test_completar_anade_solo_lo_que_falta():
     assert lineas[:4] == actual[:4]
 
 
+def test_forzar_sustituye_las_claves_y_sin_el_no_toca_el_env(tmp_path, monkeypatch):
+    (tmp_path / '.env.example').write_text('MONGO_ROOT_PASSWORD=\nAIRFLOW_FERNET_KEY=\n', encoding='utf-8')
+    destino = tmp_path / '.env'
+    destino.write_text('MONGO_ROOT_PASSWORD=vieja\nAIRFLOW_FERNET_KEY=vieja\n', encoding='utf-8')
+    monkeypatch.setattr(G, 'RAIZ', tmp_path)
+    monkeypatch.setattr(sys, 'argv', ['generar_env.py'])
+    assert G.main() == 0
+    assert destino.read_text(encoding='utf-8') == 'MONGO_ROOT_PASSWORD=vieja\nAIRFLOW_FERNET_KEY=vieja\n'
+    monkeypatch.setattr(sys, 'argv', ['generar_env.py', '--forzar'])
+    assert G.main() == 0
+    valores = G.variables(destino.read_text(encoding='utf-8').splitlines())
+    assert valores['MONGO_ROOT_PASSWORD'] != 'vieja' and len(valores['MONGO_ROOT_PASSWORD']) >= 24
+    assert valores['AIRFLOW_FERNET_KEY'] != 'vieja'
+
+
 def test_completar_sin_novedades_no_cambia_nada():
     completo = G.generar(PLANTILLA)
     assert G.completar(completo, PLANTILLA) == (completo, [])

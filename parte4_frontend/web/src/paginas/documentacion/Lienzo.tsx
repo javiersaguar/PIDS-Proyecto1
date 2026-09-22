@@ -87,7 +87,7 @@ function Ficha({ nodo, enlaces, alCerrar }: { nodo: Nodo; enlaces: Panel['enlace
                 {nodo.ruta.texto}
               </Link>
             )}
-            {nodo.enlaces?.map((enlace) => (
+            {nodo.enlaces?.map((enlace) => enlaces[enlace.clave] ? (
               <a
                 key={enlace.clave}
                 href={enlaces[enlace.clave]}
@@ -97,7 +97,7 @@ function Ficha({ nodo, enlaces, alCerrar }: { nodo: Nodo; enlaces: Panel['enlace
               >
                 {enlace.texto}
               </a>
-            ))}
+            ) : null)}
           </div>
         )}
       </DialogContent>

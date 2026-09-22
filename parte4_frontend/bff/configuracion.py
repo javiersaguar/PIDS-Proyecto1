@@ -38,7 +38,7 @@ MONGO = ('mongo', 'PUERTO_MONGO', '27018')
 ENLACES_POR_DEFECTO: dict[str, str] = {
     'grafana': 'http://localhost:3000',
     'airflow': 'http://localhost:8085',
-    'spark': 'http://localhost:8090',
+    'spark': '',   # la interfaz no se publica: no tiene autenticación (docs/seguridad.md)
     'chatbot': 'http://localhost:8010',
     'chatbot_rag': 'http://localhost:8011',
     'api_acceso': 'http://localhost:8002/docs',
