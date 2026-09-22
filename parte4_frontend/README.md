@@ -9,7 +9,7 @@ decisiones de la auditoría (que no contienen viajes).
 |---|---|---|
 | Panel | `/` | Viajes del último día publicado (total y por barrio, histórico y tiempo real), decisiones de las últimas 24 h, frescura del *streaming* con semáforo, estado de los servicios y accesos directos |
 | Explorador | `/explorador` | Consultas por nivel (hora-zona, día-barrio, flujos), fechas, zona con buscador, barrios y métricas → tabla ordenable, gráfico o matriz de flujos; los grupos `<10` van en violeta y **nunca se suman**; un rechazo muestra los motivos y un botón para lanzar la alternativa |
-| Asistente | `/asistente` | Chat con el agente (motor Ollama local o RAG con Helmcode), pasos de las herramientas en directo, fuentes, tokens y botón de alternativa tras un rechazo |
+| TAXI AI (asistente) | botón fijo abajo a la derecha, en todas las páginas | Panel que entra desde el borde derecho con el chat del agente (motor Ollama local o RAG con Helmcode), pasos de las herramientas en directo, fuentes, tokens y botón de alternativa tras un rechazo. Cerrarlo lo esconde sin cambiar de ruta y la conversación sigue viva |
 | Tiempo real | `/tiempo-real` | Frescura, viajes por hora de las últimas 6/12/24 h con datos y la última hora por zona; se refresca cada 30 s |
 | Privacidad | `/privacidad` | Reglas E3 leídas del catálogo, auditoría de decisiones (por resultado, cliente y motivo, con filtros) y cargas históricas |
 | Operaciones | `/operaciones` | Lanzar una carga histórica en Airflow (mes o muestra) y ver sus ejecuciones; iniciar y parar el simulador de tiempo real |

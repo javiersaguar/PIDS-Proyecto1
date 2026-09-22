@@ -24,7 +24,7 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 
 ## Estado actual
 
-**Última actualización: 22/09/2026 · Javier Saguar** (repositorio recreado en GitHub; barreras de autoría)
+**Última actualización: 22/09/2026 · Javier Saguar** (TAXI AI como botón y panel en todas las páginas del portal)
 
 | | |
 |---|---|
@@ -34,7 +34,7 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 | **Métricas** | M1: 0 fugas en la API (31 casos), en el chatbot de Ollama (105 ejecuciones) y en el chatbot RAG (105 ejecuciones) · M2: con k = 10 se publica el 95,1 % de los viajes en hora-zona · M3: p95 35,4 s (objetivo < 60 s) |
 | **Chatbots** | Ollama: `llama3.1:8b` en GPU a temperatura 0,2, 21/21 casos en 2-3 s · RAG: `deepseek-v4-flash` (Helmcode, UE), 21/21 casos con p50 1,1 s y unos 6 000 tokens por pregunta. Detalle en `docs/chatbot_rag.md` |
 | **Parte 1** | Se ejecuta desde el repositorio, con `PIDS_DATOS` apuntando a las imágenes (que siguen fuera de Git) |
-| **Portal web (parte 4)** | En `main` y levantado (`make frontend`, http://localhost:8020, contraseña `FRONTEND_CLAVE` de `.env`): panel, explorador, asistente (Ollama y RAG), tiempo real, privacidad y auditoría, operaciones y documentación. Demostración pública en Vercel con datos grabados (`parte4_frontend/demo`). 429 tests de Python, 17 de Scala y 132 de Vitest |
+| **Portal web (parte 4)** | En `main` y levantado (`make frontend`, http://localhost:8020, contraseña `FRONTEND_CLAVE` de `.env`): panel, explorador, tiempo real, privacidad y auditoría, operaciones y documentación, y el asistente TAXI AI (Ollama y RAG) como botón fijo con panel derecho en todas las páginas (T16). Demostración pública en Vercel con datos grabados (`parte4_frontend/demo`). 429 tests de Python, 17 de Scala y 139 de Vitest |
 | **Sin empezar** | Alta disponibilidad (T09), vídeo y presentación (T10). De T06 queda el vídeo con la webcam |
 | **Cómo levantarlo** | En Ubuntu (WSL2), paso a paso en el README («Puesta en marcha»): `make entorno`, pegar `LLM_API_KEY`, `make sync && make test`, `make construir && make todo`, `make historico-muestra` y `make rag-indexar`; cada día, `make todo` y `make tiempo-real` |
 | **Forma de trabajar** | Una rama por persona (tabla en el README) y cambios a `main` por *pull request*. Para trabajo en paralelo, una rama de tarea con contratos por bloque (`parte3_chatbot_rag/CONTRATOS.md`). Cada copia, con `make hooks`; el CI «Autoría» rechaza coautorías y firmas automáticas |
@@ -83,6 +83,43 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 ---
 
 ## Entradas
+
+### 2026-09-22 · Javier Saguar · T16 · TAXI AI: el asistente como botón fijo y panel derecho, no como sección
+
+- **Rama / commits:** `tarea/taxi-ai` · un commit
+- **Qué he hecho:**
+  - «Asistente» ya no está en el menú izquierdo ni tiene ruta: `SECCIONES` pasa de siete a seis y `/asistente` redirige a
+    la portada con el panel abierto (para los enlaces antiguos).
+  - Botón fijo «TAXI AI» en la esquina inferior derecha (`componentes/shell/BotonTaxiAI.tsx`), en todas las páginas del
+    portal. Al pulsarlo, el panel (`componentes/shell/PanelAsistente.tsx`, 30 rem, todo el alto) entra desde el borde
+    derecho con el mismo chat de antes (`paginas/asistente/Asistente.tsx`, el antiguo `PaginaAsistente` adaptado a una
+    columna). El botón se desplaza a la izquierda del panel y pasa a «Cerrar»; en pantallas estrechas el panel ocupa todo
+    el ancho y el botón se esconde (queda la X del panel). Escape también lo cierra.
+  - Cerrar el panel solo lo esconde: no navega, y la conversación y la sesión del BFF siguen vivas (se comprueba en los
+    tests). El chat se monta la primera vez que se abre, así que quien no lo usa no abre ninguna sesión en el BFF.
+  - Accesibilidad: el panel es una región `aside` con nombre, `aria-hidden` e `inert` cuando está cerrado; el foco va al
+    cuadro de texto al abrir (o al panel si aún no se puede escribir) y vuelve al botón al cerrar; `aria-expanded` y
+    `aria-controls` en el botón.
+- **Por qué:** T16: el asistente es un acceso del producto, no otra página; tiene que estar a mano desde cualquier sección.
+- **Ficheros clave:** `parte4_frontend/web/src/componentes/shell/{AppShell,BotonTaxiAI,PanelAsistente,navegacion}.ts(x)`,
+  `parte4_frontend/web/src/paginas/asistente/Asistente.tsx`, `parte4_frontend/web/src/rutas.tsx`
+- **Cómo comprobarlo:**
+  ```bash
+  cd parte4_frontend/web && npm run lint && npm test -- --run && npm run build
+  make frontend        # y en http://localhost:8020, desde cualquier sección, el botón TAXI AI abajo a la derecha
+  ```
+- **Resultado:** 139 tests de Vitest en verde (4 nuevos en `AppShell.test.tsx`; los del asistente abren el panel con el
+  botón). Probado con Chromium sin cabeza contra el BFF real: menú con seis secciones; botón en la esquina; panel de
+  480 px a la derecha sin cambiar la URL; sigue abierto al pasar a otra sección; Escape lo cierra y el botón vuelve a su
+  sitio; `/asistente` → `/` con el panel abierto; sin desbordamiento horizontal; a 600 px el panel ocupa el ancho y el
+  botón se oculta; una pregunta real a Ollama desde el panel («Manhattan con 203,866 viajes», 2,3 s) que sigue ahí tras
+  cerrar y reabrir desde otra sección. Sin errores de consola.
+- **Pendiente y riesgos:** la imagen del portal (`make frontend`) hay que reconstruirla para que salga el cambio; la
+  demostración de Vercel también. El panel no es modal (la página sigue usable detrás): es intencionado.
+- **Contexto para quien siga:** el estado abierto/cerrado vive en `AppShell` (persiste entre rutas porque el shell no se
+  desmonta); el panel no usa el `Sheet` de shadcn porque ese desmonta el contenido al cerrar y perdería la conversación.
+  Las clases de Tailwind del desplazamiento del botón (`right-[31.5rem]`) van escritas literales: Tailwind no genera
+  clases construidas en tiempo de ejecución.
 
 ### 2026-09-22 · Javier Saguar · Repositorio recreado en GitHub y barreras de autoría
 
