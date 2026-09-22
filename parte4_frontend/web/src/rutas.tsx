@@ -30,7 +30,9 @@ export const rutas: RouteObject[] = [
           { path: 'tiempo-real', element: <PaginaTiempoReal /> },
           { path: 'privacidad', element: <PaginaPrivacidad /> },
           { path: 'operaciones', element: <PaginaOperaciones /> },
-          { path: 'documentacion', element: <PaginaDocumentacion /> },
+          { path: 'grafo', element: <PaginaDocumentacion /> },
+          // La sección se llamaba «Documentación»: los enlaces antiguos siguen funcionando
+          { path: 'documentacion', element: <Navigate to="/grafo" replace /> },
           { path: '*', element: <PaginaNoEncontrado /> },
         ],
       },

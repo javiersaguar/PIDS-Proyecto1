@@ -104,20 +104,19 @@ describe('AppShell', () => {
 
     expect(panel).toHaveAttribute('aria-hidden', 'false')
     expect(boton).toHaveAttribute('aria-expanded', 'true')
-    expect(boton).toHaveAccessibleName('Cerrar TAXI AI')
+    // Con el panel abierto el botón flotante se esconde: no queda otro botón encima de la página
+    expect(boton).toHaveClass('invisible')
+    expect(boton).toHaveAttribute('aria-hidden', 'true')
+    expect(screen.queryByRole('button', { name: /TAXI AI/ })).not.toBeInTheDocument()
     expect(within(panel).getByRole('heading', { level: 2, name: 'TAXI AI' })).toBeInTheDocument()
     expect(await within(panel).findByRole('radiogroup', { name: 'Motor del asistente' })).toBeInTheDocument()
     // Sigue en el explorador: el panel no navega.
     expect(screen.getByRole('heading', { level: 1, name: 'Explorador' })).toBeInTheDocument()
 
-    await usuario.click(boton)
-    expect(panel).toHaveAttribute('aria-hidden', 'true')
-    expect(boton).toHaveAttribute('aria-expanded', 'false')
-
-    await usuario.click(boton)
-    expect(panel).toHaveAttribute('aria-hidden', 'false')
     await usuario.keyboard('{Escape}')
     expect(panel).toHaveAttribute('aria-hidden', 'true')
+    expect(boton).toHaveAttribute('aria-expanded', 'false')
+    expect(boton).not.toHaveClass('invisible')
   })
 
   it('la X del panel lo cierra y devuelve el foco al botón; el panel sigue montado con su conversación', async () => {

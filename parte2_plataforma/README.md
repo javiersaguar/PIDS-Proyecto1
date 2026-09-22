@@ -48,9 +48,34 @@ Los viajes sintéticos son válidos, llevan un lote `latencia-...` y se quedan e
 (`s3://crudo/validos/tiempo_real`) y en `publico.tr_viajes_hora_zona`. Cuidado: al usar horas de finales de 2020
 adelantan la *watermark* del streaming (2 h por detrás del viaje más reciente). Mientras el trabajo de tiempo
 real conserve ese estado, los viajes anteriores, como los de la muestra del 1 de enero, no se agregan (sí se
-archivan). Para la demo, o se simulan viajes posteriores (por ejemplo, un fichero de diciembre), o se relanza el
-trabajo con un checkpoint nuevo cuando esos lotes hayan salido del topic (retención de 24 h), porque el trabajo
-lee el topic desde el principio.
+archivan). `make tiempo-real-reiniciar` lo deja desde cero (sección siguiente).
+
+## Tiempo real desde cero y captura en directo
+
+```bash
+make tiempo-real-reiniciar       # para el trabajo, borra su checkpoint, recorta la cola, vacía tr_* y lo relanza
+make captura-preparar            # una vez: diciembre de 2020 de la TLC, un CSV.gz por día en data/directo/
+make capturar                    # captura en directo desde el portal (VELOCIDAD=60: una hora de 2020 por minuto)
+make capturar-parar
+```
+
+**Reiniciar** (`scripts/reiniciar_tiempo_real.py`, T11) hace, en orden: matar el driver supervisado de
+`pids-tiempo-real` (si no, el máster lo relanzaría con el checkpoint viejo), borrar
+`/opt/spark/checkpoints/tiempo_real`, recortar `viajes-crudos` hasta el final (el trabajo lee desde el principio y
+volvería a ver los mismos viajes; ya están archivados en `s3://crudo/validos/tiempo_real`), vaciar
+`publico.tr_*` con el administrador de MongoDB y relanzar. Pide confirmación (`ARGS=--si` para no hacerlo). El
+histórico no se toca. Tarda unos 30 s.
+
+**La captura en directo** (`parte2_plataforma/simulador/directo.py`) reproduce viajes reales de 2020 contra la API
+de captura con un reloj simulado: en cada segundo envía los viajes cuya recogida ya ha pasado. Spark los agrega por
+hora de recogida, así que Tiempo real avanza hora a hora (a ×60, una por minuto). La lleva el portal (botón
+«Capturar datos» del grafo, `POST /api/operaciones/captura`), que recuerda por dónde va; `make capturar` se lo pide
+a él para que nunca haya dos emisores a la vez, que repetirían viajes. Si el portal se reinicia, sigue en la hora
+siguiente a la última que Spark haya publicado. Cuando llega al 31/12, para volver a empezar: reiniciar.
+
+Medido el 22/09 tras reiniciar: 41 608 viajes del 1 de diciembre enviados a ×600 (diez horas de 2020 por minuto,
+entre 48 y 230 viajes por segundo) y agregados por Spark hora a hora (de 11 viajes visibles a las 02:00 a 7 464 a las
+13:00, esta última con repetidos de una prueba, que llevó a dejar un solo emisor).
 
 ## Alta disponibilidad de la API de acceso
 

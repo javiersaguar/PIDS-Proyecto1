@@ -24,7 +24,7 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 
 ## Estado actual
 
-**Última actualización: 22/09/2026 · Javier Saguar** (T09 alta disponibilidad y T16 TAXI AI)
+**Última actualización: 22/09/2026 · Javier Saguar** (captura en directo, T11, grafo con zoom y web pública en vivo)
 
 | | |
 |---|---|
@@ -39,7 +39,7 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 | **Forma de trabajar** | Una rama por persona (tabla en el README) y cambios a `main` por *pull request*. Para trabajo en paralelo, una rama de tarea con contratos por bloque (`parte3_chatbot_rag/CONTRATOS.md`). Cada copia, con `make hooks`; el CI «Autoría» rechaza coautorías y firmas automáticas |
 | **Repositorio** | Recreado en GitHub el 22/09/2026 (mismo nombre) para eliminar una coautoría ajena al grupo: [`docs/repositorio.md`](docs/repositorio.md). Copias anteriores: sincronizar con `git reset --hard origin/main`. **Vercel (`happytaxi`, `yellowveil`) hay que volver a conectarlo al repositorio nuevo** (§4 de ese documento) |
 | **Siguientes tareas** | Ver [`TAREAS.md`](TAREAS.md) |
-| **Pendiente inmediato** | Grabar el vídeo de T06 en Windows (el ciclo ya responde a 👍 y ✋). Confirmar en grupo la decisión del LLM externo (regla 9 de E3), dejar el tiempo real listo para la demo (T11) y subir la copia del dataset de gestos, ya hecha y verificada (T01) |
+| **Pendiente inmediato** | Confirmar en grupo la decisión del LLM externo (regla 9 de E3), conectar Vercel al repositorio nuevo y encender el túnel (cuenta de ngrok), y subir la copia del dataset de gestos, ya hecha y verificada (T01) |
 | **Requisitos** | Todo instalado en este equipo (incluido el NVIDIA Container Toolkit). En equipos sin GPU: `make chatbot SIN_GPU=1` con `OLLAMA_MODELO=llama3.2:3b`, o el chatbot RAG, que no necesita GPU |
 
 ## Decisiones tomadas
@@ -82,6 +82,51 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 ---
 
 ## Entradas
+
+### 2026-09-22 · Javier Saguar · T11 y captura en directo: el tiempo real se mueve con viajes reales de 2020
+
+- **Rama / commits:** `tarea/captura-directo` → `main` (con las fusiones de T15 y T16)
+- **Qué he hecho:**
+  - **Captura en directo** (`parte2_plataforma/simulador/directo.py`): diciembre de 2020 de la TLC (1 461 863
+    viajes) partido en un CSV.gz por día (`make captura-preparar`) y reproducido contra la API de captura con un
+    reloj simulado (60 = una hora de 2020 por minuto). Sigue donde se quedó y nunca vuelve atrás, por la watermark.
+  - En el portal: `GET/POST/DELETE /api/operaciones/captura`, con el mismo estado que la simulación (una sola a la
+    vez) para que la animación de T15 la vea sin cambios. `make capturar` y `make capturar-parar` se la piden al
+    portal: un solo emisor, porque dos repetían viajes (se vio en la prueba).
+  - **T11**: `make tiempo-real-reiniciar` para el trabajo (mata el driver supervisado), borra el checkpoint, recorta
+    `viajes-crudos`, vacía `publico.tr_*` y lo relanza. Hecho el 22/09: 166 agregados de prueba fuera, en 30 s.
+  - **Grafo** (antes «Documentación», `/documentacion` redirige): interruptor «Capturar datos» junto a la barra de
+    actividad, y zoom propio (rueda, pellizco del panel táctil, arrastrar, doble clic y dos botones de lupa casi
+    transparentes en la esquina) sin tocar el del navegador.
+  - **TAXI AI**: con el panel abierto, el botón flotante se oculta; antes quedaba un segundo botón «× TAXI AI»
+    encima de la página.
+  - **Web pública**: si el portal responde por un túnel de ngrok (`make tunel`, servicio `tunel`), Vercel lo enseña
+    en vivo con su contraseña; si no, la instantánea. El aviso dice el modo y deja cambiar; ya no lleva a GitHub.
+  - Integradas T15 (Devin, commit `3671ccf`) y T16, que estaban terminadas en sus ramas.
+- **Por qué:** el tiempo real no se movía (watermark en diciembre por las pruebas de latencia) y la demo necesitaba
+  datos entrando de verdad, con un botón en el portal y la animación del flujo.
+- **Ficheros clave:** `parte2_plataforma/simulador/directo.py`, `scripts/reiniciar_tiempo_real.py`,
+  `parte4_frontend/bff/{servicios/simulacion,rutas/operaciones}.py`,
+  `parte4_frontend/web/src/paginas/documentacion/{CapturaDatos,ControlesZoom,Lienzo}.tsx` y `zoom.ts`,
+  `parte4_frontend/web/src/demo/{modo,vivo,entrada,aviso}.ts`, `docker-compose.yml` (servicio `tunel`, volumen
+  `data/directo`), `vercel.json`, `Makefile`
+- **Cómo comprobarlo:**
+  ```bash
+  uv run pytest -q tests/test_captura_directo.py tests/test_frontend_bff_plataforma.py
+  make tiempo-real-reiniciar && make capturar     # y en el portal: Grafo, Tiempo real
+  ```
+- **Resultado:** 41 608 viajes del 1 de diciembre enviados a ×600 y agregados hora a hora por Spark. Tests de Python
+  y de Vitest en verde (los de Vitest, en serie: en paralelo, con la máquina cargada, algunos agotan los 5 s).
+- **Pendiente y riesgos:**
+  - Vercel sigue enganchado al repositorio borrado: reconectarlo en su panel (`docs/repositorio.md` §4).
+  - El modo en vivo necesita una cuenta de ngrok: token y dominio en `.env`, y el dominio en `vercel.json`.
+  - El vídeo `cu8_gesto.mp4` de T06 enseña fotos del dataset con personas: no se ha subido (el repositorio es
+    público y esas fotos no se publican).
+  - `make latencia` usa horas del 31/12/2020: tras ejecutarlo, la captura no puede seguir hasta reiniciar.
+- **Contexto para quien siga:** la captura solo sabe por dónde va dentro del proceso del portal; al reiniciarlo
+  sigue en la hora siguiente a la última publicada (puede perder el final de una hora, nunca repetir). El túnel
+  expone solo el portal, con su contraseña; la regla de `vercel.json` apunta a un nombre `.invalid` hasta poner el
+  dominio, para que nada vaya a un dominio ajeno.
 
 ### 2026-09-22 · Javier Saguar · T09 · Alta disponibilidad de la API de acceso: dos réplicas detrás de Caddy
 

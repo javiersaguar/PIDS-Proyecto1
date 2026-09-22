@@ -8,7 +8,9 @@
  *     grabados, que ya salieron enmascarados de la API;
  *   - el «tiempo real» reproduce un día histórico y la frescura es la mediana medida (M3);
  *   - el asistente reproduce conversaciones grabadas del agente real; a otras preguntas contesta con las de ejemplo;
- *   - las operaciones (cargas en Airflow, simulador) se enseñan, pero no se lanzan.
+ *   - las operaciones (cargas en Airflow, simulador) se enseñan, pero no se lanzan;
+ *   - «Capturar datos» (captura en directo del grafo) anima el flujo con un reloj de 2020 que avanza, pero no envía
+ *     nada ni cambia el tiempo real grabado.
  */
 import type { Catalogo, EstadoSesion, Zona } from '@/api/tipos'
 
@@ -92,6 +94,9 @@ export class BffDemo {
   private autenticado = true
   private siguienteSesion = 1
   private readonly alternativas = new Map<string, EventoSse[] | null>()
+  /** La captura en directo de la demostración: solo su reloj, para animar el grafo. */
+  private captura: { inicio: number; desde: number; velocidad: number } | null = null
+  private relojCaptura = Date.UTC(2020, 11, 1)
 
   constructor(datos: Instantanea, ahora: () => number = Date.now) {
     this.datos = datos
@@ -110,7 +115,7 @@ export class BffDemo {
     if (metodo === 'GET' && ruta === '/api/panel') return json(await this.panel())
     if (metodo === 'GET' && ruta === '/api/tiempo-real') return this.tiempoReal(p.parametros.get('horas'))
     if (ruta.startsWith('/api/auditoria/')) return this.auditoria(ruta, p.parametros)
-    if (ruta.startsWith('/api/operaciones/')) return this.operaciones(metodo, ruta)
+    if (ruta.startsWith('/api/operaciones/')) return this.operaciones(metodo, ruta, p.cuerpo)
     if (ruta.startsWith('/api/chat/')) return this.chat(metodo, ruta, p.cuerpo)
     return detalle(404, 'Not Found')
   }
@@ -259,15 +264,52 @@ export class BffDemo {
 
   // --- operaciones -------------------------------------------------------------------------------------------
 
-  private async operaciones(metodo: string, ruta: string): Promise<Contestacion> {
+  private async operaciones(metodo: string, ruta: string, cuerpo: unknown = null): Promise<Contestacion> {
     const operaciones = await this.datos.leer<{ ejecuciones: unknown[]; ficheros: string[] }>('operaciones.json')
-    const parada = { activa: false, lote: null, fichero: null, enviados: 0, total: 0, ritmo: 50, inicio: null, error: null }
     if (ruta === '/api/operaciones/airflow/ejecuciones' && metodo === 'GET') return json(operaciones.ejecuciones)
     if (ruta === '/api/operaciones/simulacion/ficheros' && metodo === 'GET') return json(operaciones.ficheros)
-    if (ruta === '/api/operaciones/simulacion' && metodo === 'GET') return json(parada)
-    if (ruta === '/api/operaciones/simulacion' && metodo === 'DELETE') return json(parada)
+    if (ruta === '/api/operaciones/simulacion' && metodo === 'GET') return json(this.estadoCaptura())
+    if (ruta === '/api/operaciones/captura' && metodo === 'GET') {
+      return json({
+        disponible: true, primer_dia: '2020-12-01', ultimo_dia: '2020-12-31', reloj: this.captura ? null : aIso(this.relojCaptura),
+        velocidad_por_defecto: 60, velocidad_maxima: 600, demostracion: true,
+      })
+    }
+    if (ruta === '/api/operaciones/captura' && metodo === 'POST') {
+      if (this.captura) return detalle(409, 'Ya hay una simulación en marcha; párala antes de capturar')
+      const velocidad = Number((cuerpo as { velocidad?: unknown } | null)?.velocidad ?? 60)
+      this.captura = { inicio: this.ahora(), desde: this.relojCaptura, velocidad: Math.min(600, Math.max(1, velocidad || 60)) }
+      return json(this.estadoCaptura(), 202)
+    }
+    if ((ruta === '/api/operaciones/simulacion' || ruta === '/api/operaciones/captura') && metodo === 'DELETE') {
+      const estado = this.estadoCaptura()
+      if (this.captura) this.relojCaptura = this.relojActual()
+      this.captura = null
+      return json({ ...estado, activa: false, fin: new Date(this.ahora()).toISOString() })
+    }
     if (metodo === 'POST') return detalle(503, MENSAJE_OPERACIONES)
     return detalle(404, 'Not Found')
+  }
+
+  /** Hora de 2020 por la que va la captura de la demostración (sin pasar del 31/12). */
+  private relojActual(): number {
+    if (!this.captura) return this.relojCaptura
+    const avanzado = this.captura.desde + (this.ahora() - this.captura.inicio) * this.captura.velocidad
+    return Math.min(avanzado, Date.UTC(2021, 0, 1) - 1000)
+  }
+
+  /** La `Simulacion` del contrato: parada, o la captura en directo con un ritmo aproximado al de diciembre de 2020. */
+  private estadoCaptura() {
+    if (!this.captura) {
+      return { activa: false, lote: null, fichero: null, enviados: 0, total: 0, ritmo: 50, inicio: null, fin: null, error: null }
+    }
+    const segundos = (this.ahora() - this.captura.inicio) / 1000
+    const ritmo = Math.round(this.captura.velocidad * 0.55 * 10) / 10     // ~2000 viajes por hora de 2020
+    return {
+      activa: true, lote: 'demostracion', fichero: null, enviados: Math.floor(segundos * ritmo), total: 0, ritmo,
+      inicio: new Date(this.captura.inicio).toISOString(), fin: null, error: null,
+      modo: 'directo', reloj: aIso(this.relojActual()), velocidad: this.captura.velocidad,
+    }
   }
 
   // --- asistente ---------------------------------------------------------------------------------------------

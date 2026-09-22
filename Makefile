@@ -10,7 +10,7 @@ SIN_GPU ?=
 COMPOSE := docker compose $(if $(SIN_GPU),-f docker-compose.yml -f docker-compose.sin-gpu.yml,)
 PERFILES_TODO := --profile spark --profile airflow --profile observabilidad --profile chatbot --profile rag \
 		--profile frontend
-PERFILES_UNA_VEZ := --profile herramientas --profile simulador --profile rag-indexar
+PERFILES_UNA_VEZ := --profile herramientas --profile simulador --profile rag-indexar --profile tunel
 WEB := parte4_frontend/web
 
 .DEFAULT_GOAL := ayuda
@@ -18,7 +18,7 @@ WEB := parte4_frontend/web
 	    chatbot chatbot-rag rag-indexar rag-comprobar rag-casos rag-bateria rag-comparar frontend frontend-dev \
 	    herramientas todo parar estado logs tiempo-real simular historico historico-muestra \
 	    datos-muestra descargar borrar-todo alta-disponibilidad tiempo-real-reiniciar captura-preparar capturar \
-	    capturar-parar
+	    capturar-parar tunel tunel-parar
 
 ayuda: ## Muestra esta ayuda
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  make %-18s %s\n", $$1, $$2}'
@@ -75,6 +75,15 @@ frontend: _env ## Portal web (http://localhost:8020)
 frontend-dev: _env ## BFF del portal en el host con recarga (puerto 8020); la SPA, aparte: cd parte4_frontend/web && npm run dev
 	@echo "BFF en http://localhost:8020. Prometheus, Ollama y Qdrant no están publicados: el chat y el pulso salen con «make frontend». En otra terminal: cd $(WEB) && npm run dev"
 	uv run uvicorn parte4_frontend.bff.app:app --port 8020 --reload
+
+tunel: _env ## Túnel del portal a internet (ngrok) para la web pública de Vercel. Pide NGROK_AUTHTOKEN y NGROK_DOMINIO
+	@grep -qE '^NGROK_AUTHTOKEN=.+' .env && grep -qE '^NGROK_DOMINIO=.+' .env || \
+		{ echo "Faltan NGROK_AUTHTOKEN y NGROK_DOMINIO en .env (cuenta gratuita de ngrok: README, «Web pública»)"; exit 1; }
+	$(COMPOSE) --profile frontend --profile tunel up -d frontend tunel
+	@echo "Túnel en marcha: https://$$(grep '^NGROK_DOMINIO=' .env | cut -d= -f2) (la web de Vercel pasa a en vivo)"
+
+tunel-parar: ## Apaga el túnel: la web pública vuelve a la instantánea
+	$(COMPOSE) --profile tunel stop tunel
 
 herramientas: _env ## Consola de Redpanda en la red interna (no se publica: muestra mensajes crudos)
 	$(COMPOSE) --profile herramientas up -d

@@ -1,7 +1,7 @@
 /**
  * Esqueleto de la aplicación autenticada: barra lateral fija, contenido (`<Outlet />`) y TAXI AI, el asistente,
  * como botón fijo abajo a la derecha con su panel deslizante (disponible en todas las páginas, sin ruta propia).
- * Documentación ocupa todo el hueco, sin cabecera. El panel, el explorador, privacidad, tiempo real y
+ * El grafo ocupa todo el hueco, sin cabecera. El panel, el explorador, privacidad, tiempo real y
  * operaciones tampoco llevan cabecera: el título de la sección ya está en la barra lateral.
  */
 import { useCallback, useRef, useState } from 'react'
@@ -31,7 +31,7 @@ export function AppShell() {
   const cerrarAsistente = useCallback(() => setAsistenteAbierto(false), [])
   const alternarAsistente = useCallback(() => setAsistenteAbierto((abierto) => !abierto), [])
 
-  const lienzo = pathname === '/documentacion' || pathname.startsWith('/documentacion/')
+  const lienzo = pathname === '/grafo' || pathname.startsWith('/grafo/')
   const esPanel = pathname === '/'
   const esPrivacidad = pathname === '/privacidad' || pathname.startsWith('/privacidad/')
   const esExplorador = pathname === '/explorador' || pathname.startsWith('/explorador/')

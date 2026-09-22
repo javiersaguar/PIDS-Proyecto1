@@ -110,9 +110,14 @@ Para datos de verdad: `make historico MES=2020-01` carga un mes desde la TLC; el
 make todo                 # levanta lo que esté parado; los datos siguen en los volúmenes de Docker
 make estado
 make tiempo-real          # arranca el streaming en Spark (cada vez que se reinicia el clúster)
-make simular              # envía viajes a la API de captura para ver moverse el tiempo real (RITMO=50)
+make capturar             # captura en directo: viajes reales de diciembre de 2020 entrando ahora (o el botón
+                          # «Capturar datos» del grafo del portal); make capturar-parar la para
 make parar                # al terminar: lo para todo y conserva los datos
 ```
+
+La captura en directo necesita una vez `make captura-preparar` (descarga el mes de la TLC y lo parte por días). Sigue
+donde se quedó; para volver a empezar por el 1 de diciembre, `make tiempo-real-reiniciar`, que deja el tiempo real
+desde cero (el histórico no se toca).
 
 `make borrar-todo` borra además los volúmenes (datos, usuarios, modelos): solo si quieres empezar de cero.
 
@@ -141,15 +146,25 @@ publican solo en `127.0.0.1`; si uno está ocupado en tu equipo, cámbialo en `.
 del portal, `make entorno-completar` le añade sus claves y `docker compose up -d --no-deps acceso-a acceso-b` hace que la API de
 acceso reconozca al cliente `frontend`.
 
-### Portal web: con datos reales y en demostración
+### Portal web y web pública
 
-- **Con datos reales** (el de arriba): `make frontend` construye y levanta solo el portal. Para desarrollarlo, `make
-  frontend-dev` (BFF con recarga) y, en otra terminal, `cd parte4_frontend/web && npm run dev` (http://localhost:5173).
-  Detalles en [`parte4_frontend/README.md`](parte4_frontend/README.md).
-- **Demostración pública:** Vercel publica `main` con [`vercel.json`](vercel.json): la misma aplicación, sin servidor,
-  con datos grabados de la plataforma (agregados ya enmascarados). En local: `cd parte4_frontend/web && npx vite build
-  --config vite.demo.config.ts && npx vite preview --config vite.demo.config.ts` (http://127.0.0.1:4190). Cómo
-  funciona y cómo regrabar sus datos: [`parte4_frontend/demo/README.md`](parte4_frontend/demo/README.md).
+- **En el equipo:** `make frontend` construye y levanta el portal (http://localhost:8020). Para desarrollarlo,
+  `make frontend-dev` (BFF con recarga) y, en otra terminal, `cd parte4_frontend/web && npm run dev`
+  (http://localhost:5173). Detalles en [`parte4_frontend/README.md`](parte4_frontend/README.md).
+- **Web pública (Vercel):** publica `main` con [`vercel.json`](vercel.json). Si el equipo tiene levantado el túnel,
+  muestra la plataforma **en vivo** (con la contraseña del portal); si no, una **demostración** con datos grabados. El
+  aviso de abajo a la izquierda dice en cuál está y deja cambiar. Cómo funciona:
+  [`parte4_frontend/demo/README.md`](parte4_frontend/demo/README.md).
+
+Para el modo en vivo, una vez:
+
+1. Cuenta gratuita en https://ngrok.com. En el panel, *Your Authtoken* (el token) y *Domains → New Domain* (un dominio
+   fijo gratuito, del tipo `algo-aleatorio.ngrok-free.app`).
+2. Pegar los dos en `.env`: `NGROK_AUTHTOKEN=…` y `NGROK_DOMINIO=algo-aleatorio.ngrok-free.app` (sin `https://`).
+3. Poner ese dominio en la regla `/api` de `vercel.json` y subirlo a `main`.
+
+Después, cada vez: `make tunel` para encenderlo y `make tunel-parar` para apagarlo. El túnel solo expone el portal,
+con su contraseña; ningún otro servicio sale del equipo.
 
 `make` lista todos los comandos.
 

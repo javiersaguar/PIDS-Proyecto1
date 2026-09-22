@@ -10,7 +10,7 @@ describe('PaginaDocumentacion', () => {
       'GET /api/sesion': { autenticado: true },
       'GET /api/panel': { servicios: [], enlaces: { grafana: 'http://grafana.local:3000', airflow: 'http://airflow.local:8085' } },
     })
-    renderizarRutas('/documentacion')
+    renderizarRutas('/grafo')
     const usuario = userEvent.setup()
 
     const lienzo = await screen.findByRole('region', { name: 'Arquitectura de la plataforma' })
@@ -49,7 +49,7 @@ describe('PaginaDocumentacion', () => {
         ritmo: 50, inicio: '2026-09-22T09:59:50+00:00', fin: null, error: null,
       },
     })
-    renderizarRutas('/documentacion')
+    renderizarRutas('/grafo')
 
     const barra = await screen.findByRole('status', { name: 'Actividad de la plataforma' })
     await waitFor(() => expect(barra).toHaveTextContent('En marcha ahora'))
@@ -76,7 +76,7 @@ describe('PaginaDocumentacion', () => {
       ],
       'GET /api/operaciones/simulacion': { activa: false, lote: null, fichero: null, enviados: 0, total: 0, ritmo: 50, inicio: null, fin: null, error: null },
     })
-    renderizarRutas('/documentacion')
+    renderizarRutas('/grafo')
 
     const barra = await screen.findByRole('status', { name: 'Actividad de la plataforma' })
     expect(barra).toHaveTextContent('Sin procesos en marcha')
@@ -88,7 +88,7 @@ describe('PaginaDocumentacion', () => {
 
   it('sin /api/panel usa los enlaces por defecto', async () => {
     simularApi({ 'GET /api/sesion': { autenticado: true } })
-    renderizarRutas('/documentacion')
+    renderizarRutas('/grafo')
     const usuario = userEvent.setup()
 
     const lienzo = await screen.findByRole('region', { name: 'Arquitectura de la plataforma' })
@@ -105,5 +105,89 @@ describe('PaginaDocumentacion', () => {
     await usuario.click(within(lienzo).getByRole('button', { name: /Chatbots/ }))
     expect(await screen.findByRole('link', { name: 'Abrir con Ollama' })).toHaveAttribute('href', 'http://localhost:8010')
     expect(screen.getByRole('link', { name: 'Abrir con documentación' })).toHaveAttribute('href', 'http://localhost:8011')
+  })
+
+  it('«Capturar datos» arranca la captura en directo, el lienzo ilumina su camino y la para al apagarlo', async () => {
+    const parada = { activa: false, lote: null, fichero: null, enviados: 0, total: 0, ritmo: 50, inicio: null, fin: null, error: null }
+    const enMarcha = {
+      activa: true, lote: 'directo-20260922120000', fichero: null, enviados: 12345, total: 0, ritmo: 41.6,
+      inicio: '2026-09-22T10:00:00+00:00', fin: null, error: null, modo: 'directo', reloj: '2020-12-01T14:35:00', velocidad: 60,
+    }
+    let estado: Record<string, unknown> = parada
+    const espia = simularApi({
+      'GET /api/sesion': { autenticado: true },
+      'GET /api/panel': { servicios: [], enlaces: {}, frescura_tiempo_real: { instante: null, segundos: null } },
+      'GET /api/operaciones/airflow/ejecuciones': [],
+      'GET /api/operaciones/simulacion': () => estado,
+      'GET /api/operaciones/captura': {
+        disponible: true, primer_dia: '2020-12-01', ultimo_dia: '2020-12-31', reloj: null,
+        velocidad_por_defecto: 60, velocidad_maxima: 600,
+      },
+      'POST /api/operaciones/captura': () => {
+        estado = enMarcha
+        return { status: 202, json: enMarcha }
+      },
+      'DELETE /api/operaciones/captura': () => {
+        estado = { ...enMarcha, activa: false, fin: '2026-09-22T10:05:00+00:00' }
+        return estado
+      },
+    })
+    renderizarRutas('/grafo')
+    const usuario = userEvent.setup()
+
+    const captura = await screen.findByRole('group', { name: 'Captura en directo' })
+    const interruptor = within(captura).getByRole('switch', { name: /Capturar datos/ })
+    await waitFor(() => expect(interruptor).toBeEnabled())
+    expect(captura).toHaveTextContent('Viajes reales de 2020, en su orden')
+    await usuario.selectOptions(within(captura).getByRole('combobox', { name: 'Velocidad de la captura' }), '360')
+
+    await usuario.click(interruptor)
+    await waitFor(() => expect(interruptor).toBeChecked())
+    const envio = espia.mock.calls.find(([url, init]) => String(url).endsWith('/api/operaciones/captura') && init?.method === 'POST')
+    expect(JSON.parse(envio?.[1]?.body as string)).toEqual({ velocidad: 360 })
+    expect(captura).toHaveTextContent('01/12/2020 14:35 · 12.345 viajes · 42/s')
+
+    // la misma simulación que ve la animación (T15): el camino de la captura se ilumina
+    const lienzo = screen.getByRole('region', { name: 'Arquitectura de la plataforma' })
+    await waitFor(() => expect(lienzo.querySelector('[data-arista="simulador-captura"]')).toHaveAttribute('data-activa', 'true'))
+
+    await usuario.click(interruptor)
+    await waitFor(() => expect(interruptor).not.toBeChecked())
+    expect(espia.mock.calls.some(([url, init]) => String(url).endsWith('/api/operaciones/captura') && init?.method === 'DELETE')).toBe(true)
+  })
+
+  it('sin viajes preparados, el interruptor se bloquea y dice cómo prepararlos', async () => {
+    simularApi({
+      'GET /api/sesion': { autenticado: true },
+      'GET /api/operaciones/captura': { disponible: false, primer_dia: null, ultimo_dia: null, reloj: null, velocidad_por_defecto: 60, velocidad_maxima: 600 },
+      'GET /api/operaciones/simulacion': { activa: false, lote: null, fichero: null, enviados: 0, total: 0, ritmo: 50, inicio: null, fin: null, error: null },
+    })
+    renderizarRutas('/grafo')
+    const captura = await screen.findByRole('group', { name: 'Captura en directo' })
+    await waitFor(() => expect(captura).toHaveTextContent('make captura-preparar'))
+    expect(within(captura).getByRole('switch', { name: /Capturar datos/ })).toBeDisabled()
+  })
+
+  it('los botones de zoom acercan y alejan el grafo sin tocar el zoom del navegador', async () => {
+    simularApi({ 'GET /api/sesion': { autenticado: true } })
+    renderizarRutas('/grafo')
+    const usuario = userEvent.setup()
+
+    const lienzo = await screen.findByRole('region', { name: 'Arquitectura de la plataforma' })
+    const zoom = within(lienzo).getByRole('group', { name: 'Zoom del grafo' })
+    const escala = () => Number(/scale\(([\d.]+)\)/.exec((lienzo.querySelector('[style*="scale"]') as HTMLElement).style.transform)?.[1])
+    const inicial = escala()
+    await usuario.click(within(zoom).getByRole('button', { name: 'Acercar' }))
+    expect(escala()).toBeCloseTo(inicial * 1.25)
+    await usuario.click(within(zoom).getByRole('button', { name: 'Alejar' }))
+    await usuario.click(within(zoom).getByRole('button', { name: 'Alejar' }))
+    expect(escala()).toBeCloseTo(inicial / 1.25)
+  })
+
+  it('la ruta antigua /documentacion lleva al grafo', async () => {
+    simularApi({ 'GET /api/sesion': { autenticado: true } })
+    const { enrutador } = renderizarRutas('/documentacion')
+    await screen.findByRole('region', { name: 'Arquitectura de la plataforma' })
+    expect(enrutador.state.location.pathname).toBe('/grafo')
   })
 })

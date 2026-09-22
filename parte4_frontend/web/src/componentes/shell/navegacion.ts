@@ -5,8 +5,8 @@
  */
 import {
   Activity,
-  BookOpen,
   LayoutDashboard,
+  Network,
   ShieldCheck,
   SlidersHorizontal,
   Table2,
@@ -52,10 +52,10 @@ export const SECCIONES: readonly Seccion[] = [
     icono: SlidersHorizontal,
   },
   {
-    ruta: '/documentacion',
-    titulo: 'Documentación',
-    descripcion: 'Arquitectura de la plataforma, qué es E3 y enlaces a las herramientas.',
-    icono: BookOpen,
+    ruta: '/grafo',
+    titulo: 'Grafo',
+    descripcion: 'Por dónde pasan los datos: qué hace cada pieza, qué está en marcha ahora y la captura en directo.',
+    icono: Network,
   },
 ]
 

@@ -1,7 +1,7 @@
 /**
  * Indicador «En vivo» de una página que se refresca sola: un punto que late mientras la plataforma trabaja, qué
  * está pasando (carga, simulación, Spark publicando) y cuándo llegó el último dato y cuándo llega el siguiente.
- * Es la misma información que la barra del lienzo de Documentación, en pequeño.
+ * Es la misma información que la barra del grafo, en pequeño.
  */
 import { useSegundosDesde } from './useAhora'
 import { cn } from '@/lib/utils'

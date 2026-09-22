@@ -4,7 +4,8 @@ No sobrescribe un .env existente (usa --forzar para regenerarlo; cambiar las cla
 recrear los volúmenes de MongoDB y Airflow, porque los usuarios se crean al inicializarlos).
 Con --completar añade a un .env existente las variables nuevas de .env.example sin tocar las demás.
 
-Las claves de proveedores externos (LLM_API_KEY) no se inventan: se dejan vacías para pegarlas a mano.
+Las claves de proveedores externos (LLM_API_KEY, NGROK_AUTHTOKEN, NGROK_DOMINIO) no se inventan: se dejan vacías
+para pegarlas a mano.
 """
 from __future__ import annotations
 
@@ -16,7 +17,7 @@ import sys
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parents[1]
-SIN_RELLENO = {'LLM_API_KEY'}
+SIN_RELLENO = {'LLM_API_KEY', 'NGROK_AUTHTOKEN', 'NGROK_DOMINIO'}
 
 
 def valor_para(clave: str) -> str:

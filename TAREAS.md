@@ -72,23 +72,6 @@ decisión pendiente en T13. El mapa de todo lo que falta para cerrar el proyecto
 - **Hecha cuando:** el vídeo y las diapositivas están listos y enlazados desde el README.
 - **Dónde:** `docs/`, README
 
-## T11 · Tiempo real listo para la demo
-
-- **Estado:** libre · **Responsable:** — · **Estimación:** 1 h · **Dificultad:** media
-- **Por qué:** las pruebas de alertas y de latencia del 21/09 enviaron viajes de finales de diciembre de 2020
-  y el trabajo de tiempo real tiene ahí su *watermark*: `make simular` con la muestra del 1 de enero archiva
-  los viajes pero no los agrega, así que en el vídeo el tiempo real no se movería.
-- **Qué hay que hacer:**
-  1. Cuando esos lotes hayan salido del topic `viajes-crudos` (retención de 24 h), parar el trabajo de tiempo
-     real, borrar su checkpoint (`/opt/spark/checkpoints/tiempo_real`, volumen `spark-checkpoints`) y
-     relanzarlo con `make tiempo-real`. Si se quiere empezar sin los lotes de prueba, vaciar también las
-     colecciones `tr_*` con el usuario administrador de MongoDB.
-  2. Sin esperar, la alternativa es simular un fichero de diciembre (`make descargar MES=2020-12` y
-     `make simular FICHERO=data/crudo/...`).
-  3. Dejar escrito el procedimiento en `parte2_plataforma/README.md`.
-- **Hecha cuando:** `make simular` hace crecer `tr_*` y el chatbot responde CU7 con esos datos.
-- **Dónde:** `parte2_plataforma/README.md`, volumen `spark-checkpoints`
-
 ## T12 · Etiqueta de los grupos ocultos en la API
 
 - **Estado:** libre · **Responsable:** — · **Estimación:** 1 h · **Dificultad:** baja
@@ -174,3 +157,4 @@ decisión pendiente en T13. El mapa de todo lo que falta para cerrar el proyecto
 | 22/09/2026 | T09 API de acceso con dos réplicas detrás de Caddy: 2555 peticiones con una réplica parada y otra tirada, 0 fallos | Javier Saguar | entrada del 22/09 |
 | 22/09/2026 | T16 Botón «TAXI AI» con el chatbot en un panel derecho, disponible en todas las páginas | Javier Saguar | entrada del 22/09 |
 | 22/09/2026 | T15 Animaciones en vivo del portal: el grafo ilumina los tramos en marcha, indicador «En vivo» y gráficas que se mueven con los datos nuevos | Javier Saguar | entrada del 22/09 |
+| 22/09/2026 | T11 Tiempo real desde cero (`make tiempo-real-reiniciar`) y captura en directo con viajes reales de diciembre de 2020 (`make capturar`, botón del grafo) | Javier Saguar | entrada del 22/09 |

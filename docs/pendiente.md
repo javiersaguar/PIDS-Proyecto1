@@ -18,7 +18,6 @@ http://localhost:8020. La demo de Vercel es una foto, no la plataforma en vivo.
 
 | Qué falta | Tarea |
 |---|---|
-| Dejar el tiempo real presentable: el watermark está en diciembre de 2020 y la muestra de enero no se agrega | T11 |
 | La API dice `"<10"` también de grupos ocultos por supresión complementaria, que pueden tener más viajes | T12 |
 | Supresión complementaria también en el tiempo real (hoy solo en la carga histórica) | idea en TAREAS |
 | Un DAG que cargue los 12 meses seguidos, con reintentos | idea |
@@ -26,7 +25,7 @@ http://localhost:8020. La demo de Vercel es una foto, no la plataforma en vivo.
 | Bajar la latencia del streaming (M3 está en 35 s) | idea |
 
 La conexión del chatbot con la parte 2 ya está: las herramientas llaman a la API de acceso y no a MongoDB.
-Lo que no está es el vídeo de esa conversación dentro de la entrega (T10) y el botón del portal (T16).
+Lo que no está es el vídeo de esa conversación dentro de la entrega (T10).
 
 ## Parte 3 · chatbots
 
@@ -45,8 +44,6 @@ publican. El camino con datos en vivo es `make frontend`.
 
 | Qué falta | Tarea |
 |---|---|
-| Animar gráficas y el grafo del pipeline cuando entran datos o se lanza un DAG | T15 |
-| Sacar el asistente del menú izquierdo y abrirlo con un botón «TAXI AI» abajo a la derecha | T16 |
 | Usuarios y roles (hoy hay una sola contraseña), exportar CSV, modo oscuro | idea |
 | La entrega: vídeo de la plataforma, capturas que falten y presentación | T10 |
 

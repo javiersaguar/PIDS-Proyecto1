@@ -186,6 +186,9 @@ export interface Simulacion {                    // GET /api/operaciones/simulac
   ritmo: number; inicio: string | null; fin: string | null; error: string | null;
 }
 // POST /api/operaciones/simulacion {fichero: 'yellow_tripdata_2020_muestra.csv', ritmo?: 50, maximo?: number} -> Simulacion (202)
+// Captura en directo (grafo, «Capturar datos»): GET /api/operaciones/captura -> {disponible, primer_dia, ultimo_dia, reloj,
+//   velocidad_por_defecto, velocidad_maxima} · POST {velocidad?: 60, desde?} -> Simulacion (202) con modo: 'directo', reloj
+//   (hora de 2020) y velocidad; total 0 · DELETE -> Simulacion. Comparte estado con la simulación: una sola a la vez (409).
 // Los ficheros permitidos son solo los de data/muestra (GET /api/operaciones/simulacion/ficheros -> string[]).
 
 // --- chat (F2) ---

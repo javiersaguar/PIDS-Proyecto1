@@ -1,18 +1,24 @@
-# Portal web · modo demostración (Vercel)
+# Portal web · web pública (Vercel): en vivo o demostración
 
-El portal tiene dos modos. La SPA (`parte4_frontend/web`) es la misma en los dos; solo cambia quién contesta a
-`/api`.
+La web pública es la SPA de siempre (`parte4_frontend/web`) construida con `vite.demo.config.ts`. Al abrirse pregunta
+por `/api/salud` (`web/src/demo/modo.ts`):
 
-| | Datos reales | Demostración |
+| | En vivo | Demostración |
 |---|---|---|
-| Dónde | En el equipo del grupo, con la plataforma levantada | Vercel, público |
-| `/api` | El BFF (`parte4_frontend/bff`), que habla con la API de acceso, Prometheus, MongoDB, Airflow y Ollama | `web/src/demo/`, dentro del navegador, con una instantánea grabada |
-| Cómo se arranca | Portal en el puerto 8020 (`make frontend`, CONTRATOS.md §8) o `npm run dev` (5173) con el BFF | `vite.demo.config.ts` (puerto 4190 en local); en Vercel, `vercel.json` de la raíz |
-| Acceso | Contraseña del portal (`FRONTEND_CLAVE`) | Entra directamente; si se cierra la sesión, cualquier contraseña vale |
+| Cuándo | El equipo tiene el portal y el túnel levantados (`make frontend`, `make tunel`) | El túnel está apagado, o quien entra elige «Ver la demostración» |
+| `/api` | Vercel lo reenvía (`vercel.json`) al portal del equipo por un dominio fijo de ngrok | `web/src/demo/`, dentro del navegador, con una instantánea grabada |
+| Acceso | La contraseña del portal (`FRONTEND_CLAVE`) | Entra directamente; si se cierra la sesión, cualquier contraseña vale |
+| Datos | Los de la plataforma ahora mismo, captura en directo incluida | Agregados reales grabados (ya enmascarados), sin nada del equipo |
 
-Vercel no puede llegar a la plataforma (está en Docker en el equipo del grupo y la API de acceso no se publica en
-internet), así que la versión pública no tiene servidor: la SPA de siempre lleva un sustituto del BFF que contesta
-con datos grabados de la plataforma de verdad. Nada de la plataforma ni ninguna clave sale del equipo.
+El aviso de abajo a la izquierda dice en qué modo se está y deja cambiar: «Ver la demostración» desde el modo en vivo
+(para quien no tiene la contraseña) y «Ver en vivo» desde la demostración (si el túnel no responde, lo dice y sigue en
+la demostración). La elección se recuerda en esa pestaña.
+
+**El túnel** (`make tunel`, servicio `tunel` del perfil `tunel`) es ngrok con una cuenta gratuita: saca a internet el
+portal y nada más, detrás de su contraseña; la conexión la abre ngrok hacia fuera, sin puertos publicados. Hasta que
+se pone el dominio en `vercel.json`, la regla de `/api` apunta a un nombre `.invalid` (reservado, nunca resuelve): así
+ninguna petición puede acabar en un dominio de otra persona. Pasos en el README principal («Portal web y web
+pública»). La demostración no depende de nada del equipo: con el portátil apagado la web sigue funcionando.
 
 ## Qué enseña la demostración
 
@@ -33,16 +39,17 @@ con datos grabados de la plataforma de verdad. Nada de la plataforma ni ninguna 
 - **Privacidad**: las reglas E3, la auditoría (resúmenes y las últimas decisiones de cada tipo) y las cargas.
 - **Operaciones**: las últimas ejecuciones de Airflow; lanzar una carga o el simulador contesta que en la
   demostración no se lanzan operaciones.
-
-Un aviso fijo, abajo a la izquierda, recuerda que los datos son grabados y enlaza con este fichero.
+- **Grafo**: «Capturar datos» anima el camino de la captura con un reloj de 2020 que avanza, pero no envía nada ni
+  cambia el tiempo real grabado (lo dice el propio control).
 
 ## Ficheros
 
 | Fichero | Qué hace |
 |---|---|
-| `vercel.json` (raíz) | Instala y construye `parte4_frontend/web` con `vite.demo.config.ts` y publica `dist/`. Fija el *framework* en Vite: sin él, Vercel ve el `pyproject.toml` de la raíz, cree que es una app FastAPI y falla con «No FastAPI entrypoint found» |
+| `vercel.json` (raíz) | Instala y construye `parte4_frontend/web` con `vite.demo.config.ts`, publica `dist/` y reenvía `/api` al túnel. Fija el *framework* en Vite: sin él, Vercel ve el `pyproject.toml` de la raíz, cree que es una app FastAPI y falla con «No FastAPI entrypoint found» |
 | `web/vite.demo.config.ts` | La configuración de siempre con otro punto de entrada (`src/demo/entrada.ts`) y el puerto 4190 |
-| `web/src/demo/entrada.ts` | Instala el sustituto del BFF y el aviso, y carga `src/main.tsx` sin cambios |
+| `web/src/demo/entrada.ts` | Decide el modo, instala el sustituto del BFF (demostración) o la cabecera del túnel (en vivo), monta el aviso y carga `src/main.tsx` sin cambios |
+| `web/src/demo/modo.ts`, `vivo.ts` | Si contesta el portal por el túnel, y las peticiones en vivo con la cabecera que salta la página de aviso de ngrok |
 | `web/src/demo/instalar.ts` | Sustituye `fetch` para `/api/*` (el resto de peticiones salen normalmente); el chat llega como `text/event-stream` con los pasos espaciados |
 | `web/src/demo/rutas.ts` | Las rutas del BFF (CONTRATOS.md §5) con las mismas formas y códigos, sobre la instantánea |
 | `web/src/demo/privacidad.ts` | `privacidad.evaluar`, la validación de `Consulta`, la proyección y el enmascarado de la API |
@@ -75,3 +82,7 @@ devuelve (agregados ya protegidos), el estado de Prometheus, la auditoría leíd
 `pids_auditor`, las ejecuciones de Airflow y las respuestas del agente; ninguna clave. Antes de subir una
 instantánea nueva conviene comprobar que ningún valor de `.env` aparece en `web/public/demo/` (el único que aparece
 es el nombre del modelo, `llama3.1:8b`).
+
+**Regrabar la instantánea tras T08.** Prometheus y Ollama ya no se publican en el anfitrión, así que
+`instantanea.py` no llega a ellos desde fuera de Docker. Hasta adaptarlo, la instantánea del 21/09 sigue valiendo: el
+modo en vivo enseña los datos de hoy.

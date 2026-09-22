@@ -510,6 +510,23 @@ services:
       qdrant:
         condition: service_healthy
 
+  # ---------------------------------------------------------------- túnel del portal (web pública en Vercel)
+  # Saca a internet el portal (y solo el portal, con su contraseña) por un dominio fijo de ngrok. Vercel reenvía
+  # /api a ese dominio: con el túnel encendido la web pública muestra la plataforma en vivo; sin él, la instantánea.
+  # No publica ningún puerto: la conexión la abre ngrok hacia fuera. `make tunel` / `make tunel-parar`.
+  tunel:
+    image: ngrok/ngrok:3-alpine
+    profiles: [tunel]
+    restart: unless-stopped
+    networks: [servicios]
+    command: ["http", "frontend:8000", "--url=https://${NGROK_DOMINIO:-}", "--log=stdout"]
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:-}
+    depends_on:
+      frontend:
+        condition: service_healthy
+        required: false          # el perfil `tunel` se levanta siempre junto a `frontend` (make tunel)
+
   # ---------------------------------------------------------------- portal web (parte 4)
   # Un solo contenedor: BFF de FastAPI (guarda todas las claves, sesión por cookie) + SPA de React construida.
   # Está en `datos` solo para leer la auditoría en MongoDB con pids_auditor; los datos publicados los pide a la

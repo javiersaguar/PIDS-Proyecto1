@@ -1,6 +1,7 @@
 /**
  * Lienzo de la arquitectura: fondo de puntos, tarjetas y curvas. Al pulsar una pieza se abre
- * una ficha breve (qué es, qué hace y cómo se conecta).
+ * una ficha breve (qué es, qué hace y cómo se conecta). Se acerca, aleja y mueve con la rueda, el panel táctil,
+ * arrastrando o con los botones de la esquina (`zoom.ts`), sin tocar el zoom del navegador.
  *
  * Con `flujos` (lo que está pasando ahora, `actividad.ts`), las aristas por las que circula un proceso se
  * iluminan: un halo, un trazo discontinuo que avanza en el sentido del dato y dos puntos que recorren la curva
@@ -16,7 +17,9 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, Di
 import { cn } from '@/lib/utils'
 
 import { claveArista, SIN_FLUJOS, type Flujos } from './actividad'
+import { ControlesZoom } from './ControlesZoom'
 import { ARISTAS, LIENZO, NODOS, TARJETA, TONOS, type Arista, type Lado, type Nodo } from './nodos'
+import { useZoomLienzo } from './zoom'
 
 /** Segundos que tarda un punto en recorrer una arista activa. */
 const DURACION_RECORRIDO_S = 2.2
@@ -146,6 +149,7 @@ export function Lienzo({ enlaces, flujos = SIN_FLUJOS }: { enlaces: Panel['enlac
   const [ajuste, setAjuste] = useState(1)
   const [activoId, setActivoId] = useState<string | null>(null)
   const reducido = useMovimientoReducido()
+  const { vista, arrastrando, acercar, alejar } = useZoomLienzo(marco)
   const porId = new Map(NODOS.map((nodo) => [nodo.id, nodo]))
   const curvas = ARISTAS.map((arista) => ({ arista, ...trazo(arista, porId) }))
   const activo = NODOS.find((nodo) => nodo.id === activoId) ?? null
@@ -167,7 +171,12 @@ export function Lienzo({ enlaces, flujos = SIN_FLUJOS }: { enlaces: Panel['enlac
   }, [])
 
   return (
-    <div ref={marco} className="relative h-full w-full overflow-hidden" role="region" aria-label="Arquitectura de la plataforma">
+    <div
+      ref={marco}
+      className={cn('relative h-full w-full touch-none overflow-hidden select-none', arrastrando ? 'cursor-grabbing' : 'cursor-grab')}
+      role="region"
+      aria-label="Arquitectura de la plataforma"
+    >
       <div className="fondo-marea absolute inset-0" aria-hidden />
       <div className="fondo-puntos absolute inset-0" aria-hidden />
       <div className="orbita orbita-azul" aria-hidden />
@@ -176,7 +185,7 @@ export function Lienzo({ enlaces, flujos = SIN_FLUJOS }: { enlaces: Panel['enlac
 
       <div
         className="absolute top-1/2 left-1/2"
-        style={{ width: LIENZO.ancho, height: LIENZO.alto, transform: `translate(-50%, -50%) scale(${ajuste})` }}
+        style={{ width: LIENZO.ancho, height: LIENZO.alto, transform: `translate(calc(-50% + ${vista.x}px), calc(-50% + ${vista.y}px)) scale(${ajuste * vista.zoom})` }}
       >
         <svg className="pointer-events-none absolute inset-0 overflow-visible" width={LIENZO.ancho} height={LIENZO.alto} aria-hidden>
           <defs>
@@ -265,6 +274,8 @@ export function Lienzo({ enlaces, flujos = SIN_FLUJOS }: { enlaces: Panel['enlac
           )
         })}
       </div>
+
+      <ControlesZoom zoom={vista.zoom} alAcercar={acercar} alAlejar={alejar} />
 
       {activo && <Ficha nodo={activo} enlaces={enlaces} alCerrar={() => setActivoId(null)} />}
     </div>

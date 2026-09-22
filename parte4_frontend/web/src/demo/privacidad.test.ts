@@ -126,6 +126,23 @@ describe('resto del BFF de la demostración', () => {
     expect(normalizar('¿Qué barrio tuvo MÁS viajes?')).toBe('que barrio tuvo mas viajes')
   })
 
+  it('«Capturar datos» anima el flujo con un reloj de 2020 que avanza, sin enviar nada', async () => {
+    let ahora = Date.parse('2026-09-22T12:00:00Z')
+    const demo = nuevaDemo(() => ahora)
+    const info = cuerpo(await demo.atender(peticion('GET', '/api/operaciones/captura')))
+    expect(info).toMatchObject({ disponible: true, demostracion: true, reloj: '2020-12-01T00:00:00' })
+    const inicial = await demo.atender(peticion('POST', '/api/operaciones/captura', { velocidad: 60 }))
+    expect(inicial.tipo === 'json' && inicial.estado).toBe(202)
+    ahora += 90_000                                                  // minuto y medio: hora y media de 2020
+    const estado = cuerpo(await demo.atender(peticion('GET', '/api/operaciones/simulacion')))
+    expect(estado).toMatchObject({ activa: true, modo: 'directo', reloj: '2020-12-01T01:30:00', enviados: 2970, total: 0 })
+    const repetida = await demo.atender(peticion('POST', '/api/operaciones/captura', { velocidad: 60 }))
+    expect(repetida.tipo === 'json' && repetida.estado).toBe(409)
+    expect(cuerpo(await demo.atender(peticion('DELETE', '/api/operaciones/captura'))).activa).toBe(false)
+    // la siguiente sigue donde se quedó
+    expect(cuerpo(await demo.atender(peticion('GET', '/api/operaciones/captura'))).reloj).toBe('2020-12-01T01:30:00')
+  })
+
   it('las operaciones se enseñan pero no se lanzan, y el motor RAG no está disponible', async () => {
     const demo = nuevaDemo()
     const carga = await demo.atender(peticion('POST', '/api/operaciones/airflow/cargas', { mes: '2020-01', muestra: true }))

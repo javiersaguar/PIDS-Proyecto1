@@ -54,9 +54,14 @@ make frontend-dev                                 # BFF con recarga en http://lo
 cd parte4_frontend/web && npm ci && npm run dev   # SPA en http://localhost:5173
 ```
 
-**Modo demostración** (la versión pública en Vercel): la misma SPA sin BFF, con datos grabados de la plataforma. Se
-construye con `vite.demo.config.ts` y se prueba en http://127.0.0.1:4190; todo está en
+**Web pública** (Vercel): la misma SPA construida con `vite.demo.config.ts`; en vivo por un túnel de ngrok si el
+equipo lo tiene encendido, o con datos grabados si no. Se prueba en http://127.0.0.1:4190; todo está en
 [`demo/README.md`](demo/README.md).
+
+**Grafo** (antes «Documentación»; `/documentacion` redirige a `/grafo`): el lienzo de la arquitectura con la
+actividad en vivo (T15), el interruptor «Capturar datos» (captura en directo con viajes reales de 2020,
+`/api/operaciones/captura`) y zoom propio: rueda del ratón o pellizco del panel táctil, arrastrar para moverse, doble
+clic para volver y dos botones de lupa en la esquina. El zoom del navegador no se toca.
 
 ## Tests
 
