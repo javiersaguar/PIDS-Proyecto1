@@ -73,6 +73,8 @@ x-airflow: &airflow
     PIDS_S3_ENDPOINT: http://s3:8333
     PIDS_ACCESO_URL: http://acceso:8000
     PIDS_ACCESO_CLAVE: ${ACCESO_CLAVE_AIRFLOW}
+    # Solo lectura de auditoria.cargas: la muestra no puede pisar un histórico ya cargado (T19)
+    PIDS_MONGO_AUDITORIA: mongodb://pids_auditor:${MONGO_AUDITOR_PASSWORD}@mongo:27017/?authSource=admin
   volumes:
     - ./parte2_plataforma/airflow/dags:/opt/airflow/dags:ro
     - airflow-logs:/opt/airflow/logs

@@ -15,4 +15,4 @@ ENV SPARK_HOME=/opt/spark \
     PATH="${PATH}:/opt/spark/bin"
 
 USER airflow
-RUN pip install --no-cache-dir "apache-airflow==3.3.2" "apache-airflow-providers-apache-spark==6.3.2"
+RUN pip install --no-cache-dir "apache-airflow==3.3.2" "apache-airflow-providers-apache-spark==6.3.2" "pymongo>=4.18"

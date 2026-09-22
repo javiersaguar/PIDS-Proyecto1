@@ -660,7 +660,12 @@ def test_airflow_renueva_el_token_cuando_lo_rechaza(cliente, plataforma):
     assert plataforma.peticiones.count(('airflow', DAG_RUNS)) == 2
 
 
-def test_lanzar_carga_valida_el_mes_y_manda_conf_con_bearer(cliente, plataforma):
+def solo_la_muestra(mongo: MongoFalso) -> None:
+    mongo.bases['auditoria']['cargas'] = ColeccionFalsa([CARGAS[0]], False)
+
+
+def test_lanzar_carga_valida_el_mes_y_manda_conf_con_bearer(cliente, plataforma, mongo):
+    solo_la_muestra(mongo)
     for mes in ('2020-13', '2020-1', '2021-01', '2020-00', 'enero'):
         assert cliente.post('/api/operaciones/airflow/cargas', json={'mes': mes}).status_code == 422, mes
     assert plataforma.peticiones == []
@@ -670,6 +675,25 @@ def test_lanzar_carga_valida_el_mes_y_manda_conf_con_bearer(cliente, plataforma)
                         'inicio': None, 'fin': None}
     assert plataforma.airflow_runs[0]['conf'] == {'mes': '2020-03', 'muestra': True}
     assert cliente.post('/api/operaciones/airflow/cargas', json={'mes': '2020-12'}).json()['conf'] == {'mes': '2020-12', 'muestra': False}
+
+
+def test_la_muestra_responde_409_si_ya_hay_un_historico(cliente, plataforma, mongo):
+    r = cliente.get('/api/operaciones/airflow/muestra')
+    assert r.status_code == 200 and r.json()['bloqueada'] is True
+    assert '1 de enero' in r.json()['motivo']
+    r = cliente.post('/api/operaciones/airflow/cargas', json={'mes': '2020-01', 'muestra': True})
+    assert r.status_code == 409 and '1 de enero' in r.json()['detail'] and len(plataforma.airflow_runs) == 1
+    solo_la_muestra(mongo)
+    assert cliente.get('/api/operaciones/airflow/muestra').json() == {'bloqueada': False, 'motivo': None}
+    assert cliente.post('/api/operaciones/airflow/cargas', json={'mes': '2020-01', 'muestra': True}).status_code == 202
+
+
+def test_sin_auditoria_la_muestra_no_se_lanza(cliente, plataforma, mongo):
+    mongo.bases['auditoria']['cargas'] = ColeccionFalsa([], True)
+    assert cliente.get('/api/operaciones/airflow/muestra').json()['bloqueada'] is True
+    r = cliente.post('/api/operaciones/airflow/cargas', json={'mes': '2020-01', 'muestra': True})
+    assert r.status_code == 503 and 'no se lanza' in r.json()['detail'] and len(plataforma.airflow_runs) == 1
+    assert cliente.post('/api/operaciones/airflow/cargas', json={'mes': '2020-06'}).status_code == 202
 
 
 async def test_el_cliente_de_airflow_manda_logical_date_nulo_y_el_bearer(plataforma):

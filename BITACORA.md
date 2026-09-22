@@ -24,7 +24,7 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 
 ## Estado actual
 
-**Última actualización: 22/09/2026 · Javier Saguar** (gestos de la parte 1 en los tres chatbots y en el navegador, también en Vercel; grupos ocultos como `oculto`; LLM de Helmcode vigente)
+**Última actualización: 22/09/2026 · Javier Saguar** (la muestra no puede pisar el histórico; gestos de la parte 1 en los tres chatbots y en el navegador, también en Vercel; grupos ocultos como `oculto`; LLM de Helmcode vigente)
 
 | | |
 |---|---|
@@ -88,6 +88,31 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 ---
 
 ## Entradas
+
+### 2026-09-22 · Javier Saguar · T19: la muestra no pisa el histórico
+
+- **Rama / commits:** `main`
+- **Qué he hecho:**
+  - La regla está en `parte2_plataforma/airflow/dags/proteger_historico.py` y la usan el portal y el DAG. Una carga es
+    la muestra si su lote es `muestra` o su entrada contiene `/muestra/`. Cualquier otra fila de `auditoria.cargas`
+    (el año, un mes, o un lote vacío) impide lanzar los 999 viajes de prueba, porque sustituirían los grupos del 1 de
+    enero. Si no hay cargas, o solo hay cargas de la muestra, se puede lanzar.
+  - **Portal.** `GET /api/operaciones/airflow/muestra` dice si la casilla va apagada y por qué. `POST
+    /api/operaciones/airflow/cargas` con `muestra: true` responde **409** y no llama a Airflow. Si Mongo no se puede
+    leer, la casilla se apaga y el POST responde 503: mejor no lanzar que pisar el día. En Operaciones el interruptor
+    queda deshabilitado y el motivo se lee debajo.
+  - **Airflow.** La primera tarea del DAG, `impedir_muestra_sobre_historico`, lee `auditoria.cargas` con
+    `pids_auditor` (solo lectura) y falla con el mismo mensaje antes de subir ficheros y antes de Spark. Airflow no
+    devuelve un HTTP 409: no hay plugin; la carga no arranca. Si falta `PIDS_MONGO_AUDITORIA` o la lectura falla, la
+    tarea también para. La imagen `pids/airflow:local` lleva `pymongo`.
+- **Resultado:** con el año cargado, en http://localhost:8020/operaciones el interruptor «Solo 999 viajes de prueba»
+  está apagado y deshabilitado, y el texto cita el 1 de enero. El POST de la muestra responde 409. Dentro del
+  scheduler, la misma regla ve el histórico y bloquea. Tests: `tests/test_proteger_historico.py`, los de cargas del
+  BFF en `tests/test_frontend_bff_plataforma.py`, el cableado del DAG en `tests/test_simulador_y_config.py` y
+  `PaginaOperaciones` (Vitest, 8/8).
+- **Contexto para quien siga:** un mes completo sigue pudiendo lanzarse. No borrar los volúmenes para probarlo. La
+  imagen de Airflow hay que recrearla (`airflow-scheduler`, `airflow-dag-processor`, `airflow-apiserver`) para que
+  entre `pymongo` y `PIDS_MONGO_AUDITORIA`; el DAG ya está montado.
 
 ### 2026-09-22 · Javier Saguar · Gestos de la parte 1 en los tres chatbots y en el navegador; T12 terminado
 

@@ -39,6 +39,7 @@ def test_dag_de_airflow_es_python_valido():
     arbol = ast.parse(fuente)
     assert any(isinstance(n, ast.With) for n in arbol.body)
     assert 'pids.CargaHistorica' in fuente
+    assert 'impedir_muestra_sobre_historico() >> [subir_zonas(), subir_mes()] >> carga' in fuente
 
 
 def test_dashboards_de_grafana_son_json_valido():

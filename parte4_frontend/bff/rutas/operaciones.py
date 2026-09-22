@@ -1,7 +1,9 @@
 """Operaciones (CONTRATOS.md §5): cargas históricas con Airflow y el simulador de tiempo real integrado.
 
   GET    /api/operaciones/airflow/ejecuciones            -> EjecucionAirflow[] (las últimas 20, la más reciente primero)
-  POST   /api/operaciones/airflow/cargas {mes, muestra}  -> 202 EjecucionAirflow (422 si el mes no es 2020-01…2020-12)
+  GET    /api/operaciones/airflow/muestra                 -> {bloqueada, motivo}
+  POST   /api/operaciones/airflow/cargas {mes, muestra}  -> 202 EjecucionAirflow (422 si el mes no es 2020-01…2020-12;
+                                                            409 si muestra=true y ya hay una carga que no es la muestra)
   GET    /api/operaciones/simulacion/ficheros            -> string[] (solo los CSV de data/muestra)
   GET    /api/operaciones/simulacion                     -> Simulacion
   POST   /api/operaciones/simulacion {fichero, ritmo?, maximo?}
@@ -21,10 +23,14 @@ respuestas ni en los logs.
 """
 from __future__ import annotations
 
+import asyncio
+import importlib.util
 from datetime import datetime
+from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
+from pymongo.errors import PyMongoError
 
 from parte2_plataforma.simulador import directo as DIRECTO
 
@@ -33,8 +39,25 @@ from ..servicios import acceso as ACCESO
 from ..servicios import airflow as AIR
 from ..servicios import simulacion as SIM
 from ..servicios.acceso import ServicioNoDisponible
+from ..servicios.auditoria import cliente_mongo
 
 router = APIRouter(tags=['operaciones'])
+
+
+def _reglas_muestra():
+    """La misma regla que la primera tarea del DAG (`proteger_historico.py`), sin importar Airflow."""
+    ruta = Path(__file__).resolve().parents[3] / 'parte2_plataforma' / 'airflow' / 'dags' / 'proteger_historico.py'
+    spec = importlib.util.spec_from_file_location('proteger_historico', ruta)
+    modulo = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(modulo)
+    return modulo
+
+
+REGLAS_MUESTRA = _reglas_muestra()
+
+
+def _cargas_registradas(uri: str) -> list[dict]:
+    return list(cliente_mongo(uri)['auditoria']['cargas'].find({}, {'lote': 1, 'entrada': 1}))
 
 MAX_RITMO = 5000.0
 
@@ -75,8 +98,27 @@ async def ejecuciones(cfg: ConfiguracionDep, http: HttpDep) -> list[dict]:
         raise airflow_no_disponible(error) from error
 
 
+@router.get('/operaciones/airflow/muestra')
+async def estado_muestra(cfg: ConfiguracionDep) -> dict:
+    """Si la casilla de la muestra debe quedar apagada, y por qué."""
+    try:
+        cargas = await asyncio.to_thread(_cargas_registradas, cfg.auditoria_mongo_uri)
+    except PyMongoError:
+        return {'bloqueada': True, 'motivo': REGLAS_MUESTRA.MENSAJE_SIN_COMPROBAR}
+    motivo = REGLAS_MUESTRA.motivo_si_bloqueada(cargas)
+    return {'bloqueada': motivo is not None, 'motivo': motivo}
+
+
 @router.post('/operaciones/airflow/cargas', status_code=202)
 async def lanzar_carga(peticion: PeticionCarga, cfg: ConfiguracionDep, http: HttpDep) -> dict:
+    if peticion.muestra:
+        try:
+            cargas = await asyncio.to_thread(_cargas_registradas, cfg.auditoria_mongo_uri)
+        except PyMongoError as error:
+            raise HTTPException(status_code=503, detail=REGLAS_MUESTRA.MENSAJE_SIN_COMPROBAR) from error
+        motivo = REGLAS_MUESTRA.motivo_si_bloqueada(cargas)
+        if motivo:
+            raise HTTPException(status_code=409, detail=motivo)
     try:
         return await AIR.cliente(cfg, http).lanzar(peticion.mes, peticion.muestra)
     except AIR.AirflowRechaza as error:

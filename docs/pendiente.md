@@ -21,7 +21,6 @@ del navegador). Vercel enseña la plataforma en vivo con el túnel encendido, o 
 |---|---|
 | Supresión complementaria también en el tiempo real (hoy solo en la carga histórica) | idea en TAREAS |
 | Un DAG que cargue los 12 meses seguidos, con reintentos | idea |
-| Que la carga de la muestra no pise los agregados del año completo | T19 |
 | Contadores de la API de captura a 0 al arrancar, para que la alerta de frescura vea el primer lote | idea |
 | Bajar la latencia del streaming (M3 está en 35 s) | idea |
 

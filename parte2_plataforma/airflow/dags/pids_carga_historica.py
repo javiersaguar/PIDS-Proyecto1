@@ -8,6 +8,9 @@
 4. **comprobar_publicacion**: consulta la API de acceso (la misma puerta que usa el chatbot).
 
 Parámetros: `mes` (2020-01 … 2020-12) y `muestra`.
+
+Con `muestra=true`, si `auditoria.cargas` ya tiene una carga que no es la muestra, la primera
+tarea falla y Spark no arranca: la muestra sustituiría los grupos del 1 de enero.
 """
 from __future__ import annotations
 
@@ -19,6 +22,8 @@ import requests
 from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator
 from airflow.sdk import DAG, Param, task
 from botocore.exceptions import ClientError
+
+from proteger_historico import MENSAJE_SIN_COMPROBAR, leer_cargas, motivo_si_bloqueada
 
 URL_MES = 'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_{mes}.parquet'
 URL_ZONAS = 'https://d37ci6vzurychx.cloudfront.net/misc/taxi_zone_lookup.csv'
@@ -59,6 +64,21 @@ with DAG(
     tags=['pids', 'parte2', 'historico'],
     doc_md=__doc__,
 ) as dag:
+
+    @task
+    def impedir_muestra_sobre_historico(**contexto) -> None:
+        """No deja seguir si la muestra pisaría un histórico ya cargado. Sin `muestra`, no hace nada."""
+        if not contexto['params'].get('muestra'):
+            return
+        uri = os.environ.get('PIDS_MONGO_AUDITORIA', '')
+        if not uri:
+            raise RuntimeError(MENSAJE_SIN_COMPROBAR)
+        try:
+            motivo = motivo_si_bloqueada(leer_cargas(uri))
+        except Exception as error:
+            raise RuntimeError(MENSAJE_SIN_COMPROBAR) from error
+        if motivo:
+            raise RuntimeError(motivo)
 
     @task
     def subir_zonas() -> None:
@@ -108,4 +128,4 @@ with DAG(
             raise ValueError(f'No hay agregados publicados para {consulta["desde"][:10]}')
         return {'filas': len(filas), 'resultado': r.json()['resultado']}
 
-    [subir_zonas(), subir_mes()] >> carga >> comprobar_publicacion()
+    impedir_muestra_sobre_historico() >> [subir_zonas(), subir_mes()] >> carga >> comprobar_publicacion()

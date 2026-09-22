@@ -8,7 +8,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { mensajeDeError } from '@/api/cliente'
-import { MESES_2020, useEjecucionesAirflow, useEnlaces, useLanzarCarga } from '@/api/operaciones'
+import { MESES_2020, useEjecucionesAirflow, useEnlaces, useEstadoMuestra, useLanzarCarga } from '@/api/operaciones'
 import type { EjecucionAirflow } from '@/api/tipos'
 import { formatearFechaHora, formatearSegundos } from '@/componentes/chat/formato'
 import { EstadoCargando, EstadoError, EstadoVacio } from '@/componentes/shell'
@@ -142,17 +142,27 @@ export function CargaHistorica() {
   const [muestra, setMuestra] = useState(false)
   const [confirmando, setConfirmando] = useState(false)
   const lanzar = useLanzarCarga()
+  const estadoMuestra = useEstadoMuestra()
+  const bloqueada = estadoMuestra.isPending || estadoMuestra.isError || estadoMuestra.data?.bloqueada === true
+  const motivo = estadoMuestra.data?.bloqueada
+    ? estadoMuestra.data.motivo
+    : estadoMuestra.isError
+      ? 'No se ha podido comprobar si el histórico ya está cargado. La muestra no se puede lanzar.'
+      : estadoMuestra.isPending
+        ? 'Comprobando si el histórico ya está cargado…'
+        : null
+  const usarMuestra = bloqueada ? false : muestra
   const ejecuciones = useEjecucionesAirflow()
   const { enlaces } = useEnlaces()
 
   const confirmar = () => {
     lanzar.mutate(
-      { mes, muestra },
+      { mes, muestra: usarMuestra },
       {
         onSuccess: () => {
           setConfirmando(false)
           toast.success('La carga ya ha empezado', {
-            description: muestra ? 'Se están usando los 999 viajes de prueba.' : `Se está cargando ${etiquetaMes(mes)}.`,
+            description: usarMuestra ? 'Se están usando los 999 viajes de prueba.' : `Se está cargando ${etiquetaMes(mes)}.`,
           })
         },
         onError: (error) => {
@@ -181,7 +191,7 @@ export function CargaHistorica() {
         <div className="flex flex-col gap-3 rounded-xl bg-slate-50 p-3 sm:flex-row sm:items-end">
           <div className="w-full space-y-1.5 sm:w-56">
             <Label htmlFor="mes-carga">Mes</Label>
-            <Select value={mes} onValueChange={setMes} disabled={muestra}>
+            <Select value={mes} onValueChange={setMes} disabled={usarMuestra}>
               <SelectTrigger id="mes-carga" className="w-full bg-white" aria-label="Mes de 2020">
                 <SelectValue />
               </SelectTrigger>
@@ -195,7 +205,13 @@ export function CargaHistorica() {
             </Select>
           </div>
           <div className="flex h-8 items-center gap-2">
-            <Switch id="solo-muestra" checked={muestra} onCheckedChange={setMuestra} />
+            <Switch
+              id="solo-muestra"
+              checked={usarMuestra}
+              onCheckedChange={setMuestra}
+              disabled={bloqueada}
+              aria-describedby={motivo ? 'motivo-muestra' : undefined}
+            />
             <Label htmlFor="solo-muestra" className="font-normal text-slate-600">
               Solo 999 viajes de prueba
             </Label>
@@ -205,13 +221,18 @@ export function CargaHistorica() {
             Cargar viajes
           </Button>
         </div>
+        {motivo && (
+          <p id="motivo-muestra" className="text-sm text-slate-600">
+            {motivo}
+          </p>
+        )}
 
         <Dialog open={confirmando} onOpenChange={(abierto) => !lanzar.isPending && setConfirmando(abierto)}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>{muestra ? '¿Cargar los 999 viajes de prueba?' : `¿Cargar ${etiquetaMes(mes)}?`}</DialogTitle>
+              <DialogTitle>{usarMuestra ? '¿Cargar los 999 viajes de prueba?' : `¿Cargar ${etiquetaMes(mes)}?`}</DialogTitle>
               <DialogDescription>
-                {muestra
+                {usarMuestra
                   ? 'Se usarán los 999 viajes de prueba que ya están guardados. No se descarga nada. Tarda alrededor de un minuto y se vuelven a calcular los resúmenes de esa muestra.'
                   : `Se descargarán los viajes de ${etiquetaMes(mes)} (unos 90 MB) y se prepararán los resúmenes por barrio y por hora. Suele tardar varios minutos. Mientras tanto, el ordenador de la plataforma estará ocupado.`}
               </DialogDescription>

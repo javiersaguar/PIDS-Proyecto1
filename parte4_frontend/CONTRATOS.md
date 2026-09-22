@@ -182,7 +182,8 @@ export interface Carga {                         // GET /api/auditoria/cargas
 export interface EjecucionAirflow {              // GET /api/operaciones/airflow/ejecuciones  (últimas 20 de pids_carga_historica)
   dag_run_id: string; estado: string; conf: Record<string, unknown>; inicio: string | null; fin: string | null;
 }
-// POST /api/operaciones/airflow/cargas {mes: '2020-01', muestra: boolean} -> EjecucionAirflow (202)
+// GET  /api/operaciones/airflow/muestra -> {bloqueada, motivo}
+// POST /api/operaciones/airflow/cargas {mes: '2020-01', muestra: boolean} -> EjecucionAirflow (202; 409 si la muestra pisaría el histórico)
 export interface Simulacion {                    // GET /api/operaciones/simulacion · POST (inicia) · DELETE (para)
   activa: boolean; lote: string | null; fichero: string | null; enviados: number; total: number;
   ritmo: number; inicio: string | null; fin: string | null; error: string | null;

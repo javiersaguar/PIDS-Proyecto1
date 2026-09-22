@@ -70,6 +70,20 @@ export interface PeticionSimulacion {
 /** Los doce meses que admite el DAG `pids_carga_historica`. */
 export const MESES_2020 = Array.from({ length: 12 }, (_, i) => `2020-${String(i + 1).padStart(2, '0')}`)
 
+export interface EstadoMuestra {
+  bloqueada: boolean
+  motivo: string | null
+}
+
+/** Si la muestra de 999 viajes pisaría un histórico ya cargado. */
+export function useEstadoMuestra() {
+  return useQuery({
+    queryKey: [...CLAVE_OPERACIONES, 'airflow', 'muestra'] as const,
+    queryFn: () => api<EstadoMuestra>(`${RUTA_AIRFLOW}/muestra`),
+    staleTime: 30_000,
+  })
+}
+
 export function useEjecucionesAirflow() {
   return useQuery({
     queryKey: CLAVE_EJECUCIONES,

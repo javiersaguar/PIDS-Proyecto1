@@ -56,8 +56,8 @@ El mapa de todo lo que falta para cerrar el proyecto está en
   3. Repasar el checklist de `docs/plan.md`.
 - **Notas:** el guion está escrito: [`docs/guion_demo.md`](docs/guion_demo.md) (escenas, qué se dice, qué objetivo
   cubre cada una y plan B). El gesto ya no necesita Windows: la escena 9 se hace en el portal con TAXI AI →
-  «Gestos» (antes, probarlo: T18). Grabar con el portal ya abierto: la contraseña no sale en el vídeo. No lanzar cargas durante
-  la grabación (T19).
+  «Gestos» (antes, probarlo: T18). Grabar con el portal ya abierto: la contraseña no sale en el vídeo. No lanzar
+  cargas del año durante la grabación. La muestra ya no puede pisar el histórico (T19, hecha).
 - **Hecha cuando:** el vídeo y las diapositivas están listos y enlazados desde el README.
 - **Dónde:** `docs/`, README
 
@@ -75,18 +75,6 @@ El mapa de todo lo que falta para cerrar el proyecto está en
      tocar el modelo.
 - **Hecha cuando:** los seis gestos funcionan con la cámara que se va a usar en la demo, en local y en Vercel.
 - **Dónde:** `config/gestos.json`, `integracion/README.md`
-
-## T19 · Que la muestra no pise el histórico
-
-- **Estado:** libre · **Responsable:** — · **Estimación:** 1 h · **Dificultad:** media
-- **Por qué:** los agregados se guardan por sus dimensiones, así que la carga de la muestra (999 viajes del 1 de
-  enero) sustituye los grupos del 1 de enero cargados con el año completo. Pasó el 22/09 con tres cargas desde
-  Operaciones y se reparó repitiendo la carga del año.
-- **Qué hay que hacer:** que `POST /api/operaciones/airflow/cargas` y el DAG respondan 409 a `muestra` si
-  `auditoria.cargas` ya tiene una carga que no sea de la muestra, con un mensaje que lo explique; en Operaciones,
-  la casilla de la muestra deshabilitada con ese motivo. Tests del BFF y del DAG.
-- **Hecha cuando:** con el año cargado, la muestra no se puede lanzar ni desde el portal ni desde Airflow.
-- **Dónde:** `parte4_frontend/bff/rutas/operaciones.py`, `parte2_plataforma/airflow/`, `web/src/paginas/operaciones/`
 
 ---
 
@@ -151,3 +139,4 @@ El mapa de todo lo que falta para cerrar el proyecto está en
 | 22/09/2026 | T12 La API etiqueta todos los grupos suprimidos como `oculto` (un complementario puede tener 10 o más viajes) | Javier Saguar | entrada del 22/09 |
 | 22/09/2026 | T13 El LLM externo de Helmcode se queda (Vigente): la demo enseña los dos chatbots | Javier Saguar | entrada del 22/09 |
 | 22/09/2026 | T17 Gestos de la parte 1 en los tres chatbots (Chainlit de Ollama y RAG, y TAXI AI) y reconocidos en el navegador con el MLP de la parte 1, también en Vercel | Javier Saguar | entrada del 22/09 |
+| 22/09/2026 | T19 La muestra no puede pisar el histórico: el portal responde 409 y Airflow para antes de Spark | Javier Saguar | entrada del 22/09 |

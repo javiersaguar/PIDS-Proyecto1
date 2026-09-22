@@ -51,6 +51,7 @@ function apiBase(extra: Record<string, unknown> = {}) {
     'GET /api/sesion': { autenticado: true },
     'GET /api/panel': { enlaces: { airflow: 'http://localhost:8085' }, servicios: [] },
     'GET /api/operaciones/airflow/ejecuciones': EJECUCIONES,
+    'GET /api/operaciones/airflow/muestra': { bloqueada: false, motivo: null },
     'GET /api/operaciones/simulacion': SIMULACION_PARADA,
     'GET /api/operaciones/simulacion/ficheros': FICHEROS,
     ...extra,
@@ -116,6 +117,21 @@ describe('PaginaOperaciones', () => {
     await usuario.click(within(dialogo).getByRole('button', { name: 'Sí, cargar' }))
     await waitFor(() => expect(llamadas(espia, 'POST', '/api/operaciones/airflow/cargas')).toHaveLength(1))
     expect(JSON.parse(llamadas(espia, 'POST', '/api/operaciones/airflow/cargas')[0][1]?.body as string)).toEqual({ mes: '2020-01', muestra: true })
+  })
+
+  it('con el histórico ya cargado, la muestra queda apagada y explica por qué', async () => {
+    apiBase({
+      'GET /api/operaciones/airflow/muestra': {
+        bloqueada: true,
+        motivo: 'Ya hay una carga del histórico que no es la muestra. Los 999 viajes de prueba sustituirían los grupos del 1 de enero, así que no se cargan.',
+      },
+    })
+    renderizarRutas('/operaciones')
+
+    expect(await screen.findByText(/1 de enero/)).toBeInTheDocument()
+    const casilla = screen.getByRole('switch', { name: /999 viajes de prueba/ })
+    expect(casilla).toBeDisabled()
+    expect(casilla).not.toBeChecked()
   })
 
   it('si Airflow rechaza la carga, el error llega como toast y el diálogo sigue abierto', async () => {
