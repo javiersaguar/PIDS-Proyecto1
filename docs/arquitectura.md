@@ -57,7 +57,7 @@ flowchart LR
 | Procesado | Spark 4.0.4 (Scala), standalone, modo cluster | Validación, archivo y agregación protegida; lotes y streaming | Individuales |
 | Base de datos | MongoDB 8.0 | `publico` (solo agregados) y `auditoria` (solo inserción) | Agregados |
 | Captura | FastAPI | Entrada HTTP de viajes y gestos; SSE de gestos | Individuales (de paso) |
-| Acceso | FastAPI | Única puerta a los datos: filtro de privacidad y auditoría | Agregados |
+| Acceso | FastAPI, dos réplicas detrás de un proxy Caddy | Única puerta a los datos: filtro de privacidad y auditoría | Agregados |
 | Orquestación | Airflow 3.3 (LocalExecutor) | Carga histórica: descarga → S3 → Spark → comprobación | Individuales (solo ficheros) |
 | Monitorización | Prometheus 3.1 + Grafana 11.5 | Métricas técnicas y agregados protegidos | Métricas |
 | Chatbot | Chainlit + Ollama (llama3.1:8b, GPU) | Conversación; solo usa la API de acceso | Agregados |
@@ -104,6 +104,57 @@ de tiempo real, para no ordenar cada minuto los 717 000 documentos del históric
 
 Las alertas solo se ven en Grafana (panel «Alertas activas de PIDS» y menú *Alerting*): la política de
 notificación de `notificaciones.json` las silencia siempre, así que Grafana no intenta enviar ningún correo.
+
+## Alta disponibilidad
+
+La API de acceso es la única puerta a los datos: si cae, no contestan ni los chatbots, ni el portal, ni Airflow
+al comprobar una carga. Por eso es el componente duplicado (T09).
+
+```
+clientes → acceso:8000 (Caddy) ─┬→ acceso-a:8000 ─┐
+           127.0.0.1:8002       └→ acceso-b:8000 ─┴→ MongoDB (publico y auditoria)
+```
+
+- `acceso` es un proxy Caddy con el nombre y el puerto de siempre, así que ningún cliente ha cambiado. La
+  configuración está en `parte2_plataforma/acceso/Caddyfile`.
+- Reparte por turnos. Si una réplica no acepta la conexión, reintenta en la otra durante 5 s. Las GET se
+  reintentan también si la respuesta se corta a medias; las POST no, porque la consulta ya puede estar en la
+  auditoría. Tras un fallo deja la réplica fuera 30 s, y cada 3 s pregunta a su `/salud` para volver a meterla.
+- Las réplicas son iguales y no guardan estado: cada petición lleva su `X-API-Key` y la auditoría va a MongoDB,
+  así que da igual cuál conteste. La cabecera `X-Replica` de la respuesta dice cuál ha sido.
+- Prometheus mide cada réplica por separado (etiqueta `replica`) y Grafana tiene el panel «consultas por
+  réplica». Las métricas que publican las dos (`publico_*`) se leen con `max()`. Con una réplica parada salta la
+  alerta «Servicio caído»: el servicio sigue, pero sin redundancia, y eso hay que saberlo.
+
+Medido el 22/09/2026 con `make alta-disponibilidad` (`scripts/probar_alta_disponibilidad.py`): 20 peticiones
+por segundo al proxy, `GET /catalogo` y, una de cada cinco, `POST /consultas`.
+
+| Fase | Peticiones | Fallos | p95 |
+|---|---|---|---|
+| Las dos réplicas | 197 | 0 | 10 ms |
+| `acceso-a` parada (`docker compose stop`) y, mientras, una pregunta al chatbot | 1690 | 0 | 25 ms |
+| `acceso-a` vuelve | 236 | 0 | 5 ms |
+| `acceso-b` caída de golpe (`docker compose kill`) | 197 | 0 | 5 ms |
+| `acceso-b` vuelve | 235 | 0 | 5 ms |
+
+En total, 2555 peticiones y ningún fallo, y el chatbot respondió con una sola réplica. Una réplica tarda unos
+11 s en volver a estar sana, y tras una caída puede tardar hasta 30 s más en recibir peticiones.
+
+### El resto de componentes
+
+Todo lo demás corre en una sola instancia. Es una decisión consciente para un despliegue en un portátil, no algo
+que esté resuelto:
+
+| Componente | Redundancia | Si cae |
+|---|---|---|
+| Proxy `acceso` (Caddy) | Una instancia sin estado, `restart: unless-stopped` | La API no responde hasta que Docker lo reinicia (segundos). Es el nuevo punto único, pero no guarda nada |
+| MongoDB | Un nodo, sin *replica set* | Las dos réplicas de la API dan error. Lo siguiente sería un *replica set* de tres nodos |
+| Spark | Un máster *standalone*, dos workers; el trabajo de tiempo real va con `--supervise` y checkpoint | Si cae un worker, el máster relanza en el otro lo que corría allí. Si cae el máster, no se lanzan trabajos y el *streaming* se para hasta relanzarlo (sigue desde el checkpoint). Spark admite varios másteres con ZooKeeper; no está montado |
+| Redpanda | Un *broker*, replicación 1 | La API de captura no puede encolar viajes. Los que ya estaban siguen en el volumen (retención 24 h) |
+| S3 (SeaweedFS) | Un nodo | Fallan las cargas históricas y el archivo del *streaming*; las consultas no dependen de S3 |
+| Airflow | Un *scheduler*, `LocalExecutor` | Las cargas esperan; nada de la consulta depende de Airflow |
+| Prometheus y Grafana | Una instancia | Se pierde la vigilancia, no el servicio |
+| Ollama, Qdrant, chatbots y portal | Una instancia cada uno | Cae ese cliente; los demás siguen |
 
 ## Redes y puertos
 

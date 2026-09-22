@@ -138,7 +138,7 @@ grep '^FRONTEND_CLAVE=' .env      # la contraseña del portal
 Cada `.env` es de su equipo y no se sube a Git (cada persona tiene sus propias claves). Para elegir tú la contraseña
 del portal, cambia `FRONTEND_CLAVE` en `.env` y ejecuta `make frontend`, que recrea el contenedor. Todos los puertos se
 publican solo en `127.0.0.1`; si uno está ocupado en tu equipo, cámbialo en `.env` (`PUERTO_*`). Si `.env` es de antes
-del portal, `make entorno-completar` le añade sus claves y `docker compose up -d --no-deps acceso` hace que la API de
+del portal, `make entorno-completar` le añade sus claves y `docker compose up -d --no-deps acceso-a acceso-b` hace que la API de
 acceso reconozca al cliente `frontend`.
 
 ### Portal web: con datos reales y en demostración

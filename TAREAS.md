@@ -60,17 +60,6 @@ decisión pendiente en T13. El mapa de todo lo que falta para cerrar el proyecto
   (el mismo POST que enviaría la demo): 👍 ejecuta la alternativa y ✋ la cancela. Falta el vídeo con la webcam
   en Windows (`PIDS_CLAVE_GESTOS` en la consola de la demo; ver `integracion/README.md`).
 
-## T09 · Alta disponibilidad de la API de acceso
-
-- **Estado:** libre · **Responsable:** — · **Estimación:** 3 h · **Dificultad:** media
-- **Por qué:** es uno de los criterios adicionales del enunciado y ahora mismo la API es un único
-  contenedor.
-- **Qué hay que hacer:** dos réplicas de `acceso` detrás de un proxy (Caddy o Nginx), comprobar que se
-  puede tirar una sin cortar el servicio, y documentar qué pasa con el resto de componentes (Spark
-  standalone tiene un solo máster: apuntar la limitación).
-- **Hecha cuando:** con una réplica parada, el chatbot sigue respondiendo.
-- **Dónde:** `docker-compose.yml`, `docs/arquitectura.md`
-
 ## T10 · Entrega: vídeo y presentación
 
 - **Estado:** libre · **Responsable:** — · **Estimación:** 6 h (entre varios) · **Dificultad:** baja
@@ -210,3 +199,4 @@ decisión pendiente en T13. El mapa de todo lo que falta para cerrar el proyecto
 | 21/09/2026 | Chatbot RAG con LLM externo (LangChain + Qdrant + Helmcode) en cinco bloques: 21/21 casos, 0/105 fugas, 340 tests | Javier Saguar | entrada del 21/09 |
 | 21/09/2026 | T14 Portal web en `main` y levantado desde la carpeta principal (8020), demostración pública en Vercel y capturas | Javier Saguar | entrada del 21/09 |
 | 22/09/2026 | T08 Servicios sin login fuera de Docker, login de los chatbots y modelo de amenazas | Javier Saguar | entrada del 22/09 |
+| 22/09/2026 | T09 API de acceso con dos réplicas detrás de Caddy: 2555 peticiones con una réplica parada y otra tirada, 0 fallos | Javier Saguar | entrada del 22/09 |

@@ -24,7 +24,7 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 
 ## Estado actual
 
-**Última actualización: 22/09/2026 · Javier Saguar** (repositorio recreado en GitHub; barreras de autoría)
+**Última actualización: 22/09/2026 · Javier Saguar** (T09: alta disponibilidad de la API de acceso)
 
 | | |
 |---|---|
@@ -35,7 +35,7 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 | **Chatbots** | Ollama: `llama3.1:8b` en GPU a temperatura 0,2, 21/21 casos en 2-3 s · RAG: `deepseek-v4-flash` (Helmcode, UE), 21/21 casos con p50 1,1 s y unos 6 000 tokens por pregunta. Detalle en `docs/chatbot_rag.md` |
 | **Parte 1** | Se ejecuta desde el repositorio, con `PIDS_DATOS` apuntando a las imágenes (que siguen fuera de Git) |
 | **Portal web (parte 4)** | En `main` y levantado (`make frontend`, http://localhost:8020, contraseña `FRONTEND_CLAVE` de `.env`): panel, explorador, asistente (Ollama y RAG), tiempo real, privacidad y auditoría, operaciones y documentación. Demostración pública en Vercel con datos grabados (`parte4_frontend/demo`). 429 tests de Python, 17 de Scala y 132 de Vitest |
-| **Sin empezar** | Alta disponibilidad (T09), vídeo y presentación (T10). De T06 queda el vídeo con la webcam |
+| **Sin empezar** | Vídeo y presentación (T10). De T06 queda el vídeo con la webcam |
 | **Cómo levantarlo** | En Ubuntu (WSL2), paso a paso en el README («Puesta en marcha»): `make entorno`, pegar `LLM_API_KEY`, `make sync && make test`, `make construir && make todo`, `make historico-muestra` y `make rag-indexar`; cada día, `make todo` y `make tiempo-real` |
 | **Forma de trabajar** | Una rama por persona (tabla en el README) y cambios a `main` por *pull request*. Para trabajo en paralelo, una rama de tarea con contratos por bloque (`parte3_chatbot_rag/CONTRATOS.md`). Cada copia, con `make hooks`; el CI «Autoría» rechaza coautorías y firmas automáticas |
 | **Repositorio** | Recreado en GitHub el 22/09/2026 (mismo nombre) para eliminar una coautoría ajena al grupo: [`docs/repositorio.md`](docs/repositorio.md). Copias anteriores: sincronizar con `git reset --hard origin/main`. **Vercel (`happytaxi`, `yellowveil`) hay que volver a conectarlo al repositorio nuevo** (§4 de ese documento) |
@@ -83,6 +83,46 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 ---
 
 ## Entradas
+
+### 2026-09-22 · Javier Saguar · T09 · Alta disponibilidad de la API de acceso: dos réplicas detrás de Caddy
+
+- **Rama / commits:** `tarea/alta-disponibilidad` → `main`
+- **Qué he hecho:**
+  - `acceso` pasa a ser un proxy Caddy con el mismo nombre y el mismo puerto (8002), así que ningún cliente
+    cambia. Reparte por turnos entre dos réplicas iguales de la API, `acceso-a` y `acceso-b`, que no se publican.
+    Si una no acepta la conexión, reintenta en la otra durante 5 s; tras un fallo la deja fuera 30 s y cada 3 s
+    comprueba su `/salud`. La respuesta lleva la cabecera `X-Replica`.
+  - Prometheus mide cada réplica (etiqueta `replica`). Grafana, las alertas y el portal leen con `max()` las
+    métricas que publican las dos (`publico_*`), para no duplicar barrios ni frescura. Panel nuevo: consultas por
+    réplica.
+  - `make alta-disponibilidad` (`scripts/probar_alta_disponibilidad.py`): carga continua mientras para una
+    réplica, pregunta al chatbot, la recupera, tira la otra de golpe y la recupera.
+  - En `docs/arquitectura.md`, qué pasa si cae cada uno de los demás componentes (todos en una instancia).
+- **Por qué:** T09, criterio adicional del enunciado. La API es la única puerta a los datos: si cae, no
+  contesta nada.
+- **Ficheros clave:** `docker-compose.yml`, `parte2_plataforma/acceso/Caddyfile`,
+  `parte2_plataforma/observabilidad/`, `scripts/probar_alta_disponibilidad.py`, `tests/test_alta_disponibilidad.py`,
+  `docs/arquitectura.md`
+- **Cómo comprobarlo:**
+  ```bash
+  uv run pytest -q tests/test_alta_disponibilidad.py tests/test_publicacion.py
+  make alta-disponibilidad
+  docker compose stop acceso-a     # la API sigue: curl -si localhost:8002/salud | grep -i x-replica
+  docker compose start acceso-a
+  ```
+- **Resultado:** 2555 peticiones a 20 por segundo (GET `/catalogo` y, una de cada cinco, POST `/consultas`) y
+  ningún fallo: con las dos réplicas (p95 10 ms), con `acceso-a` parada (p95 25 ms), con `acceso-b` tirada con
+  `kill` (p95 5 ms) y mientras vuelven. Con una sola réplica el chatbot respondió a «¿Qué barrio tuvo más viajes
+  el 3 de marzo?». El portal sigue viendo la API como «ok» y los 456 tests de Python pasan.
+- **Pendiente y riesgos:**
+  - El proxy es el nuevo punto único, aunque sin estado: si cae, Docker lo reinicia en segundos.
+  - MongoDB, Spark (un máster), Redpanda y S3 siguen en una instancia; está escrito en `docs/arquitectura.md`.
+  - Con una réplica parada salta la alerta «Servicio caído»: es lo que se quiere.
+  - Una réplica que vuelve tras una caída puede tardar hasta 30 s en recibir peticiones (`fail_duration`).
+- **Contexto para quien siga:** tras cambiar `ACCESO_CLAVES` en `.env` hay que recrear las dos réplicas
+  (`docker compose up -d --no-deps acceso-a acceso-b`), no el proxy. Prometheus no mide el proxy sino cada
+  réplica: a través del proxy vería contadores de las dos alternándose. Se eligió Caddy y no Nginx porque
+  resuelve los nombres en cada conexión: arranca aunque una réplica esté parada, y Nginx no arrancaría.
 
 ### 2026-09-22 · Javier Saguar · Repositorio recreado en GitHub y barreras de autoría
 

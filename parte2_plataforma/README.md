@@ -52,6 +52,19 @@ archivan). Para la demo, o se simulan viajes posteriores (por ejemplo, un ficher
 trabajo con un checkpoint nuevo cuando esos lotes hayan salido del topic (retención de 24 h), porque el trabajo
 lee el topic desde el principio.
 
+## Alta disponibilidad de la API de acceso
+
+`acceso` (puerto 8002) es un proxy Caddy delante de dos réplicas iguales, `acceso-a` y `acceso-b`. Si una cae, la
+otra atiende todo y los clientes no lo notan. Detalle, medidas y límites del resto de componentes en
+[`docs/arquitectura.md`](../docs/arquitectura.md#alta-disponibilidad).
+
+```bash
+make alta-disponibilidad                  # carga continua mientras para, tira y recupera cada réplica
+docker compose stop acceso-a              # a mano: la API sigue respondiendo (cabecera X-Replica: acceso-b)
+docker compose start acceso-a
+docker compose up -d --no-deps acceso-a acceso-b   # tras cambiar ACCESO_CLAVES en .env: las dos réplicas
+```
+
 ## Probar las APIs a mano
 
 ```bash

@@ -20,7 +20,6 @@ http://localhost:8020. La demo de Vercel es una foto, no la plataforma en vivo.
 |---|---|
 | Dejar el tiempo real presentable: el watermark está en diciembre de 2020 y la muestra de enero no se agrega | T11 |
 | La API dice `"<10"` también de grupos ocultos por supresión complementaria, que pueden tener más viajes | T12 |
-| Dos réplicas de la API de acceso detrás de un proxy. Spark sigue con un solo máster: hay que decirlo | T09 |
 | Supresión complementaria también en el tiempo real (hoy solo en la carga histórica) | idea en TAREAS |
 | Un DAG que cargue los 12 meses seguidos, con reintentos | idea |
 | Contadores de la API de captura a 0 al arrancar, para que la alerta de frescura vea el primer lote | idea |

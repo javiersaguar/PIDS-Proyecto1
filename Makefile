@@ -17,7 +17,7 @@ WEB := parte4_frontend/web
 .PHONY: ayuda entorno entorno-completar sync hooks test test-spark test-frontend construir nucleo spark airflow observabilidad \
 	    chatbot chatbot-rag rag-indexar rag-comprobar rag-casos rag-bateria rag-comparar frontend frontend-dev \
 	    herramientas todo parar estado logs tiempo-real simular historico historico-muestra \
-	    datos-muestra descargar borrar-todo
+	    datos-muestra descargar borrar-todo alta-disponibilidad
 
 ayuda: ## Muestra esta ayuda
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  make %-18s %s\n", $$1, $$2}'
@@ -124,6 +124,9 @@ auditoria: _env ## Informe de auditoría de las últimas 24 h (ARGS='--horas 8 -
 
 latencia: _env ## Mide captura → agregado (20 lotes; requiere un único TiempoReal activo; ARGS='--zona 265')
 	uv run python scripts/medir_latencia_tiempo_real.py $(ARGS)
+
+alta-disponibilidad: _env ## Carga contra la API de acceso mientras para y tira cada réplica (ARGS='--sin-chatbot')
+	uv run python scripts/probar_alta_disponibilidad.py $(ARGS)
 
 descargar: ## Descarga un mes a data/crudo (MES=2020-01 FUENTE=parquet|api)
 	uv run python scripts/descargar_datos.py --fuente $(FUENTE) --meses $(MES)

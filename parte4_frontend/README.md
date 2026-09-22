@@ -37,7 +37,7 @@ navegador ──► frontend (un contenedor, 8020) ─┬─ BFF FastAPI (bff/) 
 
 ```bash
 make entorno-completar            # si el .env es anterior a la parte 4: le añade las variables de abajo
-docker compose up -d --no-deps acceso   # para que la API de acceso conozca la clave del cliente `frontend`
+docker compose up -d --no-deps acceso-a acceso-b   # para que la API de acceso conozca la clave del cliente `frontend`
 make frontend                     # construye la imagen (node → python) y levanta el portal en http://localhost:8020
 ```
 
