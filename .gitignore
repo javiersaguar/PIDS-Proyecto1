@@ -8,6 +8,9 @@ data/*
 data/muestra/*
 !data/muestra/yellow_tripdata_2020_muestra.csv
 !data/muestra/exportacion_formato_europeo.csv
+!data/directo/
+data/directo/*
+!data/directo/LEEME.md
 *.parquet
 
 # Python

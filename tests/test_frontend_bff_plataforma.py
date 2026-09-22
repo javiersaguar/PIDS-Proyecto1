@@ -6,6 +6,7 @@ sustituye a `servicios.auditoria.abrir_cliente`."""
 from __future__ import annotations
 
 import csv
+import gzip
 import json
 import random
 import re
@@ -20,6 +21,7 @@ from pydantic import ValidationError
 from pymongo.errors import ServerSelectionTimeoutError
 
 from parte2_plataforma.comun import privacidad as P
+from parte2_plataforma.simulador import directo as DIRECTO
 from parte4_frontend.bff import app as A
 from parte4_frontend.bff import configuracion as C
 from parte4_frontend.bff import seguridad as S
@@ -834,3 +836,74 @@ def test_una_sola_simulacion_activa_y_delete_la_para(cliente, plataforma, simula
     assert cliente.delete('/api/operaciones/simulacion').status_code == 200                 # parar sin nada activo no falla
     assert cliente.post('/api/operaciones/simulacion', json={'fichero': 'viajes.csv', 'ritmo': 5000}).status_code == 202
     assert esperar_fin(cliente)['enviados'] == 251
+
+
+# --- captura en directo (botón «Capturar datos» del grafo) ----------------------------------------------------
+
+def dia_directo(carpeta: Path, dia: str, recogidas: list[str]) -> None:
+    carpeta.mkdir(parents=True, exist_ok=True)
+    with gzip.open(carpeta / f'{dia}.csv.gz', 'wt', newline='', encoding='utf-8') as f:
+        escritor = csv.writer(f)
+        escritor.writerow(['VendorID', 'tpep_pickup_datetime', 'PULocationID'])
+        for i, texto in enumerate(recogidas):
+            escritor.writerow([i, texto, 132])
+
+
+@pytest.fixture
+def captura(tmp_path, monkeypatch) -> SIM.Simulador:
+    """Dos días preparados: el 1 de diciembre a las 00:00-00:04 y a las 06:00-06:02; el 2, a las 00:00."""
+    carpeta = tmp_path / 'directo'
+    dia_directo(carpeta, '2020-12-01', [f'12/01/2020 12:0{m}:00 AM' for m in range(5)]
+                + [f'12/01/2020 06:0{m}:00 AM' for m in range(3)])
+    dia_directo(carpeta, '2020-12-02', ['12/02/2020 12:00:00 AM'])
+    nuevo = SIM.Simulador(carpeta=tmp_path / 'muestra', carpeta_directo=carpeta)
+    csv_muestra(tmp_path / 'muestra')
+    monkeypatch.setattr(SIM, 'SIMULADOR', nuevo)
+    return nuevo
+
+
+def test_captura_informa_de_lo_preparado(cliente, captura, tmp_path):
+    info = cliente.get('/api/operaciones/captura').json()
+    assert info['disponible'] is True and (info['primer_dia'], info['ultimo_dia']) == ('2020-12-01', '2020-12-02')
+    assert info['reloj'] is None and info['velocidad_maxima'] == DIRECTO.VELOCIDAD_MAXIMA
+    captura.carpeta_directo = tmp_path / 'vacia'
+    assert cliente.get('/api/operaciones/captura').json()['disponible'] is False
+    r = cliente.post('/api/operaciones/captura', json={})
+    assert r.status_code == 409 and 'captura-preparar' in r.json()['detail']
+
+
+def test_captura_sigue_tras_la_ultima_hora_publicada_y_comparte_estado_con_la_simulacion(cliente, plataforma, captura):
+    plataforma.filas[('tiempo_real', 'dia_barrio')] = [dia('2020-12-01', 'Manhattan', 40)]
+    plataforma.filas[('tiempo_real', 'hora_zona')] = [hora('2020-12-01T00:00:00', 132, 40)]
+    r = cliente.post('/api/operaciones/captura', json={'velocidad': 600})
+    assert r.status_code == 202
+    inicial = r.json()
+    assert inicial['modo'] == 'directo' and inicial['activa'] is True and inicial['velocidad'] == 600
+    assert inicial['reloj'] == '2020-12-01T01:00:00'                    # la hora siguiente a la última publicada
+    assert re.fullmatch(r'directo-\d{14}', inicial['lote']) and inicial['total'] == 0
+    # la simulación de ficheros ve la misma: una sola a la vez
+    assert cliente.get('/api/operaciones/simulacion').json()['modo'] == 'directo'
+    r = cliente.post('/api/operaciones/simulacion', json={'fichero': 'viajes.csv'})
+    assert r.status_code == 409
+    # a ×600, las 06:00 llegan en unos 30 s reales: se para antes y quedan sin enviar
+    parada = cliente.delete('/api/operaciones/captura').json()
+    assert parada['activa'] is False and parada['enviados'] == 0 and parada['fin']
+    assert plataforma.captura_lotes == []
+    assert any(c['fuente'] == 'tiempo_real' for c in plataforma.consultas)   # lo preguntó a la API de acceso
+
+
+def test_captura_envia_en_orden_y_no_vuelve_atras(cliente, plataforma, captura):
+    r = cliente.post('/api/operaciones/captura', json={'velocidad': 600, 'desde': '2020-12-01T05:59:00'})
+    assert r.status_code == 202 and r.json()['reloj'] == '2020-12-01T05:59:00'
+    limite = time.monotonic() + 5
+    while cliente.get('/api/operaciones/simulacion').json()['enviados'] < 3 and time.monotonic() < limite:
+        time.sleep(0.05)
+    estado = cliente.delete('/api/operaciones/captura').json()
+    assert estado['enviados'] == 3 and estado['error'] is None
+    enviados = [v['tpep_pickup_datetime'] for lote in plataforma.captura_lotes for v in lote['viajes']]
+    assert enviados == [f'12/01/2020 06:0{m}:00 AM' for m in range(3)]
+    assert {lote['lote'] for lote in plataforma.captura_lotes} == {estado['lote']}
+    # la siguiente sigue donde se quedó esta, no en el primer día
+    siguiente = cliente.post('/api/operaciones/captura', json={'velocidad': 600}).json()
+    assert siguiente['reloj'] >= estado['reloj'] > '2020-12-01T06:02:00'
+    cliente.delete('/api/operaciones/captura')

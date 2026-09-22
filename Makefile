@@ -17,7 +17,8 @@ WEB := parte4_frontend/web
 .PHONY: ayuda entorno entorno-completar sync hooks test test-spark test-frontend construir nucleo spark airflow observabilidad \
 	    chatbot chatbot-rag rag-indexar rag-comprobar rag-casos rag-bateria rag-comparar frontend frontend-dev \
 	    herramientas todo parar estado logs tiempo-real simular historico historico-muestra \
-	    datos-muestra descargar borrar-todo alta-disponibilidad
+	    datos-muestra descargar borrar-todo alta-disponibilidad tiempo-real-reiniciar captura-preparar capturar \
+	    capturar-parar
 
 ayuda: ## Muestra esta ayuda
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  make %-18s %s\n", $$1, $$2}'
@@ -97,6 +98,19 @@ borrar-todo: ## Para todo y BORRA los volúmenes (datos, usuarios, modelos). Pid
 # --- flujos de datos ------------------------------------------------------------------------
 tiempo-real: ## Lanza el trabajo Spark de tiempo real (modo cluster, supervisado)
 	$(COMPOSE) exec spark-master /opt/pids/lanzar.sh TiempoReal
+
+tiempo-real-reiniciar: ## Tiempo real desde cero: para el trabajo, borra checkpoint, cola y tr_*, y lo relanza (ARGS=--si)
+	uv run python scripts/reiniciar_tiempo_real.py $(ARGS)
+
+captura-preparar: ## Descarga un mes de la TLC y lo parte por días para la captura en directo (MES_CAPTURA=2020-12)
+	uv run python scripts/descargar_datos.py --fuente parquet --meses $(or $(MES_CAPTURA),2020-12)
+	uv run python -m parte2_plataforma.simulador.directo preparar --mes $(or $(MES_CAPTURA),2020-12)
+
+capturar: _env ## Captura en directo desde el portal: viajes reales a ×VELOCIDAD (60 = 1 h de 2020 por minuto)
+	uv run python -m parte2_plataforma.simulador.directo portal --velocidad $(or $(VELOCIDAD),60)
+
+capturar-parar: _env ## Para la captura en directo
+	uv run python -m parte2_plataforma.simulador.directo portal --parar
 
 simular: ## Envía viajes a la API de captura (FICHERO=... RITMO=viajes/s)
 	SIMULADOR_FICHERO=$(FICHERO) SIMULADOR_RITMO=$(RITMO) $(COMPOSE) --profile simulador run --rm simulador

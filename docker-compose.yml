@@ -553,6 +553,9 @@ services:
       ENLACES_CHATBOT_RAG: http://localhost:${PUERTO_CHATBOT_RAG:-8011}
       ENLACES_API_ACCESO: http://localhost:${PUERTO_ACCESO:-8002}/docs
       ENLACES_API_CAPTURA: http://localhost:${PUERTO_CAPTURA:-8001}/docs
+    volumes:
+      # Viajes reales de un mes, uno por día, para la captura en directo (`make captura-preparar`)
+      - ./data/directo:/app/data/directo:ro
     ports:
       - "127.0.0.1:${PUERTO_FRONTEND:-8020}:8000"
     healthcheck:

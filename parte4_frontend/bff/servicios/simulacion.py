@@ -11,6 +11,11 @@ biblioteca estándar (`csv`, `datetime`) y `httpx`: pandas no va en la imagen de
 - Una sola simulación activa por proceso (`SimulacionActiva` -> 409); `parar()` cancela la tarea.
 - Los valores del CSV se envían como texto tal cual (celda vacía -> null): la API de captura no valida y Spark
   normaliza. E3: aquí no se guarda ni se registra ningún viaje, solo se cuentan.
+
+Captura en directo (`iniciar_directo`, botón «Capturar datos» del grafo): viajes reales de un mes de 2020 que se
+envían con un reloj simulado, sin fin fijo (`parte2_plataforma/simulador/directo.py`). Comparte el estado con la
+simulación de ficheros (`modo: 'directo'`, `reloj`, `velocidad`), así que las animaciones del grafo y la página de
+Operaciones la ven igual, y sigue siendo una sola a la vez.
 """
 from __future__ import annotations
 
@@ -25,6 +30,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import httpx
+
+from parte2_plataforma.simulador import directo as DIRECTO
 
 from ..configuracion import RAIZ
 
@@ -101,7 +108,11 @@ def _ahora() -> str:
 
 @dataclass
 class EstadoSimulacion:
-    """`Simulacion` del contrato (más `fin`, el instante en que terminó o se detuvo)."""
+    """`Simulacion` del contrato (más `fin`, el instante en que terminó o se detuvo).
+
+    En la captura en directo: `modo='directo'`, `total=0` (no tiene fin fijo), `ritmo` es el ritmo real medido
+    (viajes/s), `reloj` la hora de 2020 por la que va y `velocidad` cuántos segundos de 2020 pasan por segundo.
+    """
     activa: bool = False
     lote: str | None = None
     fichero: str | None = None
@@ -111,6 +122,9 @@ class EstadoSimulacion:
     inicio: str | None = None
     fin: str | None = None
     error: str | None = None
+    modo: str = 'fichero'
+    reloj: str | None = None
+    velocidad: float | None = None
 
     def a_dict(self) -> dict:
         return asdict(self)
@@ -121,10 +135,71 @@ class EstadoSimulacion:
 class Simulador:
     """Una simulación como mucho por proceso; el estado se conserva hasta que empieza la siguiente."""
 
-    def __init__(self, carpeta: Path = CARPETA_MUESTRA):
+    def __init__(self, carpeta: Path = CARPETA_MUESTRA, carpeta_directo: Path = DIRECTO.CARPETA):
         self.carpeta = carpeta
+        self.carpeta_directo = carpeta_directo
         self.estado = EstadoSimulacion()
         self._tarea: asyncio.Task | None = None
+        self._progreso: DIRECTO.Progreso | None = None
+        self.reloj_directo: datetime | None = None        # por dónde iba la última captura en directo
+
+    def estado_actual(self) -> dict:
+        """El estado, con el progreso de la captura en directo al día."""
+        if self._progreso is not None:
+            self.estado.enviados = self._progreso.enviados
+            self.estado.ritmo = round(self._progreso.ritmo, 1)
+            if self._progreso.reloj is not None:
+                self.estado.reloj = self._progreso.reloj.isoformat(timespec='seconds')
+                self.reloj_directo = self._progreso.reloj
+        return self.estado.a_dict()
+
+    def info_directo(self) -> dict:
+        """Qué hay preparado para la captura en directo y por dónde seguiría."""
+        dias = DIRECTO.dias_disponibles(self.carpeta_directo)
+        return {
+            'disponible': bool(dias),
+            'primer_dia': dias[0].isoformat() if dias else None,
+            'ultimo_dia': dias[-1].isoformat() if dias else None,
+            'reloj': self.reloj_directo.isoformat(timespec='seconds') if self.reloj_directo else None,
+            'velocidad_por_defecto': DIRECTO.VELOCIDAD_POR_DEFECTO,
+            'velocidad_maxima': DIRECTO.VELOCIDAD_MAXIMA,
+        }
+
+    async def iniciar_directo(self, http: httpx.AsyncClient, url: str, clave: str, consultar: DIRECTO.Consultar,
+                              velocidad: float = DIRECTO.VELOCIDAD_POR_DEFECTO, desde: datetime | None = None) -> dict:
+        """Arranca la captura en directo donde se quedó (`DIRECTO.punto_de_partida`). `SinDatos` si no hay nada."""
+        if self.activa:
+            raise SimulacionActiva('Ya hay una simulación en marcha')
+        dias = DIRECTO.dias_disponibles(self.carpeta_directo)
+        if desde is None:
+            ultima = await DIRECTO.ultima_hora_publicada(consultar, dias) if dias else None
+            desde = DIRECTO.punto_de_partida(dias, ultima, self.reloj_directo)
+        self._progreso = DIRECTO.Progreso(reloj=desde)
+        self.estado = EstadoSimulacion(activa=True, lote=DIRECTO.nombre_lote(), total=0, ritmo=0.0, inicio=_ahora(),
+                                       modo='directo', reloj=desde.isoformat(timespec='seconds'), velocidad=velocidad)
+        enviar = DIRECTO.enviador(http, url, clave, self.estado.lote)
+        self._tarea = asyncio.create_task(self._directo(enviar, desde, velocidad))
+        log.info('Captura en directo %s desde %s a ×%g', self.estado.lote, desde, velocidad)
+        return self.estado_actual()
+
+    async def _directo(self, enviar: DIRECTO.Enviar, desde: datetime, velocidad: float) -> None:
+        estado, progreso = self.estado, self._progreso
+        try:
+            await DIRECTO.reproducir(enviar, self.carpeta_directo, desde, velocidad, progreso)
+            log.info('Captura en directo %s: fin de los datos preparados (%d viajes)', estado.lote, progreso.enviados)
+        except asyncio.CancelledError:
+            log.info('Captura en directo %s detenida con %d viajes enviados', estado.lote, progreso.enviados)
+            raise
+        except httpx.HTTPError as error:
+            estado.error = f'La API de captura no responde ({type(error).__name__})'
+        except (DIRECTO.ErrorCaptura, DIRECTO.SinDatos) as error:
+            estado.error = str(error)
+        finally:
+            self.estado_actual()
+            estado.activa = False
+            estado.fin = _ahora()
+            if estado.error:
+                log.warning('Captura en directo %s interrumpida: %s', estado.lote, estado.error)
 
     def ficheros(self) -> list[str]:
         if not self.carpeta.is_dir():
@@ -153,6 +228,7 @@ class Simulador:
         if not viajes:
             raise FicheroNoPermitido(f'El fichero {fichero!r} no tiene viajes')
         ahora = datetime.now()
+        self._progreso = None
         self.estado = EstadoSimulacion(activa=True, lote=nombre_lote(fichero, ahora), fichero=fichero,
                                        total=len(viajes), ritmo=ritmo, inicio=_ahora())
         self._tarea = asyncio.create_task(self._enviar(http, url.rstrip('/'), clave, viajes))
@@ -165,7 +241,7 @@ class Simulador:
             self._tarea.cancel()
             with suppress(asyncio.CancelledError):
                 await self._tarea
-        return self.estado.a_dict()
+        return self.estado_actual()
 
     async def _enviar(self, http: httpx.AsyncClient, url: str, clave: str, viajes: list[dict]) -> None:
         estado = self.estado

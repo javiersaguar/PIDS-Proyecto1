@@ -7,6 +7,10 @@
   POST   /api/operaciones/simulacion {fichero, ritmo?, maximo?}
                                                          -> 202 Simulacion (409 si ya hay una; 400 si el fichero no vale)
   DELETE /api/operaciones/simulacion                     -> Simulacion (cancelada)
+  GET    /api/operaciones/captura                        -> qué hay preparado para la captura en directo
+  POST   /api/operaciones/captura {velocidad?, desde?}   -> 202 Simulacion con modo 'directo' (409 si ya hay una o si
+                                                            no queda nada que enviar; 503 si la API de acceso no responde)
+  DELETE /api/operaciones/captura                        -> Simulacion (parada); igual que DELETE …/simulacion
 
 Errores de los servicios: Airflow caído -> 503 con `detail` en español (la lista de ejecuciones no admite un
 `disponible: false` y un `null` rompería la tabla de la SPA: la página muestra el error con «Reintentar»); una
@@ -17,10 +21,15 @@ respuestas ni en los logs.
 """
 from __future__ import annotations
 
+from datetime import datetime
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
+from parte2_plataforma.simulador import directo as DIRECTO
+
 from ..seguridad import ConfiguracionDep, HttpDep
+from ..servicios import acceso as ACCESO
 from ..servicios import airflow as AIR
 from ..servicios import simulacion as SIM
 from ..servicios.acceso import ServicioNoDisponible
@@ -39,6 +48,13 @@ class PeticionSimulacion(BaseModel):
     fichero: str = Field(min_length=1, max_length=255, examples=['yellow_tripdata_2020_muestra.csv'])
     ritmo: float = Field(default=SIM.RITMO_POR_DEFECTO, gt=0, le=MAX_RITMO, description='Viajes por segundo')
     maximo: int | None = Field(default=None, ge=1, description='Enviar como mucho estos viajes')
+
+
+class PeticionCaptura(BaseModel):
+    velocidad: float = Field(default=DIRECTO.VELOCIDAD_POR_DEFECTO, ge=1, le=DIRECTO.VELOCIDAD_MAXIMA,
+                             description='Segundos de 2020 por segundo real (60 = una hora por minuto)')
+    desde: datetime | None = Field(default=None, description='Hora de 2020 por la que empezar; por defecto, donde se '
+                                   'quedó. Antes de la última publicada, Spark descartaría los viajes')
 
 
 def _simulador() -> SIM.Simulador:
@@ -79,7 +95,7 @@ async def ficheros_simulacion() -> list[str]:
 
 @router.get('/operaciones/simulacion')
 async def estado_simulacion() -> dict:
-    return _simulador().estado.a_dict()
+    return _simulador().estado_actual()
 
 
 @router.post('/operaciones/simulacion', status_code=202)
@@ -96,4 +112,37 @@ async def iniciar_simulacion(peticion: PeticionSimulacion, cfg: ConfiguracionDep
 
 @router.delete('/operaciones/simulacion')
 async def parar_simulacion() -> dict:
+    return await _simulador().parar()
+
+
+# --- captura en directo -----------------------------------------------------------------------------------------
+
+@router.get('/operaciones/captura')
+async def info_captura() -> dict:
+    return _simulador().info_directo()
+
+
+@router.post('/operaciones/captura', status_code=202)
+async def iniciar_captura(peticion: PeticionCaptura, cfg: ConfiguracionDep, http: HttpDep) -> dict:
+    cliente = ACCESO.cliente(cfg, http)
+
+    async def consultar(consulta: dict) -> list[dict]:
+        codigo, cuerpo = await cliente.consultar(consulta)
+        return cuerpo.get('filas', []) if codigo == 200 else []
+
+    try:
+        return await _simulador().iniciar_directo(http, cfg.captura_url, cfg.captura_clave, consultar,
+                                                  velocidad=peticion.velocidad, desde=peticion.desde)
+    except SIM.SimulacionActiva as error:
+        raise HTTPException(status_code=409,
+                            detail='Ya hay una simulación en marcha; párala antes de capturar') from error
+    except DIRECTO.SinDatos as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    except ServicioNoDisponible as error:
+        raise HTTPException(status_code=503,
+                            detail=f'No se sabe por dónde seguir: {error.detalle}') from error
+
+
+@router.delete('/operaciones/captura')
+async def parar_captura() -> dict:
     return await _simulador().parar()
