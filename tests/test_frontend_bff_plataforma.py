@@ -903,7 +903,13 @@ def test_captura_envia_en_orden_y_no_vuelve_atras(cliente, plataforma, captura):
     enviados = [v['tpep_pickup_datetime'] for lote in plataforma.captura_lotes for v in lote['viajes']]
     assert enviados == [f'12/01/2020 06:0{m}:00 AM' for m in range(3)]
     assert {lote['lote'] for lote in plataforma.captura_lotes} == {estado['lote']}
-    # la siguiente sigue donde se quedó esta, no en el primer día
+    # Spark ya ha publicado la hora de las 06:00: la siguiente sigue en el minuto donde se quedó esta
+    plataforma.filas[('tiempo_real', 'dia_barrio')] = [dia('2020-12-01', 'Manhattan', 3)]
+    plataforma.filas[('tiempo_real', 'hora_zona')] = [hora('2020-12-01T06:00:00', 132, 3)]
     siguiente = cliente.post('/api/operaciones/captura', json={'velocidad': 600}).json()
     assert siguiente['reloj'] >= estado['reloj'] > '2020-12-01T06:02:00'
+    cliente.delete('/api/operaciones/captura')
+    # con el tiempo real vacío (recién reiniciado) vuelve a empezar por el primer día
+    plataforma.filas.clear()
+    assert cliente.post('/api/operaciones/captura', json={'velocidad': 600}).json()['reloj'] == '2020-12-01T00:00:00'
     cliente.delete('/api/operaciones/captura')
