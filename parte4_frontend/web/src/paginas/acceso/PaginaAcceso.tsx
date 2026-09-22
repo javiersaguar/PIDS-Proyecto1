@@ -2,12 +2,13 @@
  * Página de acceso (§4 y §6): formulario con la contraseña única del portal → `POST /api/sesion`.
  * Un 401 se muestra en el propio formulario; al entrar se navega a `/`.
  */
-import { CarTaxiFront, KeyRound, LoaderCircle, Lock, ShieldCheck, TriangleAlert } from 'lucide-react'
+import { KeyRound, LoaderCircle, Lock, ShieldCheck, TriangleAlert } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router'
 
 import { mensajeDeError } from '@/api/cliente'
 import { useIniciarSesion, useSesion } from '@/api/sesion'
+import { LogoTaxi } from '@/componentes/shell/LogoTaxi'
 import { AVISO_E3 } from '@/componentes/shell/Pie'
 import { Button } from '@/componentes/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/componentes/ui/card'
@@ -49,9 +50,7 @@ export default function PaginaAcceso() {
     <div className="grid min-h-svh lg:grid-cols-[minmax(0,5fr)_minmax(0,4fr)]">
       <section className="fondo-marino hidden flex-col justify-between p-10 text-white lg:flex">
         <div className="flex items-center gap-3">
-          <span className="flex size-10 items-center justify-center rounded-xl bg-white text-[#1d4ed8]" aria-hidden>
-            <CarTaxiFront className="size-6" strokeWidth={2.25} />
-          </span>
+          <LogoTaxi className="size-10 rounded-xl ring-1 ring-white/30" />
           <div className="leading-tight">
             <p className="text-lg font-semibold text-white">PIDS · Taxis NYC</p>
             <p className="text-sm text-white/75">Plataforma de datos · Portal interno</p>
@@ -77,9 +76,7 @@ export default function PaginaAcceso() {
         <Card className="w-full max-w-sm sombra-tarjeta">
           <CardHeader>
             <div className="mb-2 flex items-center gap-2 lg:hidden">
-              <span className="flex size-8 items-center justify-center rounded-lg bg-[#2563eb] text-white" aria-hidden>
-                <CarTaxiFront className="size-4" strokeWidth={2.25} />
-              </span>
+              <LogoTaxi className="size-8 rounded-lg" />
               <span className="font-semibold text-primario">PIDS · Taxis NYC</span>
             </div>
             <CardTitle className="text-xl text-primario">Acceso al portal</CardTitle>

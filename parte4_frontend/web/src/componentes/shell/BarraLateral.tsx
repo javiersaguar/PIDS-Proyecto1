@@ -1,7 +1,7 @@
 /**
  * Barra lateral fija: logotipo, navegación a las siete secciones y cierre de sesión.
  */
-import { CarTaxiFront, LogOut } from 'lucide-react'
+import { LogOut } from 'lucide-react'
 import { NavLink, useNavigate } from 'react-router'
 import { toast } from 'sonner'
 
@@ -9,6 +9,7 @@ import { useCerrarSesion } from '@/api/sesion'
 import { Button } from '@/componentes/ui/button'
 import { cn } from '@/lib/utils'
 
+import { LogoTaxi } from './LogoTaxi'
 import { SECCIONES } from './navegacion'
 
 export const ANCHO_BARRA = 'w-60'
@@ -33,9 +34,7 @@ export function BarraLateral() {
       )}
     >
       <div className="flex items-center gap-3 px-5 pt-5 pb-4">
-        <span className="flex size-9 items-center justify-center rounded-xl bg-[#2563eb] text-white shadow-sm" aria-hidden>
-          <CarTaxiFront className="size-5" strokeWidth={2.25} />
-        </span>
+        <LogoTaxi className="size-9 rounded-xl" />
         <div className="leading-tight">
           <p className="text-[15px] font-semibold tracking-tight text-slate-900">PIDS · Taxis NYC</p>
           <p className="text-xs text-slate-500">Plataforma de datos</p>
