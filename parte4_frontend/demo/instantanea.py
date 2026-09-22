@@ -12,6 +12,8 @@ Qué se graba y de dónde sale:
   - auditoría: `auditoria.decisiones` y `auditoria.cargas` con el usuario de solo lectura `pids_auditor`;
   - ejecuciones de Airflow;
   - conversaciones del asistente: el agente real de Ollama, con las preguntas de `PREGUNTAS_CHAT`;
+  - cuadros de observabilidad: los ocho cuadros de Grafana con sus datos, tal como los da el portal
+    (`/api/observabilidad/cuadros/{uid}`), en `observabilidad/`;
   - `referencias.json` (no se publica): respuestas reales de la API a consultas de prueba, para que los tests
     comprueben que el filtro de privacidad de la demo decide igual que el de verdad.
 Ninguna clave ni ningún viaje individual sale de aquí.
@@ -19,6 +21,7 @@ Ninguna clave ni ningún viaje individual sale de aquí.
 Uso (desde la raíz del repositorio, con la plataforma levantada):
     uv run python -m parte4_frontend.demo.instantanea
     uv run python -m parte4_frontend.demo.instantanea --sin-chat      # conserva las conversaciones grabadas
+    uv run python -m parte4_frontend.demo.instantanea --solo-observabilidad   # solo los cuadros (portal levantado)
 """
 from __future__ import annotations
 
@@ -259,6 +262,20 @@ def panel(cfg: dict) -> dict:
             'consultas_24h': {r: int(consultas.get(r, 0)) for r in ('permitida', 'enmascarada', 'rechazada')}}
 
 
+def observabilidad(cfg: dict, ahora: datetime) -> None:
+    """Los cuadros de Grafana con sus datos, pedidos al portal como los pide la SPA (y con su contraseña)."""
+    url = f'http://127.0.0.1:{cfg.get("PUERTO_FRONTEND", "8020")}'
+    with httpx.Client(base_url=url, timeout=60) as portal:
+        entrada = portal.post('/api/sesion', json={'clave': cfg['FRONTEND_CLAVE']})
+        entrada.raise_for_status()
+        sesion = {'Cookie': '; '.join(f'{k}={v}' for k, v in entrada.cookies.items())}   # la cookie puede ser Secure
+        lista = portal.get('/api/observabilidad/cuadros', headers=sesion).raise_for_status().json()
+        guardar(DESTINO / 'observabilidad' / 'cuadros.json', lista)
+        for resumen in lista:
+            cuadro = portal.get(f'/api/observabilidad/cuadros/{resumen["uid"]}', headers=sesion).raise_for_status().json()
+            guardar(DESTINO / 'observabilidad' / f'{resumen["uid"]}.json', {**cuadro, 'grabado': ahora.isoformat()})
+
+
 def auditoria(cfg: dict, ahora: datetime) -> dict:
     from pymongo import MongoClient
     with MongoClient(host='127.0.0.1', port=int(cfg.get('PUERTO_MONGO', '27018')), username='pids_auditor',
@@ -356,9 +373,13 @@ async def conversaciones(cfg: dict) -> dict:
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument('--sin-chat', action='store_true', help='no regraba las conversaciones del asistente')
+    p.add_argument('--solo-observabilidad', action='store_true', help='graba solo los cuadros de observabilidad')
     args = p.parse_args()
     cfg = entorno()
     ahora = datetime.now(timezone.utc)
+    if args.solo_observabilidad:
+        observabilidad(cfg, ahora)
+        return 0
     api = Acceso(f'http://127.0.0.1:{cfg.get("PUERTO_ACCESO", "8002")}', cfg['ACCESO_CLAVE_EQUIPO'])
     print('Instantánea de la plataforma para el modo demostración', flush=True)
     # antes que los agregados: las consultas de este script también quedan en la auditoría y en los contadores
@@ -372,6 +393,7 @@ def main() -> int:
     referencias(api)
     if not args.sin_chat:
         guardar(DESTINO / 'chat.json', asyncio.run(conversaciones(cfg)))
+    observabilidad(cfg, ahora)
     guardar(DESTINO / 'manifiesto.json', {
         'generado': ahora.isoformat(), 'dias_hora_zona': DIAS_HORA_ZONA, 'zonas_todo_el_anio': ZONAS_TODO_EL_ANIO,
         'dia_tiempo_real': DIA_TIEMPO_REAL,

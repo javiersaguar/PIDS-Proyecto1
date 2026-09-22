@@ -12,11 +12,19 @@ import { cn } from '@/lib/utils'
 import { BarraLateral } from './BarraLateral'
 import { BotonTaxiAI } from './BotonTaxiAI'
 import { Cabecera } from './Cabecera'
+import { guardarMenuAbierto, menuAbiertoGuardado } from './menuLateral'
 import { PanelAsistente } from './PanelAsistente'
 
 export function AppShell() {
   const { pathname, state, key } = useLocation()
   const [asistenteAbierto, setAsistenteAbierto] = useState(false)
+  const [menuAbierto, setMenuAbierto] = useState(menuAbiertoGuardado)
+  const alternarMenu = useCallback(() => {
+    setMenuAbierto((abierto) => {
+      guardarMenuAbierto(!abierto)
+      return !abierto
+    })
+  }, [])
   const [navegacionAtendida, setNavegacionAtendida] = useState<string | null>(null)
   const botonRef = useRef<HTMLButtonElement>(null)
 
@@ -48,8 +56,8 @@ export function AppShell() {
       >
         Saltar al contenido
       </a>
-      <BarraLateral />
-      <div className="flex min-h-svh flex-col pl-60">
+      <BarraLateral abierta={menuAbierto} alAlternar={alternarMenu} />
+      <div className={cn('flex min-h-svh flex-col transition-[padding] duration-200 motion-reduce:transition-none', menuAbierto ? 'pl-60' : 'pl-14')}>
         {!lienzo && !amplio && !esPrivacidad && <Cabecera />}
         <main
           id="contenido"
@@ -65,7 +73,7 @@ export function AppShell() {
           )}
         </main>
       </div>
-      <BotonTaxiAI ref={botonRef} abierto={asistenteAbierto} alPulsar={alternarAsistente} />
+      <BotonTaxiAI ref={botonRef} abierto={asistenteAbierto} alPulsar={alternarAsistente} elevado={lienzo} />
       <PanelAsistente abierto={asistenteAbierto} alCerrar={cerrarAsistente} botonRef={botonRef} />
     </div>
   )

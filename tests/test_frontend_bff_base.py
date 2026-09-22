@@ -11,7 +11,7 @@ from parte4_frontend.bff import app as A
 from parte4_frontend.bff import configuracion as C
 from parte4_frontend.bff import estaticos as E
 from parte4_frontend.bff import seguridad as S
-from parte4_frontend.bff.rutas import auditoria, catalogo, chat, consultas, operaciones, panel, tiempo_real
+from parte4_frontend.bff.rutas import auditoria, catalogo, chat, consultas, observabilidad, operaciones, panel, tiempo_real
 
 ENTORNO_ENV = {
     'PUERTO_ACCESO': '8002', 'PUERTO_CAPTURA': '8001', 'PUERTO_PROMETHEUS': '9090', 'PUERTO_AIRFLOW': '8085',
@@ -162,8 +162,8 @@ def test_una_cookie_manipulada_no_vale(cliente, cfg):
 
 # --- routers protegidos ------------------------------------------------------------------------------------
 
-def test_los_siete_routers_vacios_estan_incluidos_y_la_app_se_crea():
-    modulos = (consultas, catalogo, panel, tiempo_real, auditoria, operaciones, chat)
+def test_los_ocho_routers_estan_incluidos_y_la_app_se_crea():
+    modulos = (consultas, catalogo, panel, tiempo_real, auditoria, operaciones, chat, observabilidad)
     assert all(isinstance(m.router, APIRouter) for m in modulos)
     assert A.ROUTERS_PROTEGIDOS == tuple(m.router for m in modulos)
     app = A.crear_app(C.Configuracion.desde_entorno(ENTORNO_ENV, contenedor=False))

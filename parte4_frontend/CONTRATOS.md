@@ -77,7 +77,8 @@ de Docker (misma técnica que `parte3_chatbot_rag/fabrica.py`, rama `rag/4-inter
 | `FRONTEND_SECRETO` | de `.env` (aleatoria) | de `.env` | Firma HMAC de la cookie de sesión |
 | `ACCESO_URL` / `ACCESO_CLAVE` | `http://acceso:8000` / `${ACCESO_CLAVE_FRONTEND}` | `http://127.0.0.1:${PUERTO_ACCESO}` / `ACCESO_CLAVE_FRONTEND` o, si no existe, `ACCESO_CLAVE_EQUIPO` | API de acceso (cliente `frontend` en su auditoría) |
 | `CAPTURA_URL` / `CAPTURA_CLAVE` | `http://captura:8000` / `${CAPTURA_CLAVE_SIMULADOR}` | `http://127.0.0.1:${PUERTO_CAPTURA}` / `CAPTURA_CLAVE_SIMULADOR` | Simulador integrado |
-| `PROMETHEUS_URL` | `http://prometheus:9090` | `http://127.0.0.1:${PUERTO_PROMETHEUS}` | Estado de servicios, frescura, KPIs |
+| `PROMETHEUS_URL` | `http://prometheus:9090` | `http://127.0.0.1:${PUERTO_PROMETHEUS}` | Estado de servicios, frescura, KPIs y los datos de los cuadros de Observabilidad |
+| `GRAFANA_URL` | `http://grafana:3000` | `http://127.0.0.1:${PUERTO_GRAFANA}` | Estado de las alertas en Observabilidad (lectura anónima) |
 | `AIRFLOW_URL` / `AIRFLOW_USUARIO` / `AIRFLOW_CLAVE` | `http://airflow-apiserver:8080` / `${AIRFLOW_ADMIN_USER}` / `${AIRFLOW_ADMIN_PASSWORD}` | `http://127.0.0.1:${PUERTO_AIRFLOW}` | Cargas históricas (API REST v2 de Airflow 3: `POST /auth/token` → JWT) |
 | `AUDITORIA_MONGO_URI` | `mongodb://pids_auditor:${MONGO_AUDITOR_PASSWORD}@mongo:27017/?authSource=admin` | `mongodb://pids_auditor:…@127.0.0.1:${PUERTO_MONGO}/?authSource=admin` | Lectura de `auditoria.decisiones` y `auditoria.cargas` |
 | `OLLAMA_URL` / `OLLAMA_MODELO` | `http://ollama:11434` / `${OLLAMA_MODELO}` | `http://127.0.0.1:${PUERTO_OLLAMA}` | Motor de chat local |
@@ -211,6 +212,23 @@ export interface EventoRespuesta {
 // `Llamada` solicitud_individual se emite igualmente como `paso` (segundos 0) para que se vea que quedó auditado.
 // `EventoPaso.resultado` resume filas y enmascarados («enmascarada (8 filas, 1 enmascarada)», «rechazada», «N zonas»).
 // `tokens` es 0 (no null) en los turnos que no llaman al LLM.
+
+// --- observabilidad (los cuadros de Grafana, dibujados por la SPA) ---
+// GET /api/observabilidad/cuadros -> {uid, titulo, periodo}[]            (los ocho de observabilidad/grafana/dashboards)
+// GET /api/observabilidad/cuadros/{uid} -> Cuadro (404 si el uid no es de un cuadro)
+export interface PanelCuadro {
+  id: number; tipo: 'fila' | 'stat' | 'serie' | 'barras' | 'tarta' | 'texto' | 'alertas';
+  titulo: string; descripcion: string; x: number; y: number; ancho: number; alto: number;   // gridPos de Grafana (24 columnas)
+  unidad: string; color: string | null; umbrales: {color: string; desde: number | null}[];
+  mapeos: Record<string, {texto: string | null; color: string | null}>; colores: Record<string, string>; texto: string | null;
+  valores?: {nombre: string; valor: number | null}[];     // stat, barras, tarta
+  chispa?: number[];                                        // stat que no depende del periodo
+  series?: {nombre: string; puntos: [number, number | null][]}[];   // serie: segundos y valor, unos 60 puntos
+  alertas?: {nombre: string; estado: string; resumen: string}[];    // alertas
+  error?: string;                                           // «Prometheus no responde», «Grafana no responde»
+}
+export interface Cuadro { uid: string; titulo: string; periodo: string; actualizado: number; disponible: boolean;
+  paneles: PanelCuadro[]; grabado?: string }                // grabado: solo en la demostración
 ```
 
 Detalles de implementación que no se negocian:
@@ -236,6 +254,11 @@ Detalles de implementación que no se negocian:
   `agente.responder(texto, ejecutar=...)`, igual que hace Chainlit. Las sesiones viven en memoria y caducan a las 2 h.
   El texto de la respuesta se muestra **tal cual**: las barreras de privacidad ya están dentro del agente y no se
   reimplementan aquí.
+- Observabilidad: el BFF lee los JSON de los cuadros de Grafana (`parte2_plataforma/observabilidad/grafana/dashboards`)
+  y ejecuta en Prometheus **solo** sus consultas (`$__range` se sustituye por el periodo del cuadro): la SPA pide un uid,
+  nunca una consulta. Series con `query_range` (paso ≥ 15 s), stat, barras y tarta con `query`, alertas con
+  `GET {GRAFANA_URL}/api/prometheus/grafana/api/v1/rules`. Leyendas repetidas se distinguen con la etiqueta que las
+  diferencia (la instancia, si vale). Caché de 10 s por cuadro; Prometheus caído → 200 con `error` en cada panel.
 
 ## 6. La SPA (`parte4_frontend/web`)
 
@@ -250,7 +273,8 @@ Rutas (`react-router`), todas protegidas por la guardia de sesión salvo `/acces
 | `/tiempo-real` | `paginas/tiempo-real/PaginaTiempoReal.tsx` (F3) | Frescura con semáforo, viajes por hora (gráfico de barras), tabla de la última hora por zona; refresco cada 30 s |
 | `/privacidad` | `paginas/privacidad/PaginaPrivacidad.tsx` (F4) | Reglas E3 en lenguaje claro (k = 10, niveles, granularidad, rango, campos prohibidos; leídas de `/api/catalogo`), resumen de auditoría con filtros por horas/resultado/cliente, tabla de decisiones, cargas históricas con sus grupos publicados/suprimidos |
 | `/operaciones` | `paginas/operaciones/PaginaOperaciones.tsx` (F4) | Lanzar una carga histórica (mes o muestra) y ver las ejecuciones de Airflow; iniciar/parar el simulador con barra de progreso |
-| `/documentacion` | `paginas/documentacion/PaginaDocumentacion.tsx` (F4) | Arquitectura (diagrama estático), qué es E3, cómo se protege cada respuesta, enlaces a Grafana/Airflow/Spark/APIs/Chainlit |
+| `/grafo` (antes `/documentacion`, que redirige) | `paginas/documentacion/PaginaDocumentacion.tsx` | Grafo de la plataforma a pantalla completa: qué hace cada pieza, tramos iluminados según lo que está en marcha, «Capturar datos» (captura en directo) y zoom con rueda, gesto o botones |
+| `/observabilidad` | `paginas/observabilidad/PaginaObservabilidad.tsx` | Los ocho cuadros de Grafana dibujados con los componentes del portal (misma rejilla y paneles, animados), refresco cada 30 s; «Abrir en Grafana» solo desde el equipo de la plataforma |
 | `*` | (F0) | Página «No encontrado» |
 
 Estructura de `web/src` (F0 la crea; los demás solo escriben dentro de sus carpetas):

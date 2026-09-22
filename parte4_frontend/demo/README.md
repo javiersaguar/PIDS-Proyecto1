@@ -43,6 +43,11 @@ pública»). La demostración no depende de nada del equipo: con el portátil ap
   demostración no se lanzan operaciones.
 - **Grafo**: «Capturar datos» anima el camino de la captura con un reloj de 2020 que avanza, pero no envía nada ni
   cambia el tiempo real grabado (lo dice el propio control).
+- **Observabilidad**: los ocho cuadros de Grafana con los datos de Prometheus del momento de la grabación
+  (`public/demo/observabilidad/`, «Datos grabados el …» en la página). Son métricas de la plataforma: estado de los
+  servicios, colas, Spark, tamaños de las colecciones y los totales por barrio que ya publica la API (sin los grupos
+  de menos de 10). Se regraban solos con la instantánea completa o con
+  `uv run python -m parte4_frontend.demo.instantanea --solo-observabilidad` (portal levantado).
 
 ## Ficheros
 

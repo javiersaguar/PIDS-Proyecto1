@@ -132,9 +132,16 @@ class ClientePrometheus:
 
     async def instantanea(self, expresion: str) -> list[dict]:
         """El vector de resultados de una consulta instantánea; `ServicioNoDisponible` si Prometheus no responde."""
+        return await self._pedir('/api/v1/query', {'query': expresion})
+
+    async def rango(self, expresion: str, inicio: float, fin: float, paso: float) -> list[dict]:
+        """La matriz de una consulta de rango (`values: [[instante, "texto"], …]` por serie)."""
+        return await self._pedir('/api/v1/query_range',
+                                 {'query': expresion, 'start': inicio, 'end': fin, 'step': paso})
+
+    async def _pedir(self, ruta: str, parametros: dict) -> list[dict]:
         try:
-            respuesta = await self.http.get(f'{self.url}/api/v1/query', params={'query': expresion},
-                                            timeout=TIEMPO_PROMETHEUS)
+            respuesta = await self.http.get(f'{self.url}{ruta}', params=parametros, timeout=TIEMPO_PROMETHEUS)
         except httpx.HTTPError as error:
             raise ServicioNoDisponible('Prometheus', f'no responde ({type(error).__name__})') from error
         if respuesta.status_code != 200:

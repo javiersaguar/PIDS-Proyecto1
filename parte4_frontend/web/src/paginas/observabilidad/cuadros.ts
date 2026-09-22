@@ -1,4 +1,7 @@
-/** Los ocho cuadros que provisiona Grafana (`observabilidad/grafana/dashboards`). El uid es el de cada JSON. */
+/**
+ * Los ocho cuadros que provisiona Grafana (`observabilidad/grafana/dashboards`). El uid es el de cada JSON. La lista
+ * de verdad la da el BFF; esta sirve para las pestañas mientras llega y para el subtítulo de cada una.
+ */
 export interface Cuadro {
   uid: string
   titulo: string
@@ -16,17 +19,18 @@ export const CUADROS: readonly Cuadro[] = [
   { uid: 'pids-tiempo-real', titulo: 'Tiempo real', texto: 'De la entrada a la tabla' },
 ]
 
+/** El cuadro en Grafana, para abrirlo en otra pestaña (alertas, edición, cambiar el periodo). */
 export function urlCuadro(base: string, uid: string): string {
   const raiz = base.replace(/\/$/, '')
-  return `${raiz}/d/${uid}?orgId=1&kiosk&theme=light`
+  return `${raiz}/d/${uid}?orgId=1`
 }
 
 const LOCALES = new Set(['localhost', '127.0.0.1', '[::1]'])
 
 /**
- * ¿Se puede incrustar Grafana aquí? Solo cuando Grafana y la página están en este mismo equipo: Grafana se publica
- * en 127.0.0.1, así que desde la web pública (Vercel, túnel) el marco apuntaría al equipo de quien mira, y además una
- * página https no puede cargar un marco http. En la demostración el enlace ni siquiera es un Grafana.
+ * ¿Se puede abrir Grafana desde aquí? Solo cuando Grafana y la página están en este mismo equipo: Grafana se publica
+ * en 127.0.0.1, así que desde la web pública (Vercel, túnel) el enlace apuntaría al equipo de quien mira. En la
+ * demostración el enlace ni siquiera es un Grafana. Los cuadros del portal se ven en todos los casos.
  */
 export function incrustable(base: string, paginaHost: string = window.location.hostname): boolean {
   try {

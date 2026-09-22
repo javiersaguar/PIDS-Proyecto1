@@ -551,6 +551,8 @@ services:
       CAPTURA_URL: http://captura:8000
       CAPTURA_CLAVE: ${CAPTURA_CLAVE_SIMULADOR}
       PROMETHEUS_URL: http://prometheus:9090
+      # Estado de las alertas en la sección Observabilidad (lectura anónima de Grafana)
+      GRAFANA_URL: http://grafana:3000
       AIRFLOW_URL: http://airflow-apiserver:8080
       AIRFLOW_USUARIO: ${AIRFLOW_ADMIN_USER}
       AIRFLOW_CLAVE: ${AIRFLOW_ADMIN_PASSWORD}

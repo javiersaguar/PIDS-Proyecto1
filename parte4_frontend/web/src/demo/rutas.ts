@@ -117,7 +117,19 @@ export class BffDemo {
     if (ruta.startsWith('/api/auditoria/')) return this.auditoria(ruta, p.parametros)
     if (ruta.startsWith('/api/operaciones/')) return this.operaciones(metodo, ruta, p.cuerpo)
     if (ruta.startsWith('/api/chat/')) return this.chat(metodo, ruta, p.cuerpo)
+    if (metodo === 'GET' && ruta.startsWith('/api/observabilidad/')) return this.observabilidad(ruta)
     return detalle(404, 'Not Found')
+  }
+
+  /** Los cuadros de Grafana grabados con sus datos (`observabilidad/`): siempre los de la grabación. */
+  private async observabilidad(ruta: string): Promise<Contestacion> {
+    const lista = await this.datos.leer<{ uid: string }[]>('observabilidad/cuadros.json')
+    if (ruta === '/api/observabilidad/cuadros') return json(lista)
+    const uid = decodeURIComponent(ruta.slice('/api/observabilidad/cuadros/'.length))
+    if (!ruta.startsWith('/api/observabilidad/cuadros/') || !lista.some((c) => c.uid === uid)) {
+      return detalle(404, 'No hay ningún cuadro con ese nombre')
+    }
+    return json(await this.datos.leer(`observabilidad/${uid}.json`))
   }
 
   private sesion(metodo: string): Contestacion {

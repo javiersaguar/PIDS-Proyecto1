@@ -151,6 +151,18 @@ describe('resto del BFF de la demostración', () => {
     expect(rag.tipo === 'json' && rag.estado).toBe(409)
   })
 
+  it('los cuadros de observabilidad son los grabados, con sus datos, y solo los ocho de Grafana', async () => {
+    const demo = nuevaDemo()
+    const lista = cuerpo(await demo.atender(peticion('GET', '/api/observabilidad/cuadros'))) as unknown as { uid: string }[]
+    expect(lista.map((c) => c.uid)).toContain('pids-plataforma')
+    expect(lista).toHaveLength(8)
+    const cuadro = cuerpo(await demo.atender(peticion('GET', '/api/observabilidad/cuadros/pids-spark')))
+    expect(cuadro).toMatchObject({ uid: 'pids-spark', disponible: true })
+    expect(cuadro.grabado).toEqual(expect.any(String))
+    const otro = await demo.atender(peticion('GET', '/api/observabilidad/cuadros/..%2Fpanel'))
+    expect(otro.tipo === 'json' && otro.estado).toBe(404)
+  })
+
   it('cerrar la sesión exige volver a entrar; cualquier contraseña vale', async () => {
     const demo = nuevaDemo()
     await demo.atender(peticion('DELETE', '/api/sesion'))

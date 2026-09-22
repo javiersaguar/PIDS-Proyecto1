@@ -31,6 +31,7 @@ SERVICIOS: dict[str, tuple[str, str, str]] = {
     'PROMETHEUS_URL': ('prometheus', 'PUERTO_PROMETHEUS', '9090'),
     'AIRFLOW_URL': ('airflow-apiserver', 'PUERTO_AIRFLOW', '8085'),
     'OLLAMA_URL': ('ollama', 'PUERTO_OLLAMA', '11435'),
+    'GRAFANA_URL': ('grafana', 'PUERTO_GRAFANA', '3000'),     # estado de las alertas (Observabilidad)
 }
 MONGO = ('mongo', 'PUERTO_MONGO', '27018')
 
@@ -131,6 +132,7 @@ class Configuracion:
     auditoria_mongo_uri: str
     ollama_url: str
     ollama_modelo: str
+    grafana_url: str = 'http://127.0.0.1:3000'
     enlaces: dict[str, str] = field(default_factory=lambda: dict(ENLACES_POR_DEFECTO))
     duracion_sesion: timedelta = DURACION_SESION
     dist_spa: Path = DIST_SPA
@@ -155,6 +157,7 @@ class Configuracion:
             auditoria_mongo_uri=uri_auditoria(cfg, contenedor),
             ollama_url=url_servicio('OLLAMA_URL', cfg, contenedor),
             ollama_modelo=cfg.get('OLLAMA_MODELO') or OLLAMA_MODELO_POR_DEFECTO,
+            grafana_url=url_servicio('GRAFANA_URL', cfg, contenedor),
             enlaces=enlaces(cfg),
         )
 

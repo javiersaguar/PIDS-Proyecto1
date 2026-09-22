@@ -13,10 +13,12 @@ import { ID_PANEL_ASISTENTE } from './PanelAsistente'
 interface Props {
   abierto: boolean
   alPulsar: () => void
+  /** En el grafo sube: abajo a la derecha están los nodos de Chatbots y Ollama, que no se desplazan. */
+  elevado?: boolean
   ref?: Ref<HTMLButtonElement>
 }
 
-export function BotonTaxiAI({ abierto, alPulsar, ref }: Props) {
+export function BotonTaxiAI({ abierto, alPulsar, elevado = false, ref }: Props) {
   return (
     <button
       ref={ref}
@@ -28,14 +30,14 @@ export function BotonTaxiAI({ abierto, alPulsar, ref }: Props) {
       aria-hidden={abierto}
       tabIndex={abierto ? -1 : undefined}
       className={cn(
-        // bottom-40: por encima de la fila baja del grafo (Chatbots, Ollama) y del enlace de abrir de la tabla
-        'fixed right-6 bottom-40 z-50 inline-flex h-12 items-center gap-2.5 rounded-full pr-5 pl-4 text-sm font-semibold tracking-wide text-white',
+        'fixed right-3 z-50 inline-flex h-9 items-center gap-2 rounded-full pr-3.5 pl-3 text-[13px] font-semibold tracking-wide text-white',
         'bg-[#6d4aff] shadow-[0_14px_36px_-12px_rgba(109,74,255,0.75)] transition-[opacity,background-color,transform] duration-200 ease-out',
         'hover:-translate-y-0.5 hover:bg-[#5b3ae0] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6d4aff]',
+        elevado ? 'bottom-40' : 'bottom-16',
         abierto && 'pointer-events-none invisible scale-90 opacity-0',
       )}
     >
-      <Sparkles className="size-4" aria-hidden />
+      <Sparkles className="size-3.5" aria-hidden />
       TAXI AI
     </button>
   )

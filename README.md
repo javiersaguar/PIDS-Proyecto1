@@ -174,7 +174,7 @@ con su contraseña; ningún otro servicio sale del equipo.
 ├── config/                  reglas compartidas Python/Scala: esquema del viaje y privacidad
 ├── data/muestra/            los 999 viajes de ejemplo (el resto de datos no se versiona)
 ├── docker/                  imagen común de los servicios Python
-├── docs/                    plan, arquitectura, comparativa, E3, métricas, casos de uso, datos
+├── docs/                    plan, arquitectura, comparativa, E3, métricas, casos de uso, datos, guion de la demo
 ├── parte1_gestos/
 ├── parte2_plataforma/
 │   ├── comun/               esquema y reglas de privacidad (Python)

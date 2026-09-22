@@ -24,18 +24,18 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 
 ## Estado actual
 
-**Última actualización: 22/09/2026 · Javier Saguar** (captura en directo, T11, grafo con zoom y web pública en vivo)
+**Última actualización: 22/09/2026 · Javier Saguar** (Observabilidad con los cuadros de Grafana dibujados por el portal, menú plegable y guion de la demo)
 
 | | |
 |---|---|
 | **Escenario** | E3 · privacidad total |
-| **Funciona y está probado en ejecución** | Núcleo (S3, Redpanda, MongoDB, APIs), carga histórica con Spark en modo cluster y supresión complementaria, tiempo real con streaming, filtro de privacidad (permitida / enmascarada / rechazada), DAG de Airflow, Prometheus (9 objetivos), panel de Grafana con 3 alertas probadas, informe de auditoría, chatbot de Ollama con barreras sobre las cifras y **chatbot RAG** (LangChain + Qdrant + LLM externo en la UE) con las mismas barreras y una guardia de salida. 340 tests de Python y 17 de Scala |
+| **Funciona y está probado en ejecución** | Núcleo (S3, Redpanda, MongoDB, APIs), carga histórica con Spark en modo cluster y supresión complementaria, tiempo real con streaming, filtro de privacidad (permitida / enmascarada / rechazada), DAG de Airflow, Prometheus (9 objetivos), ocho cuadros de Grafana con 3 alertas probadas, informe de auditoría, chatbot de Ollama con barreras sobre las cifras y **chatbot RAG** (LangChain + Qdrant + LLM externo en la UE) con las mismas barreras y una guardia de salida. 477 tests de Python, 17 de Scala y 186 del portal (Vitest) |
 | **Datos cargados** | Año 2020 completo, recargado el 21/09 con supresión complementaria: 23 684 852 viajes válidos; 287 003 grupos hora-zona publicados (430 126 ocultos). Índice de Qdrant: 376 documentos de conocimiento y 18 187 fichas de agregados gruesos |
 | **Métricas** | M1: 0 fugas en la API (31 casos), en el chatbot de Ollama (105 ejecuciones) y en el chatbot RAG (105 ejecuciones) · M2: con k = 10 se publica el 95,1 % de los viajes en hora-zona · M3: p95 35,4 s (objetivo < 60 s) |
 | **Chatbots** | Ollama: `llama3.1:8b` en GPU a temperatura 0,2, 21/21 casos en 2-3 s · RAG: `deepseek-v4-flash` (Helmcode, UE), 21/21 casos con p50 1,1 s y unos 6 000 tokens por pregunta. Detalle en `docs/chatbot_rag.md` |
 | **Parte 1** | Se ejecuta desde el repositorio, con `PIDS_DATOS` apuntando a las imágenes (que siguen fuera de Git) |
-| **Portal web (parte 4)** | En `main` y levantado (`make frontend`, http://localhost:8020, contraseña `FRONTEND_CLAVE` de `.env`): panel, explorador, tiempo real, privacidad y auditoría, operaciones y el grafo de la plataforma, que ilumina los tramos en marcha (T15) y tiene «Capturar datos» (captura en directo con viajes reales de diciembre de 2020); el asistente TAXI AI (Ollama y RAG) es un botón fijo con panel derecho en todas las páginas (T16). Demostración pública en Vercel con datos grabados, o en vivo por túnel si el equipo está encendido (`parte4_frontend/demo`) |
-| **Sin empezar** | Vídeo de la entrega y presentación (T10). El gesto ya tiene el suyo: `docs/capturas/cu8_gesto.mp4` |
+| **Portal web (parte 4)** | En `main` y levantado (`make frontend`, http://localhost:8020, contraseña `FRONTEND_CLAVE` de `.env`): panel, explorador, tiempo real, privacidad y auditoría, operaciones y el grafo de la plataforma, que ilumina los tramos en marcha (T15) y tiene «Capturar datos» (captura en directo con viajes reales de diciembre de 2020); el asistente TAXI AI (Ollama y RAG) es un botón fijo con panel derecho en todas las páginas (T16), y Observabilidad dibuja los ocho cuadros de Grafana con los datos de Prometheus. El menú lateral se pliega. Demostración pública en Vercel con datos grabados, o en vivo por túnel si el equipo está encendido (`parte4_frontend/demo`) |
+| **Sin empezar** | Vídeo de la entrega y presentación (T10); el guion está en `docs/guion_demo.md`. El gesto ya tiene el suyo: `docs/capturas/cu8_gesto.mp4` |
 | **Cómo levantarlo** | En Ubuntu (WSL2), paso a paso en el README («Puesta en marcha»): `make entorno`, pegar `LLM_API_KEY`, `make sync && make test`, `make construir && make todo`, `make historico-muestra` y `make rag-indexar`; cada día, `make todo` y `make tiempo-real` |
 | **Forma de trabajar** | Una rama por persona (tabla en el README) y cambios a `main` por *pull request*. Para trabajo en paralelo, una rama de tarea con contratos por bloque (`parte3_chatbot_rag/CONTRATOS.md`). Cada copia, con `make hooks`; el CI «Autoría» rechaza coautorías y firmas automáticas |
 | **Repositorio** | Recreado en GitHub el 22/09/2026 (mismo nombre) para eliminar una coautoría ajena al grupo: [`docs/repositorio.md`](docs/repositorio.md). Copias anteriores: sincronizar con `git reset --hard origin/main`. **Vercel (`happytaxi`, `yellowveil`) hay que volver a conectarlo al repositorio nuevo** (§4 de ese documento) |
@@ -86,6 +86,54 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 ---
 
 ## Entradas
+
+### 2026-09-22 · Javier Saguar · Observabilidad nativa, menú plegable y guion de la demo
+
+- **Rama / commits:** `main`
+- **Qué he hecho:**
+  - **Observabilidad con los cuadros de verdad, no solo el aviso:** los ocho cuadros de Grafana se ven dentro del
+    portal, con la misma disposición (rejilla de 24 columnas, `gridPos`) y los mismos paneles: valores con umbrales y
+    chispa, series temporales, barras con sus mapeos (activo/caído), tarta, texto y el estado de las alertas. Se
+    dibujan con los componentes del portal y se mueven como el resto: los números recorren el camino hasta el valor
+    nuevo, las áreas y el anillo se deslizan, las barras cambian de ancho y los paneles entran escalonados. Refresco
+    cada 30 s, como Grafana; con `prefers-reduced-motion`, sin movimiento.
+  - **BFF:** `GET /api/observabilidad/cuadros` y `/cuadros/{uid}`. Lee los mismos JSON que provisiona Grafana
+    (`generar.py` sigue siendo la única fuente) y ejecuta en Prometheus **solo** sus consultas: la SPA pide un uid,
+    nunca una consulta de PromQL. El estado de las alertas lo lee de Grafana (lectura anónima, `GRAFANA_URL`). Si dos
+    series tienen la misma leyenda (los dos `spark-workers`), se les añade la etiqueta que las distingue.
+  - **Web pública:** como no es un marco de Grafana, se ve también por el túnel. En la demostración, los cuadros
+    grabados (`public/demo/observabilidad/`, «Datos grabados el …»); `instantanea.py --solo-observabilidad` los regraba.
+    El aviso de dónde está Grafana se queda cuando no se puede abrir; desde el equipo, «Abrir en Grafana» lleva a
+    cada cuadro.
+  - **Menú lateral plegable** (hecho con Cursor, revisado e integrado): botón junto al logotipo, recuerda la elección
+    en el navegador. Al integrarlo: el botón de reabrir tapaba el principio de cada página (la etiqueta «Nivel» del
+    explorador, por ejemplo), así que con el menú cerrado la página deja un margen de 3,5 rem; TAXI AI había bajado a
+    `bottom-16` y en el grafo volvía a tapar el nodo de Ollama, así que ahí sube (`elevado`); y las funciones de
+    `localStorage` pasan a `menuLateral.ts` (el lint no deja exportarlas desde un fichero de componente).
+  - **Guion de la demo** (`docs/guion_demo.md`): 14 escenas por todo el portal, qué se dice en cada una, qué objetivo
+    del enunciado cubre (con un mapa objetivo → escena), cifras medidas, plan B y preguntas de reserva.
+  - **Datos:** el 1 de enero del histórico estaba pisado. Tres cargas de la muestra hoy (15:28, 15:30 y 16:32, desde
+    Operaciones) sustituyeron sus grupos por los de 999 viajes (Queens salía con 41). Los agregados se guardan por sus
+    dimensiones, sin el lote, así que una carga reemplaza los días que trae. Reparado repitiendo la carga del año
+    (`make historico-fichero RUTA=s3a://crudo/historico/2020_Yellow_Taxi_Trip_Data_20260917.csv LOTE=anio-2020`).
+- **Por qué:** ver los cuadros, no solo un aviso de que existen, también desde la web pública; y tener el guion para
+  grabar T10.
+- **Ficheros clave:** `parte4_frontend/bff/{servicios,rutas}/observabilidad.py`, `parte4_frontend/web/src/paginas/observabilidad/`
+  (`Paneles.tsx`, `CuadroNativo.tsx`, `formatoUnidad.ts`), `parte4_frontend/web/src/api/observabilidad.ts`,
+  `parte4_frontend/web/src/demo/rutas.ts`, `parte4_frontend/demo/instantanea.py`, `componentes/shell/{BarraLateral,AppShell,BotonTaxiAI,menuLateral}`,
+  `docker-compose.yml` (`GRAFANA_URL`), `docs/guion_demo.md`
+- **Cómo comprobarlo:** `make frontend` y http://localhost:8020/observabilidad (las ocho pestañas); `uv run pytest
+  tests/test_frontend_bff_observabilidad.py`; en `parte4_frontend/web`, `npx vitest run src/paginas/observabilidad`.
+- **Resultado:** 477 tests de Python y 186 de Vitest en verde, `tsc` y lint limpios. Con Playwright: los ocho cuadros
+  con datos en el portal (1440 px y 400 px), en la demostración y con el menú abierto y cerrado, sin errores en la
+  consola.
+- **Pendiente y riesgos:** «Peticiones rechazadas en la entrada» (Kafka) sale «Sin datos» mientras no haya rechazos:
+  es correcto. La chispa de un valor abarca como mucho las últimas 3 h. Falta impedir que la muestra vuelva a pisar
+  el histórico (apuntado en `TAREAS.md`, «Ideas y trabajo futuro»).
+- **Contexto para quien siga:** no se incrusta Grafana porque escucha en 127.0.0.1 y el marco no funcionaría desde la
+  web pública. Un cuadro o panel nuevo en `generar.py` aparece solo en el portal, siempre que su tipo sea uno de los
+  siete que se dibujan (`TIPOS` en `servicios/observabilidad.py`); un tipo nuevo necesita su componente en
+  `Paneles.tsx`. Durante la demo no se lanza ninguna carga (ver el guion).
 
 ### 2026-09-22 · Javier Saguar · Observabilidad en el portal: ocho cuadros de Grafana generados
 

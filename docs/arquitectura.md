@@ -91,8 +91,12 @@ Prometheus sondea cada 15 s las APIs, Redpanda, SeaweedFS y Spark. Grafana solo 
 credenciales de datos) y todo se provisiona por ficheros: ocho cuadros en
 `observabilidad/grafana/dashboards/` (plataforma, privacidad, chatbots, Kafka, Spark, MongoDB, S3 y tiempo
 real; se regeneran con `generar.py`) y tres alertas en
-`observabilidad/grafana/provisioning/alerting/reglas.json`, evaluadas cada 30 s. El portal los muestra en
-Observabilidad.
+`observabilidad/grafana/provisioning/alerting/reglas.json`, evaluadas cada 30 s.
+
+El portal los enseña en **Observabilidad** sin incrustar Grafana: su BFF lee esos mismos JSON y ejecuta en Prometheus
+solo sus consultas (se le pide un cuadro por su uid, nunca una consulta), y la SPA los dibuja con la disposición de
+Grafana y los componentes animados del resto del portal. Así se ven también desde la web pública (por el túnel) y,
+grabados, en la demostración; el estado de las alertas lo lee de Grafana (lectura anónima).
 
 | Alerta | Condición (resumida) | Qué indica |
 |---|---|---|

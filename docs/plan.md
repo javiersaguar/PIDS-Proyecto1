@@ -46,7 +46,7 @@ Documentación y presentación, entre todos. Cada uno describe sus cambios en [`
 - [x] Instrucciones de ejecución y despliegue → `README.md` («Puesta en marcha»: primera vez, cada día, usuarios y web pública)
 - [x] 3 métricas de calidad medidas → `docs/metricas_calidad.md`
 - [x] Casos de uso del chatbot con acceso a los datos → `docs/casos_uso.md`
-- [ ] Capturas o vídeo de los casos de uso (capturas en `docs/capturas/` y vídeo del gesto, `cu8_gesto.mp4`; falta el vídeo de la demo, T10)
+- [ ] Capturas o vídeo de los casos de uso (capturas en `docs/capturas/` y vídeo del gesto, `cu8_gesto.mp4`; falta el vídeo de la demo, T10, con su guion en [`guion_demo.md`](guion_demo.md))
 - [x] Extras: varias opciones de almacenamiento ✅, visualización ✅, seguridad ✅ ([`seguridad.md`](seguridad.md)), código propio ✅,
       despliegue automatizado ✅, nueva fuente de datos (zonas de la TLC) ✅, alta disponibilidad (API de acceso con
       dos réplicas y proxy, probada con carga: 0 fallos; driver de Spark supervisado; el resto en una instancia,

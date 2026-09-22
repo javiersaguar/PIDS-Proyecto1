@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 
 import { renderizarRutas, simularApi } from '@/pruebas/utilidades'
 
@@ -19,6 +19,8 @@ const CHAT = {
 }
 
 describe('AppShell', () => {
+  beforeEach(() => localStorage.removeItem('pids-menu-abierto'))
+
   it('pinta la navegación con las secciones (sin el asistente) y marca la activa', async () => {
     simularApi({ 'GET /api/sesion': { autenticado: true }, 'GET /api/panel': PANEL })
     renderizarRutas('/explorador')
@@ -35,6 +37,20 @@ describe('AppShell', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Explorador' })).toBeInTheDocument()
     expect(screen.queryByText('Solo agregados protegidos · k = 10')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Cerrar sesión' })).toBeInTheDocument()
+  })
+
+  it('el botón del menú lo cierra y lo vuelve a abrir, y recuerda la elección', async () => {
+    simularApi({ 'GET /api/sesion': { autenticado: true }, 'GET /api/panel': PANEL })
+    renderizarRutas('/explorador')
+    const usuario = userEvent.setup()
+
+    await usuario.click(await screen.findByRole('button', { name: 'Cerrar el menú' }))
+    expect(screen.queryByRole('navigation', { name: 'Secciones del portal' })).not.toBeInTheDocument()
+    expect(localStorage.getItem('pids-menu-abierto')).toBe('0')
+
+    await usuario.click(screen.getByRole('button', { name: 'Abrir el menú' }))
+    expect(await screen.findByRole('navigation', { name: 'Secciones del portal' })).toBeInTheDocument()
+    expect(localStorage.getItem('pids-menu-abierto')).toBe('1')
   })
 
   it('muestra los chips de estado de los servicios cuando /api/panel responde', async () => {

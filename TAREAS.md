@@ -54,6 +54,8 @@ decisión pendiente en T13. El mapa de todo lo que falta para cerrar el proyecto
      rechazo por privacidad) y, si está, el gesto.
   2. Presentación: reparto del trabajo, comparativa, arquitectura, casos de uso, demo y conclusiones.
   3. Repasar el checklist de `docs/plan.md`.
+- **Notas:** el guion está escrito: [`docs/guion_demo.md`](docs/guion_demo.md) (escenas, qué se dice, qué objetivo
+  cubre cada una y plan B). Grabar con el portal ya abierto: la contraseña no sale en el vídeo.
 - **Hecha cuando:** el vídeo y las diapositivas están listos y enlazados desde el README.
 - **Dónde:** `docs/`, README
 
@@ -102,6 +104,10 @@ decisión pendiente en T13. El mapa de todo lo que falta para cerrar el proyecto
 - Privacidad diferencial (OpenDP) sobre los agregados, además del umbral k.
 - Detectar patrones de consultas sospechosos por cliente (muchas consultas solapadas).
 - Airflow: un DAG que cargue los 12 meses en cadena, con reintentos.
+- Cargas: impedir que la muestra (999 viajes del 1 de enero) pise un histórico ya cargado. Los agregados se guardan
+  por sus dimensiones, así que la muestra sustituye los grupos del 1 de enero del año completo; pasó el 22/09 (tres
+  cargas desde Operaciones) y se reparó repitiendo la carga del año. Idea: que el BFF y el DAG respondan 409 a
+  `muestra` si `auditoria.cargas` ya tiene una carga que no sea de la muestra.
 - Comparar la exportación completa con los Parquet mensuales de la TLC (¿mismos viajes?).
 - Committer de S3A más rápido para las escrituras de Spark.
 - Supresión complementaria también en tiempo real: un trabajo por lotes que cierre cada día cuando la

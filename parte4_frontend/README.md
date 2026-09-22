@@ -13,7 +13,8 @@ decisiones de la auditoría (que no contienen viajes).
 | Tiempo real | `/tiempo-real` | Frescura, viajes por hora de las últimas 6/12/24 h con datos y la última hora por zona; se refresca cada 30 s |
 | Privacidad | `/privacidad` | Reglas E3 leídas del catálogo, auditoría de decisiones (por resultado, cliente y motivo, con filtros) y cargas históricas |
 | Operaciones | `/operaciones` | Lanzar una carga histórica en Airflow (mes o muestra) y ver sus ejecuciones; iniciar y parar el simulador de tiempo real |
-| Documentación | `/documentacion` | Arquitectura, cómo se protege cada respuesta, enlaces a los servicios y equipo |
+| Grafo | `/grafo` | La plataforma como un grafo: qué hace cada pieza, los tramos en marcha iluminados, el camino del asistente hasta su modelo, «Capturar datos» (viajes reales de 2020 como si pasaran ahora) y zoom con la rueda, el panel táctil o los botones de lupa |
+| Observabilidad | `/observabilidad` | Los ocho cuadros de Grafana (plataforma, privacidad, chatbots, Kafka, Spark, MongoDB, S3 y tiempo real) dibujados por el portal: misma disposición y paneles que en Grafana, con las animaciones del resto de la app y refresco cada 30 s. Desde el equipo, «Abrir en Grafana» lleva a cada cuadro |
 
 ## Arquitectura
 
@@ -90,8 +91,8 @@ parte4_frontend/
 │   ├── configuracion.py  variables de entorno; en el host lee .env y deriva las URL de los puertos publicados
 │   ├── seguridad.py      cookie de sesión firmada y dependencias (configuración, cliente HTTP compartido)
 │   ├── estaticos.py      sirve web/dist con fallback a index.html
-│   ├── rutas/            sesion · salud · catalogo · consultas · panel · tiempo_real · auditoria · operaciones · chat
-│   ├── servicios/        acceso · prometheus · auditoria · airflow · simulacion · chat
+│   ├── rutas/            sesion · salud · catalogo · consultas · panel · tiempo_real · auditoria · operaciones · chat · observabilidad
+│   ├── servicios/        acceso · prometheus · auditoria · airflow · simulacion · chat · observabilidad
 │   └── Dockerfile        multi-stage: node:22 construye la SPA; python:3.12 instala el BFF (grupos frontend y chatbot)
 └── web/                  Vite + React 19 + TypeScript + Tailwind 4 + shadcn/ui
     └── src/
@@ -115,7 +116,9 @@ Documentación interactiva en `http://localhost:8020/api/docs`.
 | `GET /api/auditoria/{resumen,decisiones,cargas}` | Lectura de `auditoria` con `pids_auditor` |
 | `GET/POST /api/operaciones/airflow/{ejecuciones,cargas}` | Ejecuciones del DAG `pids_carga_historica` y lanzamiento de una carga |
 | `GET/POST/DELETE /api/operaciones/simulacion` (+ `/ficheros`) | Simulador integrado sobre `data/muestra` |
+| `GET/POST/DELETE /api/operaciones/captura` | Captura en directo del grafo: viajes reales de 2020 enviados como si pasaran ahora |
 | `GET /api/chat/motores` · `POST /api/chat/sesiones` · `POST …/{id}/mensajes` · `POST …/{id}/alternativa` | Chat con eventos SSE `paso`, `respuesta` y `error` |
+| `GET /api/observabilidad/cuadros` · `GET /api/observabilidad/cuadros/{uid}` | Los cuadros de Grafana con los datos de cada panel (solo las consultas de sus JSON; caché de 10 s) |
 
 ## Decisiones y límites
 
@@ -130,3 +133,8 @@ Documentación interactiva en `http://localhost:8020/api/docs`.
   trabajo de tiempo real ya ha visto días posteriores, los descarta por la *watermark*: ver `parte2_plataforma/README.md`).
 - Cachés en memoria del BFF (catálogo, meses del panel, tiempo real) para que el refresco automático del portal no
   multiplique las entradas de la auditoría; lo cacheado ya salió filtrado por la API.
+- **Observabilidad sin incrustar Grafana**: Grafana solo escucha en 127.0.0.1, así que un marco no funcionaría desde la
+  web pública. El BFF lee los mismos JSON que provisiona Grafana y ejecuta en Prometheus solo esas consultas (la SPA
+  pide un uid, nunca una consulta); la SPA los dibuja en la rejilla de 24 columnas de Grafana con sus propios
+  componentes. Así se ven igual en el equipo, por el túnel y, grabados, en la demostración. Grafana sigue siendo el
+  sitio para editar los cuadros y las alertas. Un cuadro nuevo en `generar.py` aparece solo en el portal.

@@ -32,7 +32,7 @@ Solo servicios con credencial:
 | Portal | http://localhost:8020 | `FRONTEND_CLAVE` |
 | Chatbot y chatbot RAG | http://localhost:8010 y :8011 | `CHATBOT_USUARIO` / `CHATBOT_CLAVE`. La sesión la firma `CHAINLIT_AUTH_SECRET` |
 | Airflow | http://localhost:8085 | `AIRFLOW_ADMIN_USER` / `AIRFLOW_ADMIN_PASSWORD` |
-| Grafana | http://localhost:3000 | Ver los cuadros no pide clave (el portal los incrusta; solo `127.0.0.1`). Editar sigue siendo `admin` / `GRAFANA_ADMIN_PASSWORD`. El alta pública está cerrada |
+| Grafana | http://localhost:3000 | Ver los cuadros no pide clave (solo `127.0.0.1`; el portal lee de ahí el estado de las alertas). Editar sigue siendo `admin` / `GRAFANA_ADMIN_PASSWORD`. El alta pública está cerrada |
 | API de acceso y de captura | :8002 y :8001 | Cabecera `X-API-Key` |
 | MongoDB | `localhost:27018` | Usuario y contraseña. Sin ellas, `listDatabases` responde 13 |
 | S3 | http://localhost:8333 | Clave de acceso. Sin ella responde 403 |
@@ -47,7 +47,7 @@ No tienen login y ven datos o pueden lanzar trabajo. Se usan por el nombre del c
 | Interfaces de los workers | Misma razón |
 | Kafka (`19092` / `9092`) | El topic `viajes-crudos` lleva viajes individuales y Redpanda va sin SASL |
 | Consola de Redpanda | Enseña esos mensajes. `make herramientas` la arranca, pero no abre puerto |
-| Prometheus | Grafana y el portal lo consultan en `prometheus:9090` |
+| Prometheus | Grafana y el portal lo consultan en `prometheus:9090`. El portal solo ejecuta las consultas de los JSON de los cuadros: desde el navegador (o por el túnel) se pide un cuadro por su nombre, nunca una consulta de PromQL |
 | Ollama | El chatbot lo usa en `ollama:11434` |
 | Qdrant | El índice lo leen el chatbot RAG y el portal en `qdrant:6333` |
 
