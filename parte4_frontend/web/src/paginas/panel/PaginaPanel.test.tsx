@@ -168,9 +168,10 @@ describe('PaginaPanel', () => {
     const estado = await screen.findByRole('status', { name: 'Actividad de la plataforma' })
     await waitFor(() => expect(estado).toHaveTextContent('Simulación en marcha: 450 de 999 viajes · 50 viajes/s'))
     expect(estado).toHaveTextContent(/actualizado hace \d+ s · siguiente en \d+ s/)
-    // la señal sale de lo que Operaciones ya consulta: no hay ninguna ruta nueva
+    // la señal sale de rutas que el BFF ya tenía (Operaciones y la auditoría, para los chatbots): ninguna nueva
     const rutas = new Set(espia.mock.calls.map(([entrada]) => new URL(String(entrada), 'http://localhost').pathname))
-    expect(rutas).toEqual(new Set(['/api/sesion', '/api/panel', '/api/operaciones/simulacion', '/api/operaciones/airflow/ejecuciones']))
+    expect(rutas).toEqual(new Set(['/api/sesion', '/api/panel', '/api/operaciones/simulacion', '/api/operaciones/airflow/ejecuciones',
+      '/api/auditoria/decisiones']))
   })
 
   it('sin procesos en marcha (y sin Airflow ni simulador), el indicador lo dice y el panel sigue igual', async () => {

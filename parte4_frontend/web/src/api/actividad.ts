@@ -1,7 +1,8 @@
 /**
  * Qué está haciendo la plataforma ahora mismo, con lo que el BFF ya sabe (CONTRATOS.md §5): las ejecuciones de
- * Airflow, el simulador y la frescura del tiempo real. No abre ningún canal nuevo: reutiliza las consultas de
- * Operaciones y del panel, que TanStack Query comparte entre las páginas que las usan.
+ * Airflow, el simulador, la frescura del tiempo real y, cada pocos segundos, las decisiones recientes de la
+ * auditoría (para saber si un chatbot de Chainlit está consultando). El asistente de esta web se marca aparte,
+ * porque su respuesta no pasa por TanStack Query.
  *
  *   const actividad = useActividad()
  *   actividad.enMarcha       // hay una carga, una simulación o Spark ha publicado hace poco
@@ -9,24 +10,31 @@
  *   actividad.simulacion     // la simulación activa, si la hay
  *   actividad.publicando     // Spark ha escrito agregados de tiempo real hace menos de UMBRAL_PUBLICANDO_S
  *   actividad.consultando    // el portal está pidiendo datos a la API de acceso en este momento
+ *   actividad.chatOllama     // el asistente de Ollama (portal o Chainlit) está consultando
+ *   actividad.chatHelmcode   // el asistente de DeepSeek en Helmcode está consultando
  *
  * `derivarActividad` y `describirActividad` son lógica pura (se prueban sin React). Si Airflow o el simulador no
  * responden, esa parte cuenta como «sin actividad»: la página no se entera.
  */
-import { useIsFetching } from '@tanstack/react-query'
+import { useIsFetching, useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 
-import { useSegundosDesde } from '@/componentes/datos/useAhora'
+import { useAhora, useSegundosDesde } from '@/componentes/datos/useAhora'
 import { describirAntiguedad, formatearEntero } from '@/componentes/datos/formato'
 
+import { CLAVE_AUDITORIA, rutaDecisiones } from './auditoria'
+import { useChatsLocales } from './chatActivo'
+import { api } from './cliente'
 import { useEjecucionesAirflow, useSimulacion } from './operaciones'
 import { usePanel } from './panel'
-import type { EjecucionAirflow, Simulacion } from './tipos'
+import type { DecisionAuditada, EjecucionAirflow, Simulacion } from './tipos'
 
 /** Spark escribe los agregados de tiempo real cada 30 s; si el último lleva menos de esto, sigue publicando. */
 export const UMBRAL_PUBLICANDO_S = 120
 /** Cuánto se mantiene encendido «consultando» tras acabar la petición, para que se llegue a ver. */
 export const SOSTENER_CONSULTANDO_MS = 1500
+/** Una decisión de auditoría más reciente que esto cuenta como «el chatbot está consultando». */
+export const UMBRAL_CHAT_MS = 45_000
 /** Consultas que van a la API de acceso a por agregados (las que animan el tramo MongoDB → acceso → portal). */
 const CLAVES_CONSULTA = new Set(['panel', 'tiempo-real', 'consultas'])
 const NOMBRE_MES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
@@ -58,13 +66,17 @@ export interface Actividad {
   frescuraSegundos: number | null
   publicando: boolean
   consultando: boolean
-  /** Carga, simulación o publicación: algo se mueve. */
+  /** El asistente de Ollama (el del portal o el de Chainlit) está en un turno. */
+  chatOllama: boolean
+  /** El asistente de DeepSeek en Helmcode está en un turno. */
+  chatHelmcode: boolean
+  /** Carga, simulación, publicación o un asistente respondiendo. */
   enMarcha: boolean
 }
 
 export const SIN_ACTIVIDAD: Actividad = {
   carga: null, ultimaCarga: null, simulacion: null, frescuraSegundos: null, publicando: false, consultando: false,
-  enMarcha: false,
+  chatOllama: false, chatHelmcode: false, enMarcha: false,
 }
 
 export interface Entradas {
@@ -72,6 +84,8 @@ export interface Entradas {
   simulacion?: Simulacion | null
   frescuraSegundos?: number | null
   consultando?: boolean
+  chatOllama?: boolean
+  chatHelmcode?: boolean
   /** Instante actual en ms (para las antigüedades); por defecto `Date.now()`. */
   ahoraMs?: number
 }
@@ -116,11 +130,31 @@ export function derivarActividad(entradas: Entradas): Actividad {
   const simulacion = entradas.simulacion?.activa ? entradas.simulacion : null
   const frescuraSegundos = entradas.frescuraSegundos ?? null
   const publicando = frescuraSegundos != null && frescuraSegundos <= UMBRAL_PUBLICANDO_S
+  const chatOllama = entradas.chatOllama ?? false
+  const chatHelmcode = entradas.chatHelmcode ?? false
   return {
     carga, ultimaCarga, simulacion, frescuraSegundos, publicando,
     consultando: entradas.consultando ?? false,
-    enMarcha: carga !== null || simulacion !== null || publicando,
+    chatOllama, chatHelmcode,
+    enMarcha: carga !== null || simulacion !== null || publicando || chatOllama || chatHelmcode,
   }
+}
+
+/** Clientes de la API de acceso que son un chatbot de Chainlit, no el portal. */
+export function chatsDesdeDecisiones(
+  decisiones: readonly Pick<DecisionAuditada, 'instante' | 'cliente'>[],
+  ahoraMs: number,
+  umbralMs = UMBRAL_CHAT_MS,
+): { ollama: boolean; helmcode: boolean } {
+  let ollama = false
+  let helmcode = false
+  for (const decision of decisiones) {
+    const ms = Date.parse(decision.instante)
+    if (!Number.isFinite(ms) || ahoraMs - ms > umbralMs || ms - ahoraMs > 5_000) continue
+    if (decision.cliente === 'chatbot') ollama = true
+    if (decision.cliente === 'chatbot_rag') helmcode = true
+  }
+  return { ollama, helmcode }
 }
 
 // --- textos --------------------------------------------------------------------------------------------------
@@ -150,6 +184,8 @@ export function describirActividad(actividad: Actividad): string[] {
   if (actividad.publicando) {
     frases.push(`Tiempo real: Spark publicó ${describirAntiguedad(actividad.frescuraSegundos)}`)
   }
+  if (actividad.chatOllama) frases.push('El asistente consulta con Ollama')
+  if (actividad.chatHelmcode) frases.push('El asistente consulta con DeepSeek, en Helmcode')
   return frases
 }
 
@@ -181,6 +217,19 @@ export function useActividad(): Actividad {
     useIsFetching({ predicate: (consulta) => CLAVES_CONSULTA.has(String(consulta.queryKey[0])) }) > 0,
     SOSTENER_CONSULTANDO_MS,
   )
+  const locales = useChatsLocales()
+  const chatOllamaLocal = useSostenido(locales.ollama, SOSTENER_CONSULTANDO_MS)
+  const chatHelmcodeLocal = useSostenido(locales.rag, SOSTENER_CONSULTANDO_MS)
+  // Chainlit no pasa por este portal: su consulta queda en la auditoría como cliente chatbot o chatbot_rag.
+  const decisiones = useQuery({
+    queryKey: [...CLAVE_AUDITORIA, 'decisiones', 'chat'],
+    queryFn: () => api<DecisionAuditada[]>(rutaDecisiones({ horas: 0.03, limite: 40 })),
+    refetchInterval: 5_000,
+    staleTime: 4_000,
+  })
+  // el reloj avanza al ritmo del sondeo: así el tramo se apaga solo cuando la última consulta queda atrás
+  const ahora = useAhora(5_000)
+  const porAuditoria = chatsDesdeDecisiones(decisiones.data ?? [], ahora)
   // la frescura avanza en cliente entre refrescos del panel (cada 5 s basta para los textos «hace X s»)
   const transcurridos = useSegundosDesde(panel.dataUpdatedAt || null, 5_000)
   const frescura = panel.data?.frescura_tiempo_real?.segundos
@@ -189,5 +238,7 @@ export function useActividad(): Actividad {
     simulacion: simulacion.data,
     frescuraSegundos: frescura == null ? null : frescura + (transcurridos ?? 0),
     consultando,
+    chatOllama: chatOllamaLocal || porAuditoria.ollama,
+    chatHelmcode: chatHelmcodeLocal || porAuditoria.helmcode,
   })
 }

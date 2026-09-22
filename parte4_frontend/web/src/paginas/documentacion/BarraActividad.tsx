@@ -2,17 +2,18 @@
  * Barra sobre el lienzo: qué está haciendo la plataforma ahora (una frase por proceso) y, si no hay nada,
  * cuál fue la última carga y desde dónde se lanza algo. Es la explicación de los tramos que se iluminan.
  */
-import { Activity, CalendarClock, Radio, Workflow, type LucideIcon } from 'lucide-react'
+import { Activity, CalendarClock, MessageSquareText, Radio, Workflow, type LucideIcon } from 'lucide-react'
 import { Link } from 'react-router'
 
 import { describirActividad, describirCarga, type Actividad } from '@/api/actividad'
 import { describirAntiguedad } from '@/componentes/datos/formato'
 import { cn } from '@/lib/utils'
 
-const ICONO: Record<'carga' | 'simulacion' | 'publicando', { icono: LucideIcon; clase: string }> = {
+const ICONO: Record<'carga' | 'simulacion' | 'publicando' | 'chat', { icono: LucideIcon; clase: string }> = {
   carga: { icono: Workflow, clase: 'bg-[#fff6e4] text-[#b7791f]' },
   simulacion: { icono: Radio, clase: 'bg-[#e8faf2] text-[#17875a]' },
   publicando: { icono: Activity, clase: 'bg-[#f3eeff] text-[#6d4eae]' },
+  chat: { icono: MessageSquareText, clase: 'bg-[#e7f8f8] text-[#0e7c7c]' },
 }
 
 function ultimaCarga(actividad: Actividad): string | null {
@@ -25,7 +26,7 @@ function ultimaCarga(actividad: Actividad): string | null {
 
 export function BarraActividad({ actividad, className }: { actividad: Actividad; className?: string }) {
   const frases = describirActividad(actividad)
-  const claves = ([['carga', actividad.carga], ['simulacion', actividad.simulacion], ['publicando', actividad.publicando]] as const)
+  const claves = ([['carga', actividad.carga], ['simulacion', actividad.simulacion], ['publicando', actividad.publicando], ['chat', actividad.chatOllama], ['chat', actividad.chatHelmcode]] as const)
     .filter(([, hay]) => !!hay)
     .map(([clave]) => clave)
 

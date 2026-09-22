@@ -86,6 +86,28 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 
 ## Entradas
 
+### 2026-09-22 · Javier Saguar · Grafo: el asistente ilumina su camino, con Ollama o con DeepSeek
+
+- **Rama / commits:** `main`
+- **Qué he hecho:**
+  - Al preguntar a un asistente, el grafo enciende MongoDB → API de acceso → Chatbots y solo el modelo que redacta:
+    Ollama o la tarjeta nueva **Helmcode** (DeepSeek `deepseek-v4-flash`, en la UE), unida a Chatbots por la flecha
+    «DeepSeek». Chatbots se presenta como «Ollama y DeepSeek». La barra de actividad lo cuenta.
+  - TAXI AI se marca mientras dura su turno (`api/chatActivo.ts`, desde `useConversacion`). Los chatbots de
+    Chainlit se detectan por la auditoría (clientes `chatbot` y `chatbot_rag`, decisiones de los últimos 45 s),
+    consultada cada 5 s con la ruta de siempre; no hay rutas nuevas en el BFF.
+  - Arreglado antes de subirlo: el reloj de esa detección llamaba a `Date.now()` durante el render (el lint del CI
+    lo rechaza); ahora usa `useAhora(5 s)`. El test del panel incluye la consulta a la auditoría.
+- **Por qué:** los asistentes eran lo único de la plataforma que no se veía moverse en el grafo.
+- **Ficheros clave:** `parte4_frontend/web/src/api/{actividad,chatActivo}.ts`,
+  `parte4_frontend/web/src/paginas/documentacion/{actividad,nodos,BarraActividad}.ts(x)`,
+  `parte4_frontend/web/src/componentes/chat/useConversacion.ts`
+- **Cómo comprobarlo:** abrir http://localhost:8020/grafo y preguntar a TAXI AI con cada motor, o a un chatbot de
+  Chainlit (8010 u 8012): el tramo del modelo se enciende mientras responde y unos segundos después.
+- **Resultado:** 181 tests de Vitest en verde, lint y *builds* limpios.
+- **Pendiente y riesgos:** la detección por auditoría ve la consulta a la API, no al modelo: se enciende cuando el
+  chatbot pide datos y se apaga unos 45 s después, aunque la redacción termine antes.
+
 ### 2026-09-22 · Javier Saguar · T11 y captura en directo: el tiempo real se mueve con viajes reales de 2020
 
 - **Rama / commits:** `tarea/captura-directo` → `main` (con las fusiones de T15 y T16)

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
 import {
-  derivarActividad, describirActividad, describirCarga, estadoEnMarcha, resumirActividad, SIN_ACTIVIDAD, UMBRAL_PUBLICANDO_S,
+  chatsDesdeDecisiones, derivarActividad, describirActividad, describirCarga, estadoEnMarcha, resumirActividad, SIN_ACTIVIDAD,
+  UMBRAL_CHAT_MS, UMBRAL_PUBLICANDO_S,
 } from './actividad'
 import type { EjecucionAirflow, Simulacion } from './tipos'
 
@@ -59,6 +60,26 @@ describe('derivarActividad', () => {
     const actividad = derivarActividad({ consultando: true, ahoraMs: AHORA })
     expect(actividad.consultando).toBe(true)
     expect(actividad.enMarcha).toBe(false)
+  })
+
+  it('un asistente en curso sí está en marcha y dice con qué modelo redacta', () => {
+    const ollama = derivarActividad({ chatOllama: true, ahoraMs: AHORA })
+    const helmcode = derivarActividad({ chatHelmcode: true, ahoraMs: AHORA })
+    expect(ollama.enMarcha).toBe(true)
+    expect(describirActividad(ollama)).toEqual(['El asistente consulta con Ollama'])
+    expect(describirActividad(helmcode)).toEqual(['El asistente consulta con DeepSeek, en Helmcode'])
+  })
+
+  it('la auditoría reciente de Chainlit enciende el modelo que preguntó', () => {
+    const reciente = new Date(AHORA - 10_000).toISOString()
+    const vieja = new Date(AHORA - UMBRAL_CHAT_MS - 1_000).toISOString()
+    expect(chatsDesdeDecisiones([
+      { instante: reciente, cliente: 'chatbot' },
+      { instante: reciente, cliente: 'chatbot_rag' },
+      { instante: vieja, cliente: 'chatbot' },
+      { instante: reciente, cliente: 'frontend' },
+    ], AHORA)).toEqual({ ollama: true, helmcode: true })
+    expect(chatsDesdeDecisiones([{ instante: vieja, cliente: 'chatbot_rag' }], AHORA)).toEqual({ ollama: false, helmcode: false })
   })
 })
 

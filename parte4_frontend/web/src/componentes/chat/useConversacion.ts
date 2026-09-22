@@ -15,6 +15,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 
 import { cerrarSesion, crearSesion, enviarMensaje, pedirAlternativa, type AlRecibirEvento, type SesionChat } from '@/api/chat'
+import { marcarChatActivo } from '@/api/chatActivo'
 import { ErrorApi, mensajeDeError } from '@/api/cliente'
 import { CLAVE_SESION } from '@/api/sesion'
 import type { EstadoSesion, Motor } from '@/api/tipos'
@@ -119,6 +120,7 @@ export function useConversacion(motor: Motor['id'] | null): Conversacion {
       const propio = new AbortController()
       controlador.current = propio
       let terminado = false
+      if (motor) marcarChatActivo(motor)
       try {
         await ejecutar((evento) => {
           if (evento.tipo === 'paso') {
@@ -144,10 +146,11 @@ export function useConversacion(motor: Motor['id'] | null): Conversacion {
           actualizar(idAsistente, (m) => ({ ...m, enCurso: false, error: mensajeDeError(error) }))
         }
       } finally {
+        marcarChatActivo(null)
         if (controlador.current === propio) controlador.current = null
       }
     },
-    [actualizar, sesionPerdida],
+    [actualizar, motor, sesionPerdida],
   )
 
   const enviar = useCallback(

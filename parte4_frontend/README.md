@@ -63,6 +63,12 @@ actividad en vivo (T15), el interruptor «Capturar datos» (captura en directo c
 `/api/operaciones/captura`) y zoom propio: rueda del ratón o pellizco del panel táctil, arrastrar para moverse, doble
 clic para volver y dos botones de lupa en la esquina. El zoom del navegador no se toca.
 
+Cuando un asistente responde, el grafo enciende MongoDB → API de acceso → Chatbots y, desde ahí, solo el modelo que
+redacta: la tarjeta de Ollama o la de Helmcode (DeepSeek, en la UE). La barra lo dice («El asistente consulta con
+Ollama» / «… con DeepSeek, en Helmcode»). El de TAXI AI se marca desde el propio portal mientras dura el turno
+(`api/chatActivo.ts`); los de Chainlit no pasan por el portal y se detectan por la auditoría: una decisión de los
+clientes `chatbot` o `chatbot_rag` en los últimos 45 s, consultada cada 5 s con la ruta que ya existía.
+
 ## Tests
 
 ```bash

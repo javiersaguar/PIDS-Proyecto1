@@ -104,7 +104,13 @@ describe('PaginaDocumentacion', () => {
     await usuario.click(screen.getByRole('button', { name: 'Cerrar' }))
     await usuario.click(within(lienzo).getByRole('button', { name: /Chatbots/ }))
     expect(await screen.findByRole('link', { name: 'Abrir con Ollama' })).toHaveAttribute('href', 'http://localhost:8010')
-    expect(screen.getByRole('link', { name: 'Abrir con documentación' })).toHaveAttribute('href', 'http://localhost:8011')
+    expect(screen.getByRole('link', { name: 'Abrir con Helmcode' })).toHaveAttribute('href', 'http://localhost:8011')
+
+    await usuario.click(screen.getByRole('button', { name: 'Cerrar' }))
+    await usuario.click(within(lienzo).getByRole('button', { name: /Helmcode/ }))
+    const fichaHelmcode = await screen.findByRole('dialog')
+    expect(within(fichaHelmcode).getByRole('heading', { name: 'Helmcode' })).toBeInTheDocument()
+    expect(within(fichaHelmcode).getByText(/DeepSeek/)).toBeInTheDocument()
   })
 
   it('«Capturar datos» arranca la captura en directo, el lienzo ilumina su camino y la para al apagarlo', async () => {

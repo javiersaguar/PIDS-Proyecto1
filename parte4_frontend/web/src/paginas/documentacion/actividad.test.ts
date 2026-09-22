@@ -59,11 +59,30 @@ describe('flujosDe', () => {
     expect(flujos.nodos.get('spark')?.texto).toBe('Lote en curso')
   })
 
+  it('Ollama ilumina MongoDB → acceso → Chatbots → Ollama', () => {
+    const flujos = flujosDe(con({ chatOllama: true }))
+    expect([...flujos.aristas.keys()].sort()).toEqual(['acceso-chatbots', 'chatbots-ollama', 'mongo-acceso'])
+    expect(flujos.nodos.get('mongo')?.texto).toBe('Leyendo totales')
+    expect(flujos.nodos.get('chatbots')?.texto).toBe('Preguntando')
+    expect(flujos.nodos.get('ollama')?.texto).toBe('Redactando')
+    expect(flujos.nodos.has('helmcode')).toBe(false)
+  })
+
+  it('DeepSeek ilumina el tramo hasta Helmcode y, si el portal también consulta, la pastilla del acceso es la del asistente', () => {
+    const flujos = flujosDe(con({ chatHelmcode: true, consultando: true }))
+    expect(flujos.aristas.has('chatbots-helmcode')).toBe(true)
+    expect(flujos.aristas.has('acceso-portal')).toBe(true)
+    expect(flujos.nodos.get('acceso')?.texto).toBe('Consulta del asistente')
+    expect(flujos.nodos.get('helmcode')?.texto).toBe('Redactando')
+    expect(flujos.nodos.has('ollama')).toBe(false)
+  })
+
   it('todas las aristas que ilumina existen en el lienzo', () => {
     const existentes = new Set(ARISTAS.map((a) => claveArista(a.desde, a.hasta)))
     const flujos = flujosDe(con({
       carga: { id: 'r', estado: 'running', mes: '2020-03', muestra: false, inicio: null, segundos: 10 },
       simulacion: SIMULACION, publicando: true, frescuraSegundos: 40, consultando: true,
+      chatOllama: true, chatHelmcode: true,
     }))
     for (const clave of flujos.aristas.keys()) expect(existentes.has(clave), clave).toBe(true)
   })

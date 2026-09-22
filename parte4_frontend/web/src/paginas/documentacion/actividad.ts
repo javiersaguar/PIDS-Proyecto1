@@ -6,6 +6,7 @@
  *   simulación          Simulador → Captura → Redpanda → Spark
  *   Spark publicando    Redpanda → Spark → MongoDB
  *   el portal consulta  MongoDB → API de acceso → Portal
+ *   un chatbot         MongoDB → API de acceso → Chatbots → Ollama o Helmcode (DeepSeek)
  */
 import type { Actividad } from '@/api/actividad'
 import { describirCarga } from '@/api/actividad'
@@ -42,8 +43,9 @@ function activar(flujos: Flujos, tramos: readonly (readonly [string, string])[])
   }
 }
 
-function realzar(flujos: Flujos, id: string, texto: string, tono: Tono): void {
-  if (!flujos.nodos.has(id)) flujos.nodos.set(id, { texto, tono })
+function realzar(flujos: Flujos, id: string, texto: string, tono: Tono, forzar = false): void {
+  if (!forzar && flujos.nodos.has(id)) return
+  flujos.nodos.set(id, { texto, tono })
 }
 
 export function flujosDe(actividad: Actividad): Flujos {
@@ -77,6 +79,21 @@ export function flujosDe(actividad: Actividad): Flujos {
     activar(flujos, [['mongo', 'acceso'], ['acceso', 'portal']])
     realzar(flujos, 'acceso', 'Consulta del portal', 'azul')
     realzar(flujos, 'portal', 'Pidiendo totales', 'azul')
+  }
+
+  if (actividad.chatOllama || actividad.chatHelmcode) {
+    activar(flujos, [['mongo', 'acceso'], ['acceso', 'chatbots']])
+    realzar(flujos, 'mongo', 'Leyendo totales', 'azul')
+    realzar(flujos, 'acceso', 'Consulta del asistente', 'azul', true)
+    realzar(flujos, 'chatbots', 'Preguntando', 'cian')
+    if (actividad.chatOllama) {
+      activar(flujos, [['chatbots', 'ollama']])
+      realzar(flujos, 'ollama', 'Redactando', 'violeta')
+    }
+    if (actividad.chatHelmcode) {
+      activar(flujos, [['chatbots', 'helmcode']])
+      realzar(flujos, 'helmcode', 'Redactando', 'cian')
+    }
   }
 
   return flujos

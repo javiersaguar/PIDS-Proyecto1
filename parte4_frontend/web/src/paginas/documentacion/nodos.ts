@@ -6,6 +6,7 @@ import {
   Activity,
   Bot,
   Database,
+  Globe,
   Flame,
   HardDrive,
   Inbox,
@@ -311,13 +312,13 @@ export const NODOS: Nodo[] = [
     x: 760,
     y: 656,
     titulo: 'Chatbots',
-    subtitulo: 'Hablan de los totales',
+    subtitulo: 'Ollama y DeepSeek',
     tecnologia: 'Chainlit',
     datos: 'Totales',
     tono: 'cian',
     icono: MessageSquareText,
     queEs: [
-      'Es el asistente con el que se puede hablar. Hay dos ventanas. Una piensa en este ordenador. La otra, además, busca en los apuntes del proyecto.',
+      'Son los asistentes con los que se puede hablar. Uno redacta en este ordenador, con Ollama. El otro busca en los apuntes y redacta con DeepSeek, en Helmcode, dentro de la Unión Europea.',
     ],
     queHace: [
       'No sabe pedir un viaje. Solo sabe pedir totales a la puerta de salida. Antes de pensar, mira si le estás pidiendo algo de una persona: un viaje, una matrícula, una hora con minutos. Si es así, ni siquiera se lo cuenta. Si en la pregunta hay un día, te propone la cuenta más parecida que sí se puede hacer. Cuando responde, miramos cada número. Si no estaba en los datos de esa conversación, lo quitamos.',
@@ -329,7 +330,7 @@ export const NODOS: Nodo[] = [
     ],
     enlaces: [
       { clave: 'chatbot', texto: 'Abrir con Ollama' },
-      { clave: 'chatbot_rag', texto: 'Abrir con documentación' },
+      { clave: 'chatbot_rag', texto: 'Abrir con Helmcode' },
     ],
   },
   {
@@ -349,9 +350,31 @@ export const NODOS: Nodo[] = [
       'Le damos la tabla de totales de esa pregunta y le pedimos que la explique. Si la tabla está vacía porque todo era demasiado pequeño, no le pedimos que se invente cifras.',
     ],
     comoConecta: [
-      'Lo usan el asistente de este ordenador y el chat de esta web. La otra ventana, cuando usa un programa de fuera, revisa antes que no se vaya ningún dato que no haya salido por la puerta.',
+      'Lo usan el chatbot de Ollama y el chat de esta web cuando el motor es el de este ordenador. DeepSeek no pasa por aquí: redacta en Helmcode.',
       'Si te preguntan: si se inventa un número, lo borramos. Ese número no estaba en la tabla.',
     ],
+  },
+  {
+    id: 'helmcode',
+    x: 1048,
+    y: 412,
+    titulo: 'Helmcode',
+    subtitulo: 'DeepSeek, en la UE',
+    tecnologia: 'deepseek-v4-flash',
+    datos: 'Modelo',
+    tono: 'cian',
+    icono: Globe,
+    queEs: [
+      'Es el programa que redacta el otro asistente. Vive fuera de este ordenador, en Helmcode, un servicio de la Unión Europea. El modelo se llama DeepSeek. No guarda viajes ni abre cajones.',
+    ],
+    queHace: [
+      'Le llegan la pregunta, los apuntes del proyecto y los totales que ya salieron por la puerta. Con eso escribe la respuesta. Antes de que salga nada, se mira que no se vaya un dato que la puerta no haya publicado.',
+    ],
+    comoConecta: [
+      'Lo usa el chatbot que busca en los apuntes. Ollama no interviene. Los números siguen siendo los de la puerta de salida.',
+      'Si te preguntan: la frase se redacta fuera, pero solo viaja lo que ya se podía enseñar aquí.',
+    ],
+    enlaces: [{ clave: 'chatbot_rag', texto: 'Abrir con Helmcode' }],
   },
 ]
 
@@ -365,7 +388,8 @@ export const ARISTAS: Arista[] = [
   { desde: 'mongo', hasta: 'acceso', etiqueta: 'Consulta', tono: 'azul', salida: 'abajo', entrada: 'arriba' },
   { desde: 'acceso', hasta: 'portal', etiqueta: 'Portal', tono: 'azul', salida: 'abajo', entrada: 'arriba', desplazaSalida: -46, tEtiqueta: 0.42 },
   { desde: 'acceso', hasta: 'chatbots', etiqueta: 'Asistente', tono: 'cian', salida: 'abajo', entrada: 'arriba', desplazaSalida: 46, tEtiqueta: 0.42 },
-  { desde: 'chatbots', hasta: 'ollama', etiqueta: 'Redacta', tono: 'violeta', salida: 'derecha', entrada: 'izquierda' },
+  { desde: 'chatbots', hasta: 'ollama', etiqueta: 'Ollama', tono: 'violeta', salida: 'derecha', entrada: 'izquierda' },
+  { desde: 'chatbots', hasta: 'helmcode', etiqueta: 'DeepSeek', tono: 'cian', salida: 'arriba', entrada: 'izquierda', desplazaSalida: 70, desplazaEntrada: 28, tEtiqueta: 0.55 },
   { desde: 'prometheus', hasta: 'grafana', etiqueta: 'Paneles', tono: 'cian', salida: 'abajo', entrada: 'arriba' },
 ]
 
