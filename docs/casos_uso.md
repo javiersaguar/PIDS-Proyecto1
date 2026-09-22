@@ -245,5 +245,8 @@ Hechas con la interfaz real (http://localhost:8010) en la versión final, en `do
 | [`cu5_alternativa.png`](capturas/cu5_alternativa.png) | CU5 con día: rechazo, botón «Consultar la alternativa» pulsado y su resultado |
 | [`cu6.png`](capturas/cu6.png) | CU6: diez grupos por hora y zona, todos enmascarados |
 | [`cu7.png`](capturas/cu7.png) | CU7: última hora de tiempo real (lote sintético de 15 viajes) |
+| [`cu8_gesto.mp4`](capturas/cu8_gesto.mp4) | CU8: 👍 ejecuta la alternativa (54 viajes) y ✋ cancela la siguiente |
+| [`cu8_resultado.png`](capturas/cu8_resultado.png) | CU8: el 👍 lanza la hora-zona de Times Square |
+| [`cu8_cancelada.png`](capturas/cu8_cancelada.png) | CU8: la mano abierta cancela |
 
-CU8 (gestos): el ciclo está probado el 22/09 (👍 ejecuta la alternativa, ✋ la cancela). Falta el vídeo con la webcam (T06).
+CU8 (gestos): el 22/09 el 👍 ejecutó la alternativa y el ✋ la canceló. El vídeo está en `docs/capturas/cu8_gesto.mp4`.

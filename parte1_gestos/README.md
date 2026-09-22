@@ -85,8 +85,10 @@ verificada fuera del portátil (T01).
 | Contenido | `data/` con las 5 tomas completas (p1 a p5: 600 imágenes y `metadata.json` cada una, 3000 imágenes), `LEEME.txt` y `MANIFIESTO.sha256` con el SHA-256 de cada fichero |
 | Fuera de la copia | Cuatro tomas interrumpidas o vacías (0, 6, 0 y 0 imágenes), que tampoco usa el entrenamiento |
 
-Son fotos de las cinco personas del grupo: **no se publica**, ni en este repositorio (que es público) ni con
-un enlace abierto a cualquiera.
+Son fotos de las cinco personas del grupo: el dataset completo **no se sube a este repositorio** (que es público)
+ni se comparte con un enlace abierto a cualquiera; solo con el grupo. Lo que sí está publicado, por decisión del
+grupo, es el vídeo corto de la integración con el chatbot (`docs/capturas/cu8_gesto.mp4`), en el que se ven algunas
+de esas fotos, igual que el repositorio de la asignatura trae fotos de los profesores como dataset de prueba.
 
 ```powershell
 # Comprobar la descarga: tiene que salir el SHA-256 de la tabla

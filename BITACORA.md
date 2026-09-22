@@ -35,11 +35,13 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 | **Chatbots** | Ollama: `llama3.1:8b` en GPU a temperatura 0,2, 21/21 casos en 2-3 s · RAG: `deepseek-v4-flash` (Helmcode, UE), 21/21 casos con p50 1,1 s y unos 6 000 tokens por pregunta. Detalle en `docs/chatbot_rag.md` |
 | **Parte 1** | Se ejecuta desde el repositorio, con `PIDS_DATOS` apuntando a las imágenes (que siguen fuera de Git) |
 | **Portal web (parte 4)** | En `main` y levantado (`make frontend`, http://localhost:8020, contraseña `FRONTEND_CLAVE` de `.env`): panel, explorador, tiempo real, privacidad y auditoría, operaciones y el grafo de la plataforma, que ilumina los tramos en marcha (T15) y tiene «Capturar datos» (captura en directo con viajes reales de diciembre de 2020); el asistente TAXI AI (Ollama y RAG) es un botón fijo con panel derecho en todas las páginas (T16). Demostración pública en Vercel con datos grabados, o en vivo por túnel si el equipo está encendido (`parte4_frontend/demo`) |
+| **Sin empezar** | Vídeo de la entrega y presentación (T10). El gesto ya tiene el suyo: `docs/capturas/cu8_gesto.mp4` |
 | **Cómo levantarlo** | En Ubuntu (WSL2), paso a paso en el README («Puesta en marcha»): `make entorno`, pegar `LLM_API_KEY`, `make sync && make test`, `make construir && make todo`, `make historico-muestra` y `make rag-indexar`; cada día, `make todo` y `make tiempo-real` |
 | **Forma de trabajar** | Una rama por persona (tabla en el README) y cambios a `main` por *pull request*. Para trabajo en paralelo, una rama de tarea con contratos por bloque (`parte3_chatbot_rag/CONTRATOS.md`). Cada copia, con `make hooks`; el CI «Autoría» rechaza coautorías y firmas automáticas |
 | **Repositorio** | Recreado en GitHub el 22/09/2026 (mismo nombre) para eliminar una coautoría ajena al grupo: [`docs/repositorio.md`](docs/repositorio.md). Copias anteriores: sincronizar con `git reset --hard origin/main`. **Vercel (`happytaxi`, `yellowveil`) hay que volver a conectarlo al repositorio nuevo** (§4 de ese documento) |
 | **Siguientes tareas** | Ver [`TAREAS.md`](TAREAS.md) |
-| **Pendiente inmediato** | Confirmar en grupo la decisión del LLM externo (regla 9 de E3), conectar Vercel al repositorio nuevo y encender el túnel (cuenta de ngrok), y subir la copia del dataset de gestos, ya hecha y verificada (T01) |
+| **Pendiente inmediato** | Confirmar en grupo la decisión del LLM externo (regla 9 de E3), preparar el vídeo y la presentación de la entrega (T10) y subir la copia del dataset de gestos, ya hecha y verificada (T01) |
+| **Web pública** | https://happytaxi-rust.vercel.app: en vivo por el túnel (`make tunel`, dominio `street-humorous-squeezing.ngrok-free.dev`) con la contraseña del portal, o la demostración grabada si el túnel está apagado |
 | **Requisitos** | Todo instalado en este equipo (incluido el NVIDIA Container Toolkit). En equipos sin GPU: `make chatbot SIN_GPU=1` con `OLLAMA_MODELO=llama3.2:3b`, o el chatbot RAG, que no necesita GPU |
 
 ## Decisiones tomadas
@@ -59,6 +61,7 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 | 21/09/2026 | **Segundo chatbot con LLM externo** (Helmcode, API compatible con OpenAI en la UE y sin registro de prompts) y RAG con Qdrant; el de Ollama se conserva | Modelo mayor sin depender de la GPU y con contexto recuperado; solo viajan la pregunta y agregados ya protegidos, con lista blanca de modelos UE y guardia de salida. Matiza la regla 9 de E3 («las preguntas no salen del equipo»), que sigue cumpliéndose con el chatbot de Ollama | Javier Saguar | Propuesta: confirmar en grupo |
 | 21/09/2026 | Trabajo en paralelo por bloques con contratos escritos (`CONTRATOS.md`: propiedad de ficheros y firmas) y una rama de integración `tarea/rag-base` | Cinco bloques a la vez sin conflictos: las tres ramas se fusionaron limpias | Javier Saguar | Vigente |
 | 22/09/2026 | La regla de autoría se hace cumplir con un hook `commit-msg` y un CI «Autoría»; ningún commit lleva `Co-Authored-By` (ni entre miembros) | Una coautoría automática llegó a `main` en el PR #1 y solo se pudo quitar recreando el repositorio | Javier Saguar | Vigente |
+| 22/09/2026 | Se publica el vídeo del CU8 (`docs/capturas/cu8_gesto.mp4`), en el que se ven miembros del grupo; el dataset completo de gestos (3000 fotos) sigue fuera del repositorio | Es la prueba de la integración gestos ↔ chatbot; el propio repositorio de la asignatura trae fotos de los profesores como dataset de prueba | Javier Saguar | Vigente |
 
 ## Plantilla (copiar y rellenar)
 
@@ -118,15 +121,37 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 - **Resultado:** 41 608 viajes del 1 de diciembre enviados a ×600 y agregados hora a hora por Spark. Tests de Python
   y de Vitest en verde (los de Vitest, en serie: en paralelo, con la máquina cargada, algunos agotan los 5 s).
 - **Pendiente y riesgos:**
-  - Vercel sigue enganchado al repositorio borrado: reconectarlo en su panel (`docs/repositorio.md` §4).
-  - El modo en vivo necesita una cuenta de ngrok: token y dominio en `.env`, y el dominio en `vercel.json`.
-  - El vídeo `cu8_gesto.mp4` de T06 enseña fotos del dataset con personas: no se ha subido (el repositorio es
-    público y esas fotos no se publican).
+  - Vercel se reconectó al repositorio nuevo (proyecto `happytaxi`, https://happytaxi-rust.vercel.app) y el túnel
+    está en marcha: la web pública enseña la plataforma en vivo. Sin túnel, la demostración.
+  - El vídeo `cu8_gesto.mp4` de T06 enseña a miembros del grupo: se publica por decisión del grupo (ver
+    «Decisiones tomadas»); el dataset completo sigue fuera.
   - `make latencia` usa horas del 31/12/2020: tras ejecutarlo, la captura no puede seguir hasta reiniciar.
 - **Contexto para quien siga:** la captura solo sabe por dónde va dentro del proceso del portal; al reiniciarlo
   sigue en la hora siguiente a la última publicada (puede perder el final de una hora, nunca repetir). El túnel
   expone solo el portal, con su contraseña; la regla de `vercel.json` apunta a un nombre `.invalid` hasta poner el
   dominio, para que nada vaya a un dominio ajeno.
+### 2026-09-22 · Javier Saguar · T06 · Vídeo: un gesto confirma la consulta y otro la cancela
+
+- **Rama / commits:** `main`
+- **Qué he hecho:**
+  - Grabado `docs/capturas/cu8_gesto.mp4` (unos 15 s). El chatbot rechaza «el viaje de las 3:12 desde
+    Times Square el 15 de enero de 2020», propone la alternativa agregada, el 👍 la ejecuta (54 viajes,
+    Times Sq/Theatre District, 03:00-04:00) y el ✋ de la segunda pregunta responde «consulta cancelada».
+  - El envío lo hace la demo: `EmisorGestos.observar` sobre las fotos, el mismo camino que la webcam.
+- **Por qué:** era lo que faltaba para cerrar la caja «Integración» de la diapositiva 5.
+- **Ficheros clave:** `docs/capturas/cu8_gesto.mp4`, `docs/capturas/cu8_resultado.png`,
+  `docs/capturas/cu8_cancelada.png`, `parte1_gestos/demo/src/demo-gestures-PIDS.py`
+- **Cómo comprobarlo:** reproducir `docs/capturas/cu8_gesto.mp4`. En el chat se leen el rechazo, «Gesto
+  recibido: thumbsup → confirmar», los 54 viajes y, en la pregunta siguiente, «paper → cancelar».
+- **Resultado:** 👍 confianza 0,97 y ✋ confianza 0,98, las dos por la API de captura. La consulta ejecutada
+  quedó permitida (54 viajes).
+- **Pendiente y riesgos:** la cámara integrada del portátil abría y devolvía fotogramas negros (obturador
+  o tapa). El clip usa las fotos de esa webcam ya grabadas para el dataset el 16/09. Para repetirlo en
+  vivo hace falta destapar la cámara, `PIDS_CLAVE_GESTOS` en la consola de la demo y una sesión del chatbot
+  abierta. El entorno de Windows no arrancó Torch desde aquí (el control de aplicaciones bloqueó una DLL);
+  se clasificó con el mismo modelo y el mismo `observar` de la demo.
+- **Contexto para quien siga:** `GESTOS_ACTIVOS` sigue en true. El gesto solo entra si hay un chat con
+  sesión empezada. 👍 es `thumbsup` y ✋ es `paper`. No se repite el mismo gesto en 3 s.
 
 ### 2026-09-22 · Javier Saguar · T09 · Alta disponibilidad de la API de acceso: dos réplicas detrás de Caddy
 

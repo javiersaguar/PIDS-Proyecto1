@@ -12,7 +12,6 @@ http://localhost:8020. La demo de Vercel es una foto, no la plataforma en vivo.
 | Qué falta | Tarea |
 |---|---|
 | Subir la copia del dataset a un sitio solo del grupo y que otra persona reproduzca el preprocesado | T01 |
-| Grabar el vídeo en Windows: el bot propone una alternativa, 👍 la ejecuta y ✋ la cancela. El código y el ciclo por la API ya están | T06 |
 
 ## Parte 2 · plataforma
 
@@ -34,7 +33,6 @@ Lo que no está es el vídeo de esa conversación dentro de la entrega (T10).
 | El grupo decide si el LLM externo se queda, se limita a la demo o se retira | T13 |
 | Cuando la barrera de cifras sustituye la respuesta del RAG, enseñar solo las fichas de la pregunta | idea |
 | Medir el rerank y reindexar Qdrant desde Airflow tras cada carga | idea |
-| El gesto 👍/✋ dentro del vídeo, no solo por la API | T06 |
 
 ## Parte 4 · portal
 
@@ -49,5 +47,6 @@ publican. El camino con datos en vivo es `make frontend`.
 
 ## Entrega
 
-T10 junta el vídeo (levantar, cargar, panel, chatbot con un rechazo y, si da tiempo, el gesto) y las
-diapositivas. El checklist de [`plan.md`](plan.md) sigue con la casilla de capturas o vídeo abierta.
+T10 junta el vídeo (levantar, cargar, panel, chatbot con un rechazo) y las diapositivas. El gesto ya
+está en [`capturas/cu8_gesto.mp4`](capturas/cu8_gesto.mp4) y se puede insertar. El checklist de
+[`plan.md`](plan.md) sigue con la casilla de capturas o vídeo de la entrega abierta.

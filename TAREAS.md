@@ -45,21 +45,6 @@ decisión pendiente en T13. El mapa de todo lo que falta para cerrar el proyecto
   imágenes, 2931 con mano). Falta subirlo a un sitio compartido **solo con el grupo**, anotar el enlace en el
   README y que otra persona lo descargue y reproduzca el preprocesado.
 
-## T06 · Integración de los gestos (última fase del esquema)
-
-- **Estado:** en curso · **Responsable:** Javier Saguar · **Estimación:** 3 h · **Dificultad:** media
-- **Por qué:** es la caja «Integración» de la diapositiva 5 (opcional, pero puntúa). El chatbot ya ofrece
-  la alternativa con botón tras un rechazo y la lanza tal cual al aceptarla; el gesto 👍 hace lo mismo.
-- **Qué hay que hacer:**
-  1. Llamar a `EmisorGestos.observar(pred, conf)` desde `parte1_gestos/demo/src/demo-gestures-PIDS.py`.
-  2. `GESTOS_ACTIVOS=true` en `.env` y reiniciar el chatbot.
-  3. Probar el ciclo completo: el bot propone una alternativa → 👍 la ejecuta, ✋ la cancela.
-- **Hecha cuando:** se graba un vídeo corto en el que un gesto confirma una consulta del chatbot.
-- **Dónde:** `integracion/`, `parte1_gestos/demo/src/`
-- **Notas (22/09):** la demo ya llama a `observar`, `GESTOS_ACTIVOS=true` y el ciclo está probado sin cámara
-  (el mismo POST que enviaría la demo): 👍 ejecuta la alternativa y ✋ la cancela. Falta el vídeo con la webcam
-  en Windows (`PIDS_CLAVE_GESTOS` en la consola de la demo; ver `integracion/README.md`).
-
 ## T10 · Entrega: vídeo y presentación
 
 - **Estado:** libre · **Responsable:** — · **Estimación:** 6 h (entre varios) · **Dificultad:** baja
@@ -154,6 +139,7 @@ decisión pendiente en T13. El mapa de todo lo que falta para cerrar el proyecto
 | 21/09/2026 | Chatbot RAG con LLM externo (LangChain + Qdrant + Helmcode) en cinco bloques: 21/21 casos, 0/105 fugas, 340 tests | Javier Saguar | entrada del 21/09 |
 | 21/09/2026 | T14 Portal web en `main` y levantado desde la carpeta principal (8020), demostración pública en Vercel y capturas | Javier Saguar | entrada del 21/09 |
 | 22/09/2026 | T08 Servicios sin login fuera de Docker, login de los chatbots y modelo de amenazas | Javier Saguar | entrada del 22/09 |
+| 22/09/2026 | T06 Integración de los gestos: 👍 ejecuta la alternativa y ✋ la cancela, con vídeo | Javier Saguar | entrada del 22/09 |
 | 22/09/2026 | T09 API de acceso con dos réplicas detrás de Caddy: 2555 peticiones con una réplica parada y otra tirada, 0 fallos | Javier Saguar | entrada del 22/09 |
 | 22/09/2026 | T16 Botón «TAXI AI» con el chatbot en un panel derecho, disponible en todas las páginas | Javier Saguar | entrada del 22/09 |
 | 22/09/2026 | T15 Animaciones en vivo del portal: el grafo ilumina los tramos en marcha, indicador «En vivo» y gráficas que se mueven con los datos nuevos | Javier Saguar | entrada del 22/09 |

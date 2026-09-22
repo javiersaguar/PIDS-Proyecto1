@@ -14,7 +14,7 @@
 | 3e | Medición de las 3 métricas de calidad | ✅ M1, M2 y M3 medidas |
 | 4 | Chatbot: casos de uso con LLM local | ✅ 7 casos medidos (21/21) y batería trampa |
 | 4b | Chatbot RAG: LangChain + Qdrant + LLM externo en la UE (Helmcode) | ✅ 21/21 y 0/105; decisión E3 pendiente de confirmar en grupo (T13) |
-| 5 | Integración con la parte 1 (gestos) | código y ciclo probados · ⏳ vídeo con la webcam |
+| 5 | Integración con la parte 1 (gestos) | ✅ vídeo en `docs/capturas/cu8_gesto.mp4` |
 | 6 | Entrega: documentación, capturas, vídeo, presentación | ⏳ |
 
 ## Reparto propuesto (a confirmar en la primera reunión)
