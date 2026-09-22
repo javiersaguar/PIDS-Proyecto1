@@ -1,0 +1,4 @@
+#!/bin/sh
+# Quita del mensaje las coautorías y firmas automáticas antes de crear el commit (docs/repositorio.md).
+# Se activa con `make hooks` (también lo hace `make sync`).
+exec python3 "$(git rev-parse --show-toplevel)/scripts/comprobar_autoria.py" --mensaje "$1" --limpiar

@@ -222,3 +222,9 @@ asistente de IA, pásaselos como primer contexto: así nadie trabaja con informa
 
 Cada cambio termina con una entrada en la bitácora y su tarea actualizada; los *pull requests* lo
 recuerdan con una casilla.
+
+**Autoría:** en el repositorio solo figuramos los cinco del grupo. Ejecuta `make hooks` (o `make sync`) una
+vez en tu copia: el hook quita de los commits las coautorías y firmas que añaden algunas herramientas, y el CI
+«Autoría» rechaza los commits y *pull requests* que las lleven. Si tu copia es anterior al 22/09/2026, o si
+Vercel deja de desplegar, lee [`docs/repositorio.md`](docs/repositorio.md). Los asistentes de programación
+tienen sus instrucciones en [`AGENTS.md`](AGENTS.md).

@@ -14,7 +14,9 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 - **Al terminar, antes del commit o del *pull request*:** añade una entrada nueva **arriba** de la
   lista, actualiza «Estado actual» y marca la tarea en [`TAREAS.md`](TAREAS.md).
 - **Si has trabajado con una IA:** la entrada la firma la persona que ha usado y revisado el
-  resultado. En el repositorio solo figuramos los cinco del grupo como autores.
+  resultado. En el repositorio solo figuramos los cinco del grupo como autores: nada de
+  `Co-Authored-By` ni firmas automáticas (`make hooks` las quita; el CI «Autoría» las rechaza). Ver
+  [`docs/repositorio.md`](docs/repositorio.md) y [`AGENTS.md`](AGENTS.md).
 - **Si cambias una decisión anterior:** añádela a «Decisiones tomadas» y marca la vieja como
   *sustituida*, explicando por qué. No borres entradas antiguas: esto se escribe añadiendo.
 - **Si dejas algo a medias:** dilo en «Pendiente y riesgos». Es la parte más útil para quien siga.
@@ -22,7 +24,7 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 
 ## Estado actual
 
-**Última actualización: 22/09/2026 · Javier Saguar** (T08 seguridad)
+**Última actualización: 22/09/2026 · Javier Saguar** (repositorio recreado en GitHub; barreras de autoría)
 
 | | |
 |---|---|
@@ -35,7 +37,8 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 | **Portal web (parte 4)** | En `main` y levantado (`make frontend`, http://localhost:8020, contraseña `FRONTEND_CLAVE` de `.env`): panel, explorador, asistente (Ollama y RAG), tiempo real, privacidad y auditoría, operaciones y documentación. Demostración pública en Vercel con datos grabados (`parte4_frontend/demo`). 429 tests de Python, 17 de Scala y 132 de Vitest |
 | **Sin empezar** | Alta disponibilidad (T09), vídeo y presentación (T10). De T06 queda el vídeo con la webcam |
 | **Cómo levantarlo** | En Ubuntu (WSL2), paso a paso en el README («Puesta en marcha»): `make entorno`, pegar `LLM_API_KEY`, `make sync && make test`, `make construir && make todo`, `make historico-muestra` y `make rag-indexar`; cada día, `make todo` y `make tiempo-real` |
-| **Forma de trabajar** | Una rama por persona (tabla en el README) y cambios a `main` por *pull request*. Para trabajo en paralelo, una rama de tarea con contratos por bloque (`parte3_chatbot_rag/CONTRATOS.md`) |
+| **Forma de trabajar** | Una rama por persona (tabla en el README) y cambios a `main` por *pull request*. Para trabajo en paralelo, una rama de tarea con contratos por bloque (`parte3_chatbot_rag/CONTRATOS.md`). Cada copia, con `make hooks`; el CI «Autoría» rechaza coautorías y firmas automáticas |
+| **Repositorio** | Recreado en GitHub el 22/09/2026 (mismo nombre) para eliminar una coautoría ajena al grupo: [`docs/repositorio.md`](docs/repositorio.md). Copias anteriores: sincronizar con `git reset --hard origin/main`. **Vercel (`happytaxi`, `yellowveil`) hay que volver a conectarlo al repositorio nuevo** (§4 de ese documento) |
 | **Siguientes tareas** | Ver [`TAREAS.md`](TAREAS.md) |
 | **Pendiente inmediato** | Grabar el vídeo de T06 en Windows (el ciclo ya responde a 👍 y ✋). Confirmar en grupo la decisión del LLM externo (regla 9 de E3), dejar el tiempo real listo para la demo (T11) y subir la copia del dataset de gestos, ya hecha y verificada (T01) |
 | **Requisitos** | Todo instalado en este equipo (incluido el NVIDIA Container Toolkit). En equipos sin GPU: `make chatbot SIN_GPU=1` con `OLLAMA_MODELO=llama3.2:3b`, o el chatbot RAG, que no necesita GPU |
@@ -56,6 +59,7 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 | 21/09/2026 | Una rama por persona y cambios a `main` por *pull request* | No pisarnos el trabajo | Javier Saguar | Vigente |
 | 21/09/2026 | **Segundo chatbot con LLM externo** (Helmcode, API compatible con OpenAI en la UE y sin registro de prompts) y RAG con Qdrant; el de Ollama se conserva | Modelo mayor sin depender de la GPU y con contexto recuperado; solo viajan la pregunta y agregados ya protegidos, con lista blanca de modelos UE y guardia de salida. Matiza la regla 9 de E3 («las preguntas no salen del equipo»), que sigue cumpliéndose con el chatbot de Ollama | Javier Saguar | Propuesta: confirmar en grupo |
 | 21/09/2026 | Trabajo en paralelo por bloques con contratos escritos (`CONTRATOS.md`: propiedad de ficheros y firmas) y una rama de integración `tarea/rag-base` | Cinco bloques a la vez sin conflictos: las tres ramas se fusionaron limpias | Javier Saguar | Vigente |
+| 22/09/2026 | La regla de autoría se hace cumplir con un hook `commit-msg` y un CI «Autoría»; ningún commit lleva `Co-Authored-By` (ni entre miembros) | Una coautoría automática llegó a `main` en el PR #1 y solo se pudo quitar recreando el repositorio | Javier Saguar | Vigente |
 
 ## Plantilla (copiar y rellenar)
 
@@ -79,6 +83,36 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 ---
 
 ## Entradas
+
+### 2026-09-22 · Javier Saguar · Repositorio recreado en GitHub y barreras de autoría
+
+- **Rama / commits:** `main` · pendiente de commit
+- **Qué he hecho:**
+  - El PR #1 (rediseño del portal, de Alejandro Cuevas) trajo a `main` un commit con una coautoría y una firma
+    automáticas de una herramienta, que GitHub mostraba como contribuidora. Reescribí el commit y el *merge* sin
+    el trailer y con el mismo código, autor y fecha (`fa9036a → 6785183`, `7ea22c9 → 095b340`) y los subí
+    forzados. GitHub seguía mostrándola por la referencia del PR, que no se puede borrar.
+  - Copia completa en mi equipo (`~/copias/PIDS-Proyecto1-20260922-0051`), borrado del repositorio, creación de
+    uno nuevo con el mismo nombre, subida de las 9 ramas limpias y nuevas invitaciones a los cuatro compañeros.
+    GitHub ya no encuentra el commit antiguo y los contribuidores son solo del grupo.
+  - Para que no vuelva a pasar: hook `commit-msg` que quita esas líneas (`make hooks`, también en `make sync`),
+    CI «Autoría» que revisa commits y descripción de los PR, `scripts/comprobar_autoria.py` con sus tests,
+    `AGENTS.md` para los asistentes y `docs/repositorio.md` con la incidencia y cómo recuperarse.
+- **Por qué:** es la regla principal del grupo: en el repositorio solo figuramos los cinco como autores.
+- **Ficheros clave:** `docs/repositorio.md`, `AGENTS.md`, `scripts/comprobar_autoria.py`, `.githooks/commit-msg`,
+  `.github/workflows/autoria.yml`, `tests/test_autoria.py`, `Makefile` (`hooks`)
+- **Cómo comprobarlo:**
+  ```bash
+  make hooks && make test
+  python3 scripts/comprobar_autoria.py --rango main
+  ```
+- **Resultado:** historial de todas las ramas sin coautorías; tests de autoría en verde.
+- **Pendiente y riesgos:** **volver a conectar Vercel** (`happytaxi` y `yellowveil`) al repositorio nuevo; que
+  los compañeros acepten la invitación, sincronicen su copia (`git reset --hard origin/main`) y ejecuten
+  `make hooks`. Se perdieron el PR #1 y el historial del CI. El hook se puede saltar con `--no-verify`: el
+  CI es la barrera que no se salta.
+- **Contexto para quien siga:** una copia anterior al 22/09 que se suba vuelve a colar el commit antiguo
+  (`docs/repositorio.md` §4 explica cómo detectarlo). Los hashes anteriores a `235ddc2` no cambiaron.
 
 ### 2026-09-22 · Javier Saguar · T08 · Servicios sin login fuera del anfitrión y modelo de amenazas
 

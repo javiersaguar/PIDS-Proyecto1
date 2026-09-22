@@ -1,0 +1,32 @@
+name: Autoría
+
+# Regla del grupo: solo los cinco del grupo como autores. Falla si un commit o la descripción de un
+# pull request lleva coautorías o firmas automáticas (docs/repositorio.md).
+on:
+  push:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  autoria:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Commits
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          CABEZA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          if [ -z "$BASE" ] || [ "$BASE" = 0000000000000000000000000000000000000000 ]; then
+            python3 scripts/comprobar_autoria.py --rango "$CABEZA"
+          else
+            python3 scripts/comprobar_autoria.py --rango "$BASE..$CABEZA"
+          fi
+      - name: Título y descripción del pull request
+        if: github.event_name == 'pull_request'
+        env:
+          TITULO: ${{ github.event.pull_request.title }}
+          CUERPO: ${{ github.event.pull_request.body }}
+        run: printf '%s\n%s\n' "$TITULO" "$CUERPO" | python3 scripts/comprobar_autoria.py --texto
