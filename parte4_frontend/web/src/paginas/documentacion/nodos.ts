@@ -269,16 +269,16 @@ export const NODOS: Nodo[] = [
     x: 16,
     y: 656,
     titulo: 'Grafana',
-    subtitulo: 'Paneles y alertas',
+    subtitulo: 'Ocho cuadros',
     tecnologia: 'Prometheus',
     datos: 'Métricas',
     tono: 'cian',
     icono: LineChart,
     queEs: [
-      'Son los dibujos del enfermero: unos paneles que dicen si todo va bien. No tienen llave del archivador ni de la cola.',
+      'Son los cuadros del enfermero. Dicen si Spark, la cola, MongoDB, S3 y los chatbots van bien. No tienen llave del archivador ni de la cola. Esta web los enseña en Observabilidad.',
     ],
     queHace: [
-      'Enseñan tres cosas. Si los datos están frescos. Si algún servicio se ha caído. Y si hay mucha gente pidiendo cosas que la puerta rechaza. Esas alarmas se ven aquí. No llega un correo.',
+      'Hay un cuadro por cada pieza: la plataforma, la privacidad, las preguntas de los asistentes, Kafka, Spark, lo que hay en MongoDB, el crudo en S3 y el tiempo real. Las alarmas se ven aquí. No llega un correo.',
     ],
     comoConecta: [
       'Los números le llegan de Prometheus. Si en un panel sale un total de viajes, ese total ya pasó por la puerta de salida.',

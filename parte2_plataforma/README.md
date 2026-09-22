@@ -10,7 +10,7 @@
 | `s3/` | Arranque de SeaweedFS con identidades y creación de buckets | SeaweedFS, boto3 |
 | `mongodb/` | Usuarios, roles e índices | MongoDB 8 |
 | `simulador/` | Reenvía un fichero de viajes como eventos en tiempo real | requests |
-| `observabilidad/` | Configuración de Prometheus y panel de Grafana | Prometheus, Grafana |
+| `observabilidad/` | Prometheus y los ocho cuadros de Grafana | Prometheus, Grafana |
 
 ## Spark
 

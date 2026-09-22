@@ -19,14 +19,14 @@ const CHAT = {
 }
 
 describe('AppShell', () => {
-  it('pinta la navegación con las seis secciones (sin el asistente) y marca la activa', async () => {
+  it('pinta la navegación con las secciones (sin el asistente) y marca la activa', async () => {
     simularApi({ 'GET /api/sesion': { autenticado: true }, 'GET /api/panel': PANEL })
     renderizarRutas('/explorador')
 
     const navegacion = await screen.findByRole('navigation', { name: 'Secciones del portal' })
     const enlaces = within(navegacion).getAllByRole('link')
     expect(enlaces.map((e) => e.textContent)).toEqual(SECCIONES.map((s) => s.titulo))
-    expect(enlaces).toHaveLength(6)
+    expect(enlaces).toHaveLength(SECCIONES.length)
     expect(within(navegacion).queryByRole('link', { name: 'Asistente' })).not.toBeInTheDocument()
     expect(within(navegacion).getByRole('link', { name: 'Explorador' })).toHaveAttribute('aria-current', 'page')
     expect(within(navegacion).getByRole('link', { name: 'Panel' })).not.toHaveAttribute('aria-current')

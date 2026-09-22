@@ -17,6 +17,7 @@ class Repositorio(Protocol):
     async def barrios(self) -> list[str]: ...
     async def ultimo_dia_por_barrio(self, fuente: str) -> tuple[datetime | None, dict[str, int]]: ...
     async def ultima_actualizacion_tiempo_real(self) -> datetime | None: ...
+    async def inventario(self) -> list[dict[str, Any]]: ...
     async def auditar(self, decision: dict[str, Any]) -> None: ...
     async def cerrar(self) -> None: ...
 
@@ -71,6 +72,19 @@ class RepositorioMongo:
 
     async def auditar(self, decision: dict[str, Any]) -> None:
         await self.auditoria['decisiones'].insert_one(decision)
+
+    async def inventario(self) -> list[dict[str, Any]]:
+        """Documentos y bytes de cada colección de agregados. Los viajes sueltos no están en MongoDB."""
+        filas = [await self._coleccion(prefijo + nivel['coleccion'], fuente)
+                 for fuente, prefijo in P.config()['fuentes'].items()
+                 for nivel in P.config()['niveles'].values()]
+        filas.append(await self._coleccion('zonas', 'catalogo'))
+        return filas
+
+    async def _coleccion(self, nombre: str, fuente: str) -> dict[str, Any]:
+        stats = await self.publico.command('collStats', nombre)
+        return {'coleccion': nombre, 'fuente': fuente,
+                'documentos': int(stats.get('count') or 0), 'bytes': int(stats.get('size') or 0)}
 
     async def ultima_actualizacion_tiempo_real(self) -> datetime | None:
         # Solo streaming: evita ordenar los cientos de miles de documentos del histórico.

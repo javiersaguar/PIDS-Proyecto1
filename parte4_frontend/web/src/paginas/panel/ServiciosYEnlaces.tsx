@@ -32,7 +32,7 @@ interface Enlace {
 }
 
 const ENLACES: Enlace[] = [
-  { clave: 'grafana', titulo: 'Grafana', descripcion: 'Cuadros de mando y alertas' },
+  { clave: 'grafana', titulo: 'Grafana', descripcion: 'Los mismos cuadros, en su propia ventana' },
   { clave: 'airflow', titulo: 'Airflow', descripcion: 'Cargas históricas' },
   { clave: 'spark', titulo: 'Spark', descripcion: 'Trabajos por lotes y streaming' },
   { clave: 'api_acceso', titulo: 'API de acceso', descripcion: 'Documentación interactiva' },

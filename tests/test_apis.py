@@ -42,6 +42,9 @@ class RepoFalso:
     async def ultima_actualizacion_tiempo_real(self):
         return None
 
+    async def inventario(self):
+        return []
+
     async def auditar(self, decision):
         self.auditoria.append(decision)
 

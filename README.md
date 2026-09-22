@@ -129,7 +129,7 @@ desde cero (el histórico no se toca).
 | Chatbot (Ollama) | http://localhost:8010 | `CHATBOT_USUARIO` / `CHATBOT_CLAVE` |
 | Chatbot RAG | http://localhost:8011 (`PUERTO_CHATBOT_RAG`) | las mismas |
 | Airflow | http://localhost:8085 | `AIRFLOW_ADMIN_USER` / `AIRFLOW_ADMIN_PASSWORD` |
-| Grafana | http://localhost:3000 | `admin` / `GRAFANA_ADMIN_PASSWORD` |
+| Grafana | http://localhost:3000 (y en el portal, sección Observabilidad) | Ver, sin clave; editar, `admin` / `GRAFANA_ADMIN_PASSWORD` |
 | API de acceso | http://localhost:8002/docs | Cabecera `X-API-Key`: `ACCESO_CLAVE_EQUIPO` |
 | API de captura | http://localhost:8001/docs | Cabecera `X-API-Key`: `CAPTURA_CLAVE_SIMULADOR` |
 

@@ -61,9 +61,10 @@ def test_prometheus_mide_cada_replica_por_separado():
 
 def test_las_metricas_repetidas_en_las_replicas_no_se_duplican():
     """publico_* lo publican las dos réplicas con el mismo valor: Grafana, las alertas y el portal usan max()."""
-    panel = json.loads((RAIZ / 'parte2_plataforma/observabilidad/grafana/dashboards/plataforma.json').read_text())
+    cuadros = sorted((RAIZ / 'parte2_plataforma/observabilidad/grafana/dashboards').glob('*.json'))
+    assert cuadros
     alertas = (RAIZ / 'parte2_plataforma/observabilidad/grafana/provisioning/alerting/reglas.json').read_text()
-    expresiones = [t['expr'] for p in panel['panels'] for t in p.get('targets', [])]
+    expresiones = [e for ruta in cuadros for e in _exprs(json.loads(ruta.read_text(encoding='utf-8')))]
     expresiones += list(_exprs(json.loads(alertas)))
     for expr in expresiones:
         if 'publico_' in expr:

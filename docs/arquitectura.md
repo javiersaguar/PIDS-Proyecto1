@@ -88,8 +88,11 @@ está descrito en detalle en [`chatbot_rag.md`](chatbot_rag.md).
 ## Monitorización y alertas
 
 Prometheus sondea cada 15 s las APIs, Redpanda, SeaweedFS y Spark. Grafana solo ve esas métricas (no tiene
-credenciales de datos) y todo se provisiona por ficheros: el panel `plataforma.json` y tres alertas en
-`observabilidad/grafana/provisioning/alerting/reglas.json`, evaluadas cada 30 s.
+credenciales de datos) y todo se provisiona por ficheros: ocho cuadros en
+`observabilidad/grafana/dashboards/` (plataforma, privacidad, chatbots, Kafka, Spark, MongoDB, S3 y tiempo
+real; se regeneran con `generar.py`) y tres alertas en
+`observabilidad/grafana/provisioning/alerting/reglas.json`, evaluadas cada 30 s. El portal los muestra en
+Observabilidad.
 
 | Alerta | Condición (resumida) | Qué indica |
 |---|---|---|
@@ -122,8 +125,8 @@ clientes → acceso:8000 (Caddy) ─┬→ acceso-a:8000 ─┐
   auditoría. Tras un fallo deja la réplica fuera 30 s, y cada 3 s pregunta a su `/salud` para volver a meterla.
 - Las réplicas son iguales y no guardan estado: cada petición lleva su `X-API-Key` y la auditoría va a MongoDB,
   así que da igual cuál conteste. La cabecera `X-Replica` de la respuesta dice cuál ha sido.
-- Prometheus mide cada réplica por separado (etiqueta `replica`) y Grafana tiene el panel «consultas por
-  réplica». Las métricas que publican las dos (`publico_*`) se leen con `max()`. Con una réplica parada salta la
+- Prometheus mide cada réplica por separado (etiqueta `replica`) y el cuadro de privacidad enseña las consultas
+  de cada una. Las métricas que publican las dos (`publico_*`) se leen con `max()`. Con una réplica parada salta la
   alerta «Servicio caído»: el servicio sigue, pero sin redundancia, y eso hay que saberlo.
 
 Medido el 22/09/2026 con `make alta-disponibilidad` (`scripts/probar_alta_disponibilidad.py`): 20 peticiones

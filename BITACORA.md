@@ -61,6 +61,7 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 | 21/09/2026 | **Segundo chatbot con LLM externo** (Helmcode, API compatible con OpenAI en la UE y sin registro de prompts) y RAG con Qdrant; el de Ollama se conserva | Modelo mayor sin depender de la GPU y con contexto recuperado; solo viajan la pregunta y agregados ya protegidos, con lista blanca de modelos UE y guardia de salida. Matiza la regla 9 de E3 («las preguntas no salen del equipo»), que sigue cumpliéndose con el chatbot de Ollama | Javier Saguar | Propuesta: confirmar en grupo |
 | 21/09/2026 | Trabajo en paralelo por bloques con contratos escritos (`CONTRATOS.md`: propiedad de ficheros y firmas) y una rama de integración `tarea/rag-base` | Cinco bloques a la vez sin conflictos: las tres ramas se fusionaron limpias | Javier Saguar | Vigente |
 | 22/09/2026 | La regla de autoría se hace cumplir con un hook `commit-msg` y un CI «Autoría»; ningún commit lleva `Co-Authored-By` (ni entre miembros) | Una coautoría automática llegó a `main` en el PR #1 y solo se pudo quitar recreando el repositorio | Javier Saguar | Vigente |
+| 22/09/2026 | Grafana deja **ver** los cuadros sin clave (rol Viewer anónimo) para incrustarlos en el portal; editar sigue pidiendo `admin` | Solo escucha en 127.0.0.1 y los cuadros enseñan métricas y agregados ya protegidos, nunca viajes. Es la excepción a «solo se publica lo que tiene credencial» de T08 | Javier Saguar | Vigente |
 | 22/09/2026 | Se publica el vídeo del CU8 (`docs/capturas/cu8_gesto.mp4`), en el que se ven miembros del grupo; el dataset completo de gestos (3000 fotos) sigue fuera del repositorio | Es la prueba de la integración gestos ↔ chatbot; el propio repositorio de la asignatura trae fotos de los profesores como dataset de prueba | Javier Saguar | Vigente |
 
 ## Plantilla (copiar y rellenar)
@@ -85,6 +86,29 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 ---
 
 ## Entradas
+
+### 2026-09-22 · Javier Saguar · Observabilidad en el portal: ocho cuadros de Grafana generados
+
+- **Rama / commits:** `main`
+- **Qué he hecho:**
+  - Sección **Observabilidad** en el portal (`/observabilidad`, en el menú): los cuadros de Grafana incrustados en
+    modo kiosco, con pestañas. Solo se incrustan si el portal se abre desde el propio equipo (Grafana escucha en
+    127.0.0.1); desde la web pública o la demostración, la página lo explica y enlaza, sin un marco roto.
+  - Ocho cuadros provisionados por ficheros y generados con `observabilidad/grafana/dashboards/generar.py`:
+    plataforma, privacidad, chatbots, Kafka, Spark, MongoDB, S3 y tiempo real. Sustituyen a `plataforma.json`.
+  - La API de acceso publica el inventario de las colecciones de agregados (`publico_documentos`,
+    `publico_datos_bytes`, por colección y fuente) para el cuadro de MongoDB: tamaños, nunca contenido.
+  - Grafana: visor anónimo de solo lectura y permiso para incrustarlo (ver «Decisiones tomadas»).
+  - Al integrarlo: dos tests seguían leyendo el `plataforma.json` borrado; ahora revisan los ocho cuadros (JSON
+    válido, uid igual al nombre, ids de panel únicos y `max()` en las métricas que publican las dos réplicas).
+- **Por qué:** ver el estado de la plataforma sin salir del portal, y cuadros para cada pieza.
+- **Ficheros clave:** `parte2_plataforma/observabilidad/grafana/dashboards/`, `parte2_plataforma/acceso/{app,repositorio}.py`,
+  `parte4_frontend/web/src/paginas/observabilidad/`, `docker-compose.yml` (Grafana), `docs/{arquitectura,seguridad}.md`
+- **Cómo comprobarlo:** http://localhost:8020/observabilidad; `curl localhost:3000/api/dashboards/uid/pids-plataforma`
+  responde sin clave y editar da 403.
+- **Resultado:** 469 tests de Python y 184 de Vitest en verde, lint y *builds* limpios.
+- **Pendiente y riesgos:** desde la web pública los cuadros no se ven (habría que sacar Grafana por el túnel, con su
+  propio control de acceso). Cualquiera con acceso al equipo puede ver los cuadros sin contraseña.
 
 ### 2026-09-22 · Javier Saguar · Grafo: el asistente ilumina su camino, con Ollama o con DeepSeek
 

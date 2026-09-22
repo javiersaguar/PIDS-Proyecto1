@@ -32,7 +32,7 @@ Solo servicios con credencial:
 | Portal | http://localhost:8020 | `FRONTEND_CLAVE` |
 | Chatbot y chatbot RAG | http://localhost:8010 y :8011 | `CHATBOT_USUARIO` / `CHATBOT_CLAVE`. La sesión la firma `CHAINLIT_AUTH_SECRET` |
 | Airflow | http://localhost:8085 | `AIRFLOW_ADMIN_USER` / `AIRFLOW_ADMIN_PASSWORD` |
-| Grafana | http://localhost:3000 | `admin` / `GRAFANA_ADMIN_PASSWORD`. El alta pública está cerrada |
+| Grafana | http://localhost:3000 | Ver los cuadros no pide clave (el portal los incrusta; solo `127.0.0.1`). Editar sigue siendo `admin` / `GRAFANA_ADMIN_PASSWORD`. El alta pública está cerrada |
 | API de acceso y de captura | :8002 y :8001 | Cabecera `X-API-Key` |
 | MongoDB | `localhost:27018` | Usuario y contraseña. Sin ellas, `listDatabases` responde 13 |
 | S3 | http://localhost:8333 | Clave de acceso. Sin ella responde 403 |

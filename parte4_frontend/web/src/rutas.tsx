@@ -10,6 +10,7 @@ import PaginaAcceso from '@/paginas/acceso/PaginaAcceso'
 import PaginaDocumentacion from '@/paginas/documentacion/PaginaDocumentacion'
 import PaginaExplorador from '@/paginas/explorador/PaginaExplorador'
 import PaginaNoEncontrado from '@/paginas/no-encontrado/PaginaNoEncontrado'
+import PaginaObservabilidad from '@/paginas/observabilidad/PaginaObservabilidad'
 import PaginaOperaciones from '@/paginas/operaciones/PaginaOperaciones'
 import PaginaPanel from '@/paginas/panel/PaginaPanel'
 import PaginaPrivacidad from '@/paginas/privacidad/PaginaPrivacidad'
@@ -31,6 +32,7 @@ export const rutas: RouteObject[] = [
           { path: 'privacidad', element: <PaginaPrivacidad /> },
           { path: 'operaciones', element: <PaginaOperaciones /> },
           { path: 'grafo', element: <PaginaDocumentacion /> },
+          { path: 'observabilidad', element: <PaginaObservabilidad /> },
           // La sección se llamaba «Documentación»: los enlaces antiguos siguen funcionando
           { path: 'documentacion', element: <Navigate to="/grafo" replace /> },
           { path: '*', element: <PaginaNoEncontrado /> },

@@ -40,6 +40,9 @@ VIAJES_BARRIO = Gauge('publico_viajes_ultimo_dia', 'Viajes del último día publ
 ULTIMO_DIA = Gauge('publico_ultimo_dia_timestamp_segundos', 'Último día con datos publicados', ['fuente'])
 ULTIMA_ACTUALIZACION = Gauge('publico_ultima_actualizacion_timestamp_segundos',
                              'Última escritura de Spark en los agregados de tiempo real; 0 si no hay datos', ['fuente'])
+DOCUMENTOS = Gauge('publico_documentos', 'Documentos de una colección de agregados protegidos', ['coleccion', 'fuente'])
+DATOS_BYTES = Gauge('publico_datos_bytes', 'Bytes de los documentos de una colección de agregados protegidos',
+                    ['coleccion', 'fuente'])
 INTERVALO_METRICAS = int(os.environ.get('ACCESO_INTERVALO_METRICAS', '60'))
 
 
@@ -66,6 +69,7 @@ async def _refrescar_metricas(repo: Repositorio) -> None:
                     ULTIMO_DIA.labels(fuente).set(dia.replace(tzinfo=timezone.utc).timestamp())
                     for barrio, n in por_barrio.items():
                         VIAJES_BARRIO.labels(barrio, fuente).set(n)
+        await _refrescar_inventario(repo)
         await asyncio.sleep(INTERVALO_METRICAS)
 
 
@@ -80,6 +84,17 @@ async def _refrescar_frescura(repo: Repositorio) -> None:
     if instante is not None:
         instante = instante.replace(tzinfo=timezone.utc) if instante.tzinfo is None else instante
     ULTIMA_ACTUALIZACION.labels('tiempo_real').set(instante.timestamp() if instante else 0)
+
+
+async def _refrescar_inventario(repo: Repositorio) -> None:
+    try:
+        filas = await repo.inventario()
+    except Exception:
+        log.warning('No se pudo leer el inventario de las colecciones publicadas')
+        return
+    for fila in filas:
+        DOCUMENTOS.labels(fila['coleccion'], fila['fuente']).set(fila['documentos'])
+        DATOS_BYTES.labels(fila['coleccion'], fila['fuente']).set(fila['bytes'])
 
 
 @asynccontextmanager

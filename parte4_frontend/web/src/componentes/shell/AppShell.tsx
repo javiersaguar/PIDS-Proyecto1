@@ -37,7 +37,8 @@ export function AppShell() {
   const esExplorador = pathname === '/explorador' || pathname.startsWith('/explorador/')
   const esTiempoReal = pathname === '/tiempo-real' || pathname.startsWith('/tiempo-real/')
   const esOperaciones = pathname === '/operaciones' || pathname.startsWith('/operaciones/')
-  const amplio = esPanel || esExplorador || esTiempoReal || esOperaciones
+  const esObservabilidad = pathname === '/observabilidad' || pathname.startsWith('/observabilidad/')
+  const amplio = esPanel || esExplorador || esTiempoReal || esOperaciones || esObservabilidad
 
   return (
     <div className="min-h-svh bg-fondo">
@@ -58,7 +59,7 @@ export function AppShell() {
           {lienzo ? (
             <Outlet />
           ) : (
-            <div className={cn('mx-auto w-full', esExplorador ? 'max-w-none' : 'max-w-7xl')}>
+            <div className={cn('mx-auto w-full', esExplorador || esObservabilidad ? 'max-w-none' : 'max-w-7xl')}>
               <Outlet />
             </div>
           )}

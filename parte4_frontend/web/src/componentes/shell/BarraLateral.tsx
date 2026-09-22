@@ -1,5 +1,5 @@
 /**
- * Barra lateral fija: logotipo, navegación a las siete secciones y cierre de sesión.
+ * Barra lateral fija: logotipo, navegación a las secciones y cierre de sesión.
  */
 import { LogOut } from 'lucide-react'
 import { NavLink, useNavigate } from 'react-router'

@@ -1,7 +1,9 @@
 """Frescura, informe y seguridad de las comprobaciones; sin contenedores ni escrituras reales."""
+import importlib.util
 import json
 import math
 from datetime import datetime, timezone
+from pathlib import Path
 from unittest.mock import AsyncMock, Mock
 
 import pandas as pd
@@ -49,6 +51,48 @@ async def test_frescura_no_recuerda_el_dia_del_viaje_ni_consulta_historico():
     assert argumentos.args[1] == {'_id': 0, 'actualizado_en': 1}
     coleccion.find_one.return_value = None
     assert await repo.ultima_actualizacion_tiempo_real() is None
+
+
+def test_los_ocho_cuadros_de_grafana_estan_generados():
+    ruta = Path(__file__).parents[1] / 'parte2_plataforma/observabilidad/grafana/dashboards/generar.py'
+    spec = importlib.util.spec_from_file_location('generar_dashboards', ruta)
+    modulo = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(modulo)
+    for uid, _titulo in modulo.CUADROS:
+        tablero = json.loads((ruta.parent / f'{uid}.json').read_text())
+        assert tablero['uid'] == uid
+        assert any(panel.get('targets') for panel in tablero['panels'])
+
+
+async def test_inventario_cuenta_las_colecciones_de_agregados_y_el_catalogo():
+    class Publico:
+        def __init__(self):
+            self.pedidas = []
+
+        async def command(self, orden, nombre):
+            assert orden == 'collStats'
+            self.pedidas.append(nombre)
+            return {'count': len(nombre), 'size': 1000}
+
+    repo = RepositorioMongo.__new__(RepositorioMongo)
+    repo.publico = Publico()
+    filas = await repo.inventario()
+    assert repo.publico.pedidas == [
+        'viajes_hora_zona', 'viajes_dia_barrio', 'od_dia_barrio',
+        'tr_viajes_hora_zona', 'tr_viajes_dia_barrio', 'tr_od_dia_barrio', 'zonas',
+    ]
+    assert filas[-1] == {'coleccion': 'zonas', 'fuente': 'catalogo', 'documentos': 5, 'bytes': 1000}
+    assert filas[0]['fuente'] == 'historico' and filas[3]['fuente'] == 'tiempo_real'
+
+
+async def test_el_inventario_publica_documentos_y_bytes():
+    repo = RepoFalso([])
+    repo.inventario = AsyncMock(return_value=[
+        {'coleccion': 'viajes_dia_barrio', 'fuente': 'historico', 'documentos': 12, 'bytes': 340},
+    ])
+    await acceso._refrescar_inventario(repo)
+    assert acceso.DOCUMENTOS.labels('viajes_dia_barrio', 'historico')._value.get() == 12
+    assert acceso.DATOS_BYTES.labels('viajes_dia_barrio', 'historico')._value.get() == 340
 
 
 def test_informe_cuenta_y_limita_rechazos_sin_perder_totales():

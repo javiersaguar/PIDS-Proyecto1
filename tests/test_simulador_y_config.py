@@ -41,11 +41,15 @@ def test_dag_de_airflow_es_python_valido():
     assert 'pids.CargaHistorica' in fuente
 
 
-def test_dashboard_de_grafana_es_json_valido():
-    ruta = RAIZ / 'parte2_plataforma' / 'observabilidad' / 'grafana' / 'dashboards' / 'plataforma.json'
-    panel = json.loads(ruta.read_text(encoding='utf-8'))
-    assert panel['uid'] == 'pids-plataforma'
-    assert len({p['id'] for p in panel['panels']}) == len(panel['panels'])
+def test_dashboards_de_grafana_son_json_valido():
+    """Los ocho cuadros que genera `dashboards/generar.py`: uid igual al nombre del fichero e ids de panel únicos."""
+    rutas = sorted((RAIZ / 'parte2_plataforma' / 'observabilidad' / 'grafana' / 'dashboards').glob('*.json'))
+    assert {r.stem for r in rutas} >= {'pids-plataforma', 'pids-privacidad', 'pids-tiempo-real'}
+    for ruta in rutas:
+        cuadro = json.loads(ruta.read_text(encoding='utf-8'))
+        assert cuadro['uid'] == ruta.stem, ruta.name
+        paneles = [p for fila in cuadro['panels'] for p in [fila, *fila.get('panels', [])]]
+        assert len({p['id'] for p in paneles}) == len(paneles), ruta.name
 
 
 def test_perfilado_de_la_muestra():

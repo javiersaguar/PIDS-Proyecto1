@@ -1,11 +1,12 @@
 /**
- * Las seis secciones del portal (§6): ruta, título, descripción e icono. Es la única lista; la usan la barra
+ * Las secciones del portal (§6): ruta, título, descripción e icono. Es la única lista; la usan la barra
  * lateral y la cabecera (título de la sección activa). El asistente (TAXI AI) no es una sección: es el botón fijo
  * de la esquina inferior derecha y su panel, disponibles en todas las páginas (`PanelAsistente.tsx`).
  */
 import {
   Activity,
   LayoutDashboard,
+  LineChart,
   Network,
   ShieldCheck,
   SlidersHorizontal,
@@ -56,6 +57,12 @@ export const SECCIONES: readonly Seccion[] = [
     titulo: 'Grafo',
     descripcion: 'Por dónde pasan los datos: qué hace cada pieza, qué está en marcha ahora y la captura en directo.',
     icono: Network,
+  },
+  {
+    ruta: '/observabilidad',
+    titulo: 'Observabilidad',
+    descripcion: 'Cuadros de Grafana: Spark, Kafka, MongoDB, S3, privacidad, chatbots y tiempo real.',
+    icono: LineChart,
   },
 ]
 
