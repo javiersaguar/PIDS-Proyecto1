@@ -4,7 +4,7 @@ Prometheus solo aporta estado, frescura y contadores (CONTRATOS.md §5): ninguna
 aquí, todas pasan por la API de acceso. Consultas instantáneas a `GET {PROMETHEUS_URL}/api/v1/query?query=…`:
 
   up                                                                  -> `Servicio[]` (estado por job de prometheus.yml)
-  publico_ultima_actualizacion_timestamp_segundos{fuente="tiempo_real"} -> frescura (0/NaN = aún no hay datos -> null)
+  max(publico_ultima_actualizacion_timestamp_segundos{fuente="tiempo_real"}) -> frescura (0/NaN = aún no hay datos -> null)
   sum by (resultado) (increase(acceso_consultas_total[24h]))          -> consultas de las últimas 24 h por resultado
 
 Además el BFF comprueba directamente `GET /salud` de las APIs de acceso y captura: si Prometheus está caído, es lo
@@ -32,7 +32,8 @@ TIEMPO_PROMETHEUS = 5.0            # segundos por consulta
 TIEMPO_SALUD = 3.0                 # segundos para GET /salud de una API
 
 CONSULTA_UP = 'up'
-CONSULTA_FRESCURA = 'publico_ultima_actualizacion_timestamp_segundos{fuente="tiempo_real"}'
+# max(): la API de acceso son dos réplicas (T09) y las dos publican el mismo valor
+CONSULTA_FRESCURA = 'max(publico_ultima_actualizacion_timestamp_segundos{fuente="tiempo_real"})'
 CONSULTA_24H = 'sum by (resultado) (increase(acceso_consultas_total[24h]))'
 RESULTADOS = ('permitida', 'enmascarada', 'rechazada')
 

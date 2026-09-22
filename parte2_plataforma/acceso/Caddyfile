@@ -1,0 +1,27 @@
+# Proxy de la API de acceso (T09): dos réplicas iguales detrás del nombre de siempre, acceso:8000.
+#
+# - Reparte por turnos (round robin) entre acceso-a y acceso-b.
+# - Si una réplica no acepta la conexión (parada, reiniciándose), la petición se reintenta en la otra durante
+#   5 s. Las GET se reintentan también si la conexión se corta a medias; las POST no, porque ya pueden haber
+#   quedado en la auditoría.
+# - Cada 3 s pregunta a /salud de las dos; la que no responde sale del reparto hasta que vuelve a hacerlo.
+# - Cabecera X-Replica en la respuesta: qué réplica ha contestado (para comprobar el reparto).
+{
+	admin off
+	auto_https off
+}
+
+:8000 {
+	reverse_proxy acceso-a:8000 acceso-b:8000 {
+		lb_policy round_robin
+		lb_try_duration 5s
+		lb_try_interval 250ms
+		fail_duration 30s
+
+		health_uri /salud
+		health_interval 3s
+		health_timeout 2s
+
+		header_down X-Replica {http.reverse_proxy.upstream.host}
+	}
+}

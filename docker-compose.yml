@@ -209,7 +209,11 @@ services:
       redpanda-init:
         condition: service_completed_successfully
 
-  acceso:
+  # ---------------------------------------------------------------- API de acceso (alta disponibilidad, T09)
+  # `acceso` es un proxy (Caddy) con el nombre y el puerto de siempre: ningún cliente cambia. Reparte entre dos
+  # réplicas iguales de la API; si una no responde, la petición se reintenta en la otra y la comprobación de
+  # /salud la saca del reparto hasta que vuelve. Detalle y límites en docs/arquitectura.md («Alta disponibilidad»).
+  acceso-a: &acceso-replica
     <<: *python
     image: pids/acceso:local
     build:
@@ -221,12 +225,35 @@ services:
     environment:
       MONGO_URI: mongodb://pids_acceso:${MONGO_ACCESO_PASSWORD}@mongo:27017/?authSource=admin
       ACCESO_CLAVES: chatbot=${ACCESO_CLAVE_CHATBOT},chatbot_rag=${ACCESO_CLAVE_CHATBOT_RAG},airflow=${ACCESO_CLAVE_AIRFLOW},equipo=${ACCESO_CLAVE_EQUIPO},frontend=${ACCESO_CLAVE_FRONTEND}
-    ports:
-      - "127.0.0.1:${PUERTO_ACCESO:-8002}:8000"
+    # Sin puerto publicado: se entra siempre por el proxy.
     healthcheck: *salud-python
     depends_on:
       mongo:
         condition: service_healthy
+
+  acceso-b:
+    <<: *acceso-replica
+
+  acceso:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    # Solo en «servicios»: el proxy no necesita llegar al almacenamiento, solo a las réplicas.
+    networks: [servicios]
+    volumes:
+      - ./parte2_plataforma/acceso/Caddyfile:/etc/caddy/Caddyfile:ro
+    ports:
+      - "127.0.0.1:${PUERTO_ACCESO:-8002}:8000"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8000/salud"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    # Arranca aunque una réplica no esté sana: Caddy la deja fuera hasta que responda a /salud.
+    depends_on:
+      acceso-a:
+        condition: service_started
+      acceso-b:
+        condition: service_started
 
   # ---------------------------------------------------------------- Spark (modo cluster)
   spark-master:

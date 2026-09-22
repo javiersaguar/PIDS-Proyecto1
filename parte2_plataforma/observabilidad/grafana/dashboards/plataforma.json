@@ -4,7 +4,7 @@
   "tags": ["pids"],
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 2,
+  "version": 3,
   "refresh": "30s",
   "time": {"from": "now-1h", "to": "now"},
   "panels": [
@@ -14,7 +14,7 @@
       "title": "Servicios activos",
       "gridPos": {"h": 5, "w": 24, "x": 0, "y": 0},
       "datasource": {"type": "prometheus", "uid": "prometheus"},
-      "targets": [{"refId": "A", "expr": "up", "legendFormat": "{{job}}"}],
+      "targets": [{"refId": "A", "expr": "up", "legendFormat": "{{job}} {{replica}}"}],
       "options": {"colorMode": "background", "graphMode": "none", "textMode": "name", "reduceOptions": {"calcs": ["lastNotNull"]}},
       "fieldConfig": {
         "defaults": {
@@ -73,7 +73,7 @@
       "title": "Viajes del último día publicado por barrio (histórico, agregado protegido)",
       "gridPos": {"h": 6, "w": 12, "x": 12, "y": 13},
       "datasource": {"type": "prometheus", "uid": "prometheus"},
-      "targets": [{"refId": "A", "expr": "publico_viajes_ultimo_dia{fuente=\"historico\"}", "legendFormat": "{{barrio}}"}],
+      "targets": [{"refId": "A", "expr": "max by (barrio) (publico_viajes_ultimo_dia{fuente=\"historico\"})", "legendFormat": "{{barrio}}"}],
       "options": {"orientation": "horizontal", "displayMode": "gradient", "reduceOptions": {"calcs": ["lastNotNull"]}}
     },
     {
@@ -83,7 +83,7 @@
       "description": "Edad de actualizado_en en tr_viajes_hora_zona: cuándo escribió Spark, no la fecha de los viajes. La API la refresca cada 60 s.",
       "gridPos": {"h": 6, "w": 12, "x": 0, "y": 19},
       "datasource": {"type": "prometheus", "uid": "prometheus"},
-      "targets": [{"refId": "A", "expr": "clamp_min(time() - publico_ultima_actualizacion_timestamp_segundos{fuente=\"tiempo_real\"}, 0)"}],
+      "targets": [{"refId": "A", "expr": "clamp_min(time() - max(publico_ultima_actualizacion_timestamp_segundos{fuente=\"tiempo_real\"}), 0)"}],
       "options": {"colorMode": "value", "reduceOptions": {"calcs": ["lastNotNull"]}},
       "fieldConfig": {"defaults": {"unit": "s", "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 300}]}}}
     },
@@ -94,6 +94,16 @@
       "gridPos": {"h": 6, "w": 12, "x": 12, "y": 19},
       "options": {"viewMode": "list", "groupMode": "default", "maxItems": 20, "sortOrder": 1, "dashboardAlerts": false, "alertName": "PIDS",
                   "stateFilter": {"firing": true, "pending": true, "error": true, "noData": true, "normal": false}}
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "API de acceso: consultas por réplica (alta disponibilidad)",
+      "description": "Consultas que atiende cada réplica detrás del proxy. Si una se para, la otra se queda con todas y la línea de la parada desaparece.",
+      "gridPos": {"h": 7, "w": 24, "x": 0, "y": 25},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"refId": "A", "expr": "sum by (replica) (increase(acceso_consultas_total[1m]))", "legendFormat": "réplica {{replica}}"}],
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []}
     }
   ]
 }

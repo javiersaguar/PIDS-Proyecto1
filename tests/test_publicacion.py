@@ -8,6 +8,7 @@ RAIZ = Path(__file__).resolve().parents[1]
 SIN_PUBLICAR = (
     'redpanda', 'spark-master', 'spark-worker-1', 'spark-worker-2',
     'prometheus', 'ollama', 'qdrant', 'redpanda-consola',
+    'acceso-a', 'acceso-b',            # réplicas de la API: se entra por el proxy `acceso` (T09)
 )
 CON_CREDENCIAL = (
     's3', 'mongo', 'captura', 'acceso', 'airflow-apiserver', 'grafana',
