@@ -7,6 +7,9 @@
  * iluminan: un halo, un trazo discontinuo que avanza en el sentido del dato y dos puntos que recorren la curva
  * (SMIL `animateMotion`); las piezas que trabajan llevan un anillo que late y una pastilla con su estado. El resto
  * del grafo se atenúa. Con `prefers-reduced-motion` quedan el halo y las pastillas, sin movimiento.
+ *
+ * Prometheus sondea casi todas las piezas: en vez de una línea a cada una, cada 15 s (su ritmo real) él y las que
+ * vigila laten un instante con un anillo tenue, uno detrás de otro, como un barrido (`VIGILADOS_POR_PROMETHEUS`).
  */
 import { useLayoutEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
@@ -18,7 +21,7 @@ import { cn } from '@/lib/utils'
 
 import { claveArista, SIN_FLUJOS, type Flujos } from './actividad'
 import { ControlesZoom } from './ControlesZoom'
-import { ARISTAS, LIENZO, NODOS, TARJETA, TONOS, type Arista, type Lado, type Nodo } from './nodos'
+import { ARISTAS, LIENZO, NODOS, SONDEO_PROMETHEUS_S, TARJETA, TONOS, VIGILADOS_POR_PROMETHEUS, type Arista, type Lado, type Nodo } from './nodos'
 import { useZoomLienzo } from './zoom'
 
 /** Segundos que tarda un punto en recorrer una arista activa. */
@@ -246,6 +249,17 @@ export function Lienzo({ enlaces, flujos = SIN_FLUJOS }: { enlaces: Panel['enlac
                 boxShadow: seleccionado || realce ? `0 0 0 2px white, 0 0 0 4px ${seleccionado ? tono.linea : colorRealce}` : undefined,
               }}
             >
+              {!reducido && VIGILADOS_POR_PROMETHEUS.includes(nodo.id) && (
+                <span
+                  className="anillo-sondeo"
+                  style={{
+                    borderColor: TONOS.cian.linea,
+                    animationDuration: `${SONDEO_PROMETHEUS_S}s`,
+                    animationDelay: `${VIGILADOS_POR_PROMETHEUS.indexOf(nodo.id) * 0.18}s`,
+                  }}
+                  aria-hidden
+                />
+              )}
               {realce && (
                 <>
                   <span className="anillo-activo" style={{ borderColor: colorRealce }} aria-hidden />

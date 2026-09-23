@@ -293,6 +293,22 @@
   pointer-events: none;
   animation: latido 1.6s ease-in-out infinite;
 }
+/* Sondeo de Prometheus: un anillo tenue que aparece un instante al principio de cada ciclo (15 s) y se apaga. */
+@keyframes sondeo {
+  0% { transform: scale(1); opacity: 0; }
+  1.5% { opacity: 0.55; }
+  8% { transform: scale(1.07); opacity: 0; }
+  100% { transform: scale(1.07); opacity: 0; }
+}
+.anillo-sondeo {
+  position: absolute;
+  inset: -5px;
+  border-radius: 1.3rem;
+  border: 1.5px solid;
+  pointer-events: none;
+  opacity: 0;
+  animation: sondeo 15s ease-out infinite;
+}
 /* Punto «en vivo» de los indicadores. */
 @keyframes pulso-punto {
   0%, 100% { transform: scale(1); opacity: 0.9; }
@@ -312,6 +328,7 @@
 @media (prefers-reduced-motion: reduce) {
   .arista-flujo,
   .anillo-activo,
+  .anillo-sondeo,
   .punto-vivo,
   .destello-datos {
     animation: none;

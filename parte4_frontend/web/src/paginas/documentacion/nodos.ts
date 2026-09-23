@@ -217,6 +217,7 @@ export const NODOS: Nodo[] = [
     ],
     comoConecta: [
       'Esos apuntes los dibuja Grafana. Esta web los usa para decir si un servicio está bien o se ha caído.',
+      'Pregunta a tantas piezas que no se dibuja una línea a cada una: cada 15 segundos, las que vigila laten un instante en azul verdoso, a la vez que él.',
       'Si te preguntan: miramos si la máquina funciona, no quién iba en el taxi.',
     ],
   },
@@ -288,7 +289,7 @@ export const NODOS: Nodo[] = [
   },
   {
     id: 'portal',
-    x: 268,
+    x: 312,
     y: 656,
     titulo: 'Portal web',
     subtitulo: 'Esta aplicación',
@@ -304,6 +305,7 @@ export const NODOS: Nodo[] = [
     ],
     comoConecta: [
       'No está en la habitación del archivador ni de la cola. No puede abrirlos.',
+      'A Prometheus le pide cómo están los servicios y los números de Observabilidad; a Grafana, si hay alguna alarma sonando. Son métricas, no viajes.',
       'Si te preguntan: aunque esta página fallara, lo máximo que puede pedir es lo que la puerta de salida ya está dispuesta a dar.',
     ],
   },
@@ -391,7 +393,18 @@ export const ARISTAS: Arista[] = [
   { desde: 'chatbots', hasta: 'ollama', etiqueta: 'Ollama', tono: 'violeta', salida: 'derecha', entrada: 'izquierda' },
   { desde: 'chatbots', hasta: 'helmcode', etiqueta: 'DeepSeek', tono: 'cian', salida: 'arriba', entrada: 'izquierda', desplazaSalida: 70, desplazaEntrada: 28, tEtiqueta: 0.55 },
   { desde: 'prometheus', hasta: 'grafana', etiqueta: 'Paneles', tono: 'cian', salida: 'abajo', entrada: 'arriba' },
+  { desde: 'prometheus', hasta: 'portal', etiqueta: 'Estado', tono: 'cian', salida: 'derecha', entrada: 'arriba', desplazaEntrada: -70, tEtiqueta: 0.55 },
+  { desde: 'grafana', hasta: 'portal', etiqueta: 'Alertas', tono: 'cian', salida: 'derecha', entrada: 'izquierda' },
 ]
+
+/**
+ * Las piezas que Prometheus sondea cada 15 s (`observabilidad/prometheus.yml`: captura, las dos réplicas de acceso,
+ * Redpanda, SeaweedFS y Spark) y él mismo. No se les dibuja una línea a cada una, que taparía el camino de los datos:
+ * laten a la vez que Prometheus, en su tono, al ritmo del sondeo. MongoDB no está: sus cifras le llegan por la API de
+ * acceso.
+ */
+export const VIGILADOS_POR_PROMETHEUS: readonly string[] = ['prometheus', 'captura', 'acceso', 'redpanda', 's3', 'spark']
+export const SONDEO_PROMETHEUS_S = 15
 
 export const TONOS: Record<Tono, { fondo: string; texto: string; pastilla: string; linea: string }> = {
   coral: { fondo: 'bg-[#fff1ea]', texto: 'text-[#c45c32]', pastilla: 'bg-[#fff1ea] text-[#c45c32]', linea: '#e8926a' },

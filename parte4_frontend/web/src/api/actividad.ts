@@ -13,6 +13,8 @@
  *   actividad.chatOllama     // el asistente de Ollama (portal o Chainlit) está consultando
  *   actividad.chatHelmcode   // el asistente de DeepSeek en Helmcode está consultando
  *   actividad.gesto          // un gesto de la parte 1 de hace un momento (y si entró en la plataforma)
+ *   actividad.leyendoMetricas // el portal pide a Prometheus el estado de los servicios o un cuadro de Observabilidad
+ *   actividad.leyendoAlertas  // el portal pide a Grafana el estado de las alertas (cuadros de Observabilidad)
  *
  * `derivarActividad` y `describirActividad` son lógica pura (se prueban sin React). Si Airflow o el simulador no
  * responden, esa parte cuenta como «sin actividad»: la página no se entera.
@@ -77,13 +79,17 @@ export interface Actividad {
   chatHelmcode: boolean
   /** Un gesto de la parte 1 de hace menos de `SOSTENER_GESTO_MS`. */
   gesto: Pick<GestoReciente, 'gesto' | 'enPlataforma'> | null
+  /** El portal está leyendo métricas de Prometheus (panel u Observabilidad). */
+  leyendoMetricas: boolean
+  /** El portal está leyendo de Grafana el estado de las alertas. */
+  leyendoAlertas: boolean
   /** Carga, simulación, publicación, un asistente respondiendo o un gesto. */
   enMarcha: boolean
 }
 
 export const SIN_ACTIVIDAD: Actividad = {
   carga: null, ultimaCarga: null, simulacion: null, frescuraSegundos: null, publicando: false, consultando: false,
-  chatOllama: false, chatHelmcode: false, gesto: null, enMarcha: false,
+  chatOllama: false, chatHelmcode: false, gesto: null, leyendoMetricas: false, leyendoAlertas: false, enMarcha: false,
 }
 
 export interface Entradas {
@@ -94,6 +100,8 @@ export interface Entradas {
   chatOllama?: boolean
   chatHelmcode?: boolean
   gesto?: Actividad['gesto']
+  leyendoMetricas?: boolean
+  leyendoAlertas?: boolean
   /** Instante actual en ms (para las antigüedades); por defecto `Date.now()`. */
   ahoraMs?: number
 }
@@ -145,6 +153,8 @@ export function derivarActividad(entradas: Entradas): Actividad {
     carga, ultimaCarga, simulacion, frescuraSegundos, publicando,
     consultando: entradas.consultando ?? false,
     chatOllama, chatHelmcode, gesto,
+    leyendoMetricas: entradas.leyendoMetricas ?? false,
+    leyendoAlertas: entradas.leyendoAlertas ?? false,
     enMarcha: carga !== null || simulacion !== null || publicando || chatOllama || chatHelmcode || gesto !== null,
   }
 }
@@ -242,6 +252,15 @@ export function useActividad(): Actividad {
     useIsFetching({ predicate: (consulta) => CLAVES_CONSULTA.has(String(consulta.queryKey[0])) }) > 0,
     SOSTENER_CONSULTANDO_MS,
   )
+  // Prometheus: el estado de los servicios va en el panel; Observabilidad pide los cuadros. Grafana: las alertas de un cuadro
+  const leyendoMetricas = useSostenido(
+    useIsFetching({ predicate: (consulta) => ['panel', 'observabilidad'].includes(String(consulta.queryKey[0])) }) > 0,
+    SOSTENER_CONSULTANDO_MS,
+  )
+  const leyendoAlertas = useSostenido(
+    useIsFetching({ predicate: (consulta) => consulta.queryKey[0] === 'observabilidad' && consulta.queryKey[1] === 'cuadro' }) > 0,
+    SOSTENER_CONSULTANDO_MS,
+  )
   const locales = useChatsLocales()
   const chatOllamaLocal = useSostenido(locales.ollama, SOSTENER_CONSULTANDO_MS)
   const chatHelmcodeLocal = useSostenido(locales.rag, SOSTENER_CONSULTANDO_MS)
@@ -266,5 +285,7 @@ export function useActividad(): Actividad {
     chatOllama: chatOllamaLocal || porAuditoria.ollama,
     chatHelmcode: chatHelmcodeLocal || porAuditoria.helmcode,
     gesto: useGestoVigente(),
+    leyendoMetricas,
+    leyendoAlertas,
   })
 }

@@ -90,6 +90,24 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 
 ## Entradas
 
+### 2026-09-23 · Javier Saguar · Grafo: Prometheus y Grafana conectados al portal, y el sondeo como latido
+
+- **Rama / commits:** `main`
+- **Qué he hecho:**
+  - Dos flechas nuevas, las conexiones reales que faltaban: **Prometheus → Portal** («Estado»: el estado de los
+    servicios y los cuadros de Observabilidad) y **Grafana → Portal** («Alertas»). Se iluminan, como el resto, solo
+    cuando el portal les pide datos (al refrescar el panel, o al abrir un cuadro de Observabilidad). El Portal se
+    corre 44 px a la derecha para que quepa la etiqueta entre Grafana y él.
+  - **El sondeo de Prometheus sin líneas:** vigila captura, las dos réplicas de acceso, Redpanda, SeaweedFS y Spark
+    (`prometheus.yml`). En vez de una línea a cada pieza, que taparía el camino de los datos, cada 15 s (su ritmo de
+    sondeo) Prometheus y esas piezas laten un instante con un anillo tenue, una detrás de otra, como un barrido.
+    MongoDB no late: sus cifras le llegan por la API de acceso. Sin movimiento con `prefers-reduced-motion`.
+  - Las fichas de Prometheus y del Portal lo cuentan.
+- **Ficheros clave:** `web/src/paginas/documentacion/{nodos,actividad,Lienzo}.ts(x)`, `web/src/api/actividad.ts`,
+  `web/src/estilos/globales.css`
+- **Resultado:** 203 tests de Vitest en verde, `tsc` y lint limpios. En el navegador: en reposo solo se ven las dos
+  flechas nuevas; al refrescar el panel se enciende «Estado» junto a Consulta → Portal; el latido se ve cada 15 s.
+
 ### 2026-09-23 · Javier Saguar · Gestos: botón en el menú, tarjeta más grande, ✌️ al azar, 👍 cambia de motor y ✋ de sección
 
 - **Rama / commits:** `main`

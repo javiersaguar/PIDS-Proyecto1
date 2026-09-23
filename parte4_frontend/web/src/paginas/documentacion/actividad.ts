@@ -7,6 +7,7 @@
  *   Spark publicando    Redpanda → Spark → MongoDB
  *   el portal consulta  MongoDB → API de acceso → Portal
  *   un chatbot         MongoDB → API de acceso → Chatbots → Ollama o Helmcode (DeepSeek)
+ *   el portal vigila   Prometheus → Portal (estado de los servicios, Observabilidad) y Grafana → Portal (alertas)
  *   un gesto           Captura → Redpanda (si entró en la plataforma) y la pastilla del gesto en Chatbots (en el
  *                      Portal si es ✋, que cambia de sección)
  */
@@ -97,6 +98,16 @@ export function flujosDe(actividad: Actividad): Flujos {
       activar(flujos, [['chatbots', 'helmcode']])
       realzar(flujos, 'helmcode', 'Redactando', 'cian')
     }
+  }
+
+  if (actividad.leyendoMetricas) {
+    activar(flujos, [['prometheus', 'portal']])
+    realzar(flujos, 'prometheus', 'Métricas al portal', 'cian')
+  }
+
+  if (actividad.leyendoAlertas) {
+    activar(flujos, [['grafana', 'portal']])
+    realzar(flujos, 'grafana', 'Estado de las alertas', 'cian')
   }
 
   if (actividad.gesto) {

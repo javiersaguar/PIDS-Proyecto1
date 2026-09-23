@@ -83,8 +83,18 @@ describe('flujosDe', () => {
       carga: { id: 'r', estado: 'running', mes: '2020-03', muestra: false, inicio: null, segundos: 10 },
       simulacion: SIMULACION, publicando: true, frescuraSegundos: 40, consultando: true,
       chatOllama: true, chatHelmcode: true, gesto: { gesto: 'thumbsup', enPlataforma: true },
+      leyendoMetricas: true, leyendoAlertas: true,
     }))
     for (const clave of flujos.aristas.keys()) expect(existentes.has(clave), clave).toBe(true)
+  })
+
+  it('cuando el portal lee de Prometheus o de Grafana se iluminan sus flechas hacia el portal, y nada más', () => {
+    const metricas = flujosDe(con({ leyendoMetricas: true }))
+    expect([...metricas.aristas.keys()]).toEqual(['prometheus-portal'])
+    expect(metricas.nodos.get('prometheus')?.texto).toBe('Métricas al portal')
+    const alertas = flujosDe(con({ leyendoAlertas: true }))
+    expect([...alertas.aristas.keys()]).toEqual(['grafana-portal'])
+    expect(alertas.nodos.get('grafana')?.texto).toBe('Estado de las alertas')
   })
 
   it('un gesto ilumina la cola si entró en la plataforma; en la demostración, solo la pastilla de los chatbots', () => {
