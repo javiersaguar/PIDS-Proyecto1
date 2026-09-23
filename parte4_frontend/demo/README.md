@@ -43,7 +43,7 @@ pública»). La demostración no depende de nada del equipo: con el portátil ap
   demostración no se lanzan operaciones.
 - **Grafo**: «Capturar datos» anima el camino de la captura con un reloj de 2020 que avanza, pero no envía nada ni
   cambia el tiempo real grabado (lo dice el propio control).
-- **Gestos**: «Gestos», en el menú, reconoce la mano con la cámara de quien mira (MediaPipe y el MLP de la parte 1, en su
+- **Gestos**: el botón «Gestos», encima del aviso de modo, reconoce la mano con la cámara de quien mira (MediaPipe y el MLP de la parte 1, en su
   navegador). ✌️ recorre las preguntas grabadas, ✋ pasa de sección, 👌 lee la respuesta y 🤘/✊ abren y cierran
   el panel. El gesto no se envía a ningún sitio: no hay plataforma detrás.
 - **Observabilidad**: los ocho cuadros de Grafana con los datos de Prometheus del momento de la grabación

@@ -35,8 +35,6 @@ let ultimoId = 0
 
 interface Props {
   children: ReactNode
-  /** El menú de la izquierda está abierto: la tarjeta de la cámara se pone a su lado. */
-  menuAbierto: boolean
 }
 
 interface Recursos {
@@ -64,7 +62,7 @@ function dormir(ms: number, señal: AbortSignal): Promise<void> {
   })
 }
 
-export function ProveedorGestos({ children, menuAbierto }: Props) {
+export function ProveedorGestos({ children }: Props) {
   const [estado, setEstado] = useState<EstadoCamara>('apagada')
   const [error, setError] = useState<string | null>(null)
   const [destino, setDestino] = useState<DestinoGesto | null>(null)
@@ -232,7 +230,7 @@ export function ProveedorGestos({ children, menuAbierto }: Props) {
   return (
     <ContextoGestos.Provider value={valor}>
       {children}
-      {estado !== 'apagada' && <TarjetaGestos videoRef={videoRef} menuAbierto={menuAbierto} />}
+      {estado !== 'apagada' && <TarjetaGestos videoRef={videoRef} />}
     </ContextoGestos.Provider>
   )
 }

@@ -42,6 +42,8 @@ export function montarAviso(modo: Modo): void {
     const textos = TEXTOS[modo]
     const aviso = document.createElement('aside')
     aviso.setAttribute('aria-label', textos.titulo)
+    // el botón «Gestos» se coloca encima de este aviso (gestos/BotonGestos.tsx)
+    aviso.dataset.avisoModo = modo
     // abajo a la izquierda, del ancho de la barra lateral y por encima de su pie, para no tapar «Cerrar sesión»
     aviso.className = 'fixed bottom-[4.5rem] left-3 z-50 max-w-[216px] rounded-lg border bg-superficie text-xs text-texto shadow-lg'
     aviso.innerHTML = `

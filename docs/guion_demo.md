@@ -22,7 +22,7 @@ make rag-comprobar            # el proveedor del LLM externo responde
 - Hacer una pregunta cualquiera a TAXI AI con Ollama para que el modelo ya esté cargado en la GPU: la primera
   respuesta tarda más.
 - Entrar en el portal (http://localhost:8020) **antes** de empezar a grabar: la contraseña no debe salir en el vídeo.
-- Parte 1: la cámara destapada y con luz de frente; probar una vez «Gestos» del menú (el navegador pide permiso la
+- Parte 1: la cámara destapada y con luz de frente; probar una vez el botón «Gestos» (el navegador pide permiso la
   primera vez y descarga MediaPipe). Para que también reaccionen los chatbots de Chainlit, `GESTOS_ACTIVOS=true` en
   `.env` (ver [`integracion/README.md`](../integracion/README.md)). Con un solo chat abierto: el gesto llega a todos.
   Si algo falla, está el vídeo `docs/capturas/cu8_gesto.mp4`.
@@ -238,7 +238,7 @@ Chainlit de la parte 3 siguen ahí (http://localhost:8010 y :8011); el portal la
 
 ## 9 · Parte 1 e integración: TAXI AI con la mano (2 min)
 
-**Pantalla:** menú → **Grafo**, con TAXI AI abierto → **«Gestos»** en el menú de la izquierda → permitir la cámara. Sale la tarjeta con el
+**Pantalla:** menú → **Grafo**, con TAXI AI abierto → botón **«Gestos»** (abajo a la izquierda) → permitir la cámara. Sale la tarjeta con el
 vídeo en espejo, los 21 puntos de la mano, el gesto que ve el modelo y la chuleta de los seis gestos.
 
 1. **✊** cierra TAXI AI y **🤘** lo vuelve a abrir. En el grafo, la barra de arriba dice «Gesto 🤘 Abrir TAXI AI (API
@@ -316,7 +316,7 @@ Detalle: [`arquitectura.md`](arquitectura.md#alta-disponibilidad).
 > que funciona sin nada nuestro. El túnel solo expone el portal: ningún otro servicio sale del equipo.
 
 Enseñar el aviso de abajo a la izquierda («En vivo» / «Demostración») y cambiar de modo. En la demostración,
-«Gestos» en el menú: ✌️ recorre las preguntas grabadas y ✋ recorre las secciones, todo en el navegador de quien mira.
+el botón «Gestos», encima del aviso «En vivo»: ✌️ recorre las preguntas grabadas y ✋ recorre las secciones, todo en el navegador de quien mira.
 
 > Y la parte 1 también está ahí: cualquiera con una cámara puede manejar el asistente con la mano desde la web, sin
 > instalar nada. El modelo de gestos corre en su navegador.

@@ -9,6 +9,7 @@ import { useCallback, useRef, useState } from 'react'
 import { Outlet, useLocation } from 'react-router'
 
 import { AtajosGestos } from '@/gestos/AtajosGestos'
+import { BotonGestos } from '@/gestos/BotonGestos'
 import { ProveedorGestos } from '@/gestos/ProveedorGestos'
 import { cn } from '@/lib/utils'
 
@@ -53,7 +54,7 @@ export function AppShell() {
   const amplio = esPanel || esExplorador || esTiempoReal || esOperaciones || esObservabilidad
 
   return (
-    <ProveedorGestos menuAbierto={menuAbierto}>
+    <ProveedorGestos>
     <AtajosGestos abierto={asistenteAbierto} alAbrir={abrirAsistente} alCerrar={cerrarAsistente} />
     <div className="min-h-svh bg-fondo">
       <a
@@ -79,6 +80,7 @@ export function AppShell() {
           )}
         </main>
       </div>
+      <BotonGestos />
       <BotonTaxiAI ref={botonRef} abierto={asistenteAbierto} alPulsar={alternarAsistente} elevado={lienzo} />
       <PanelAsistente abierto={asistenteAbierto} alCerrar={cerrarAsistente} botonRef={botonRef} />
     </div>

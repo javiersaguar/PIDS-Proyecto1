@@ -9,7 +9,6 @@ import { toast } from 'sonner'
 
 import { useCerrarSesion } from '@/api/sesion'
 import { Button } from '@/componentes/ui/button'
-import { BotonGestos } from '@/gestos/BotonGestos'
 import { cn } from '@/lib/utils'
 
 import { LogoTaxi } from './LogoTaxi'
@@ -95,11 +94,6 @@ export function BarraLateral({ abierta, alAlternar }: { abierta: boolean; alAlte
           ))}
         </ul>
       </nav>
-
-      <div className="px-3 pb-2">
-        <p className="px-3 pb-1 text-[11px] font-semibold tracking-wide text-slate-400 uppercase">Parte 1</p>
-        <BotonGestos />
-      </div>
 
       <div className="border-t border-borde p-3">
         <Button variant="ghost" className="w-full justify-start text-slate-600" onClick={salir} disabled={cerrar.isPending}>

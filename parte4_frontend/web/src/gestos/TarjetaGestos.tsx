@@ -20,8 +20,6 @@ const CONEXIONES: [number, number][] = [
 
 interface Props {
   videoRef: RefObject<HTMLVideoElement | null>
-  /** El menú de la izquierda está abierto (la tarjeta se pone a su lado, abajo). */
-  menuAbierto: boolean
 }
 
 function Esqueleto({ aspecto }: { aspecto: number }) {
@@ -86,17 +84,14 @@ function LecturaActual() {
 function Chuleta() {
   const { gesto, confianza } = useLectura()
   return (
-    <ul className="grid grid-cols-1 gap-1" aria-label="Qué hace cada gesto">
+    <ul className="grid grid-cols-2 gap-x-1 gap-y-0.5" aria-label="Qué hace cada gesto">
       {LISTA_GESTOS.map((g) => {
         const activo = g === gesto && confianza >= CONFIANZA_MINIMA
         return (
           <li key={g}
-              className={cn('flex min-w-0 items-start gap-2 rounded-lg px-2 py-1.5 text-slate-600 transition-colors', activo && 'bg-[#efe9ff] text-[#5b3ae0]')}>
-            <span className="mt-px text-base leading-none" aria-hidden>{GESTOS[g].emoji}</span>
-            <span className="min-w-0">
-              <span className="block text-[13px] font-medium text-slate-800">{GESTOS[g].titulo}</span>
-              <span className="block text-xs leading-snug text-slate-500">{GESTOS[g].texto}</span>
-            </span>
+              className={cn('flex min-w-0 items-center gap-1.5 rounded-lg px-1.5 py-1 text-xs font-medium text-slate-700 transition-colors', activo && 'bg-[#efe9ff] text-[#5b3ae0]')}>
+            <span className="text-sm leading-none" aria-hidden>{GESTOS[g].emoji}</span>
+            <span className="truncate">{GESTOS[g].titulo}</span>
           </li>
         )
       })}
@@ -104,7 +99,7 @@ function Chuleta() {
   )
 }
 
-export function TarjetaGestos({ videoRef, menuAbierto }: Props) {
+export function TarjetaGestos({ videoRef }: Props) {
   const { estado, error, destino, activar, desactivar } = useGestos()
   const [plegada, setPlegada] = useState(false)
   // el recuadro toma la proporción de la cámara: así los puntos dibujados caen sobre la mano
@@ -116,11 +111,10 @@ export function TarjetaGestos({ videoRef, menuAbierto }: Props) {
     <section
       aria-label="Gestos con la cámara"
       className={cn(
-        // abajo a la izquierda, junto al menú donde está el botón: ni TAXI AI ni su panel (a la derecha) la tapan
-        'fixed bottom-4 z-40 w-[22rem] max-h-[calc(100svh-2rem)] overflow-y-auto rounded-2xl border border-[#eceaf3] bg-white/95 p-4 shadow-[0_18px_48px_-20px_rgba(15,23,42,0.45)] backdrop-blur',
-        'animate-in fade-in-0 slide-in-from-bottom-2 duration-300 motion-reduce:animate-none',
-        'transition-[left] duration-200 motion-reduce:transition-none max-sm:right-3 max-sm:left-3 max-sm:w-auto',
-        menuAbierto ? 'left-[15.75rem]' : 'left-[4.25rem]',
+        // abajo, a la derecha del menú (15,75 rem): no tapa el botón «Gestos» ni el aviso de modo, que van a la
+        // izquierda, ni TAXI AI y su panel, a la derecha
+        'fixed bottom-4 left-[15.75rem] z-40 w-80 max-h-[calc(100svh-2rem)] overflow-y-auto rounded-2xl border border-[#eceaf3] bg-white/95 p-3 shadow-[0_18px_48px_-20px_rgba(15,23,42,0.45)] backdrop-blur',
+        'animate-in fade-in-0 slide-in-from-bottom-2 duration-300 motion-reduce:animate-none max-sm:right-3 max-sm:left-3 max-sm:w-auto',
       )}
     >
       <header className="flex items-center gap-2">

@@ -108,6 +108,11 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
   - Arreglado de paso: los ids de los gestos empezaban en 1 al volver a montar el proveedor (por ejemplo, al entrar de
     nuevo), y el chat, que recuerda el último que atendió, ignoraba los nuevos.
   - También de Cursor, revisado: el cuadro de S3 suma el disco de los volúmenes y los valores múltiples caben en su tarjeta.
+  - **Botón y tarjeta, segunda vuelta:** «Gestos» deja el menú y pasa a ser una pastilla como la de TAXI AI, fija
+    abajo a la izquierda: en la web pública, encima del aviso «En vivo»/«Demostración», y sube o baja cuando ese
+    aviso se despliega o se pliega (lo sigue con un `ResizeObserver`; en el portal local, sin aviso, queda encima de
+    «Cerrar sesión»). Un punto dice el estado. La tarjeta baja a 20 rem (320 × 404 px frente a 352 × 755) y la
+    chuleta solo lleva emoji y título, en dos columnas, sin cortar ninguno; va siempre a la derecha del menú.
   - **👍 y ✋ cambian de función** (decisión de hoy): 👍 pasa TAXI AI de Ollama a DeepSeek y al revés (conversación
     nueva; si el otro motor no está, lo dice) y ✋ pasa a la siguiente sección del menú (Panel → Explorador → … →
     Observabilidad → Panel). TAXI AI no es una sección: ✋ no pasa por él, y si está abierto sigue abierto con su
@@ -117,7 +122,7 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 - **Ficheros clave:** `config/gestos.json`, `parte3_chatbot/gestos.py`, `parte4_frontend/bff/rutas/gestos.py`,
   `parte4_frontend/web/src/gestos/{BotonGestos,TarjetaGestos,ProveedorGestos}.tsx`, `componentes/shell/BarraLateral.tsx`,
   `paginas/asistente/useGestosChat.ts`, `demo/rutas.ts`
-- **Cómo comprobarlo:** http://localhost:8020 → «Gestos» en el menú; ✌️ varias veces. `uv run pytest tests/test_gestos.py`.
+- **Cómo comprobarlo:** http://localhost:8020 → botón «Gestos» (abajo a la izquierda); ✌️ varias veces. `uv run pytest tests/test_gestos.py`.
 - **Resultado:** 501 tests de Python y 202 de Vitest en verde, `tsc` y lint limpios. En el portal, con cámara simulada,
   ✌️ abre TAXI AI y pregunta al azar (una de ellas, un viaje concreto, sale rechazada con su alternativa); en los dos
   Chainlit, ✌️ pregunta al azar y responden.

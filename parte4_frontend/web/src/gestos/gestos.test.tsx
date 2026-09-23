@@ -60,9 +60,10 @@ describe('gestos de la parte 1 en TAXI AI', () => {
     const { enrutador } = renderizarRutas('/no-existe')
     await waitFor(() => expect(espia.mock.calls.some(([url]) => String(url).endsWith('/api/gestos/stream'))).toBe(true))
     expect(panel()).toHaveAttribute('aria-hidden', 'true')
-    // el interruptor está en el menú de la izquierda, no en el panel del asistente
-    const menu = screen.getByRole('navigation', { name: 'Secciones del portal' }).closest('aside')!
-    expect(within(menu).getByRole('button', { name: /Gestos/ })).toHaveAttribute('aria-pressed', 'false')
+    // el botón es una pastilla fija, como la de TAXI AI: ni en el menú ni en el panel del asistente
+    const boton = screen.getByRole('button', { name: 'Gestos: apagados' })
+    expect(boton).toHaveAttribute('aria-pressed', 'false')
+    expect(boton.closest('aside')).toBeNull()
 
     // ✌️: abre TAXI AI y hace la pregunta al azar que da el BFF
     gestos.emitir('gesto', gesto('scissors'))

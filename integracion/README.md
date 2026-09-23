@@ -6,7 +6,7 @@ el mismo sitio:
 
 | Dónde se reconoce | Con qué | Cuándo usarla |
 |---|---|---|
-| **El navegador**, en el portal (botón «Gestos» del menú de la izquierda) | MediaPipe para web (los 21 puntos de la mano) y **el MLP de la parte 1** exportado a JSON (`parte1_gestos/entrenamiento/exportar_web.py`) | En la demo y en la web pública de Vercel: no hace falta Windows ni Python, basta una cámara |
+| **El navegador**, en el portal (botón «Gestos», abajo a la izquierda, como el de TAXI AI) | MediaPipe para web (los 21 puntos de la mano) y **el MLP de la parte 1** exportado a JSON (`parte1_gestos/entrenamiento/exportar_web.py`) | En la demo y en la web pública de Vercel: no hace falta Windows ni Python, basta una cámara |
 | **La demo de Windows** (`parte1_gestos/demo/src/demo-gestures-PIDS.py`) | El pipeline de la parte 1 en Python (Keras) | Para enseñar la parte 1 tal cual, con su ventana y los comandos del tanque |
 
 ```mermaid
@@ -71,7 +71,7 @@ tienen conversación grabada.
 
 ## Cómo probarlo
 
-**En el portal (la forma más sencilla):** http://localhost:8020 → «Gestos» en el menú de la izquierda y permitir la cámara. La
+**En el portal (la forma más sencilla):** http://localhost:8020 → botón «Gestos» (abajo a la izquierda; en la web pública, encima del aviso «En vivo») y permitir la cámara. La
 tarjeta enseña el vídeo en espejo con los puntos de la mano, el gesto que ve el modelo y una barra que se llena al
 sostenerlo. Funciona igual en https://happytaxi-rust.vercel.app: en vivo (con el túnel) los gestos entran además en
 la plataforma; en la demostración se quedan en el navegador y TAXI AI contesta con las conversaciones grabadas. La
