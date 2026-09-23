@@ -30,13 +30,13 @@ function Tarjeta({ panel, indice, children, className }: { panel: PanelCuadro; i
     <section
       aria-label={panel.titulo}
       className={cn(
-        'flex h-full min-h-0 flex-col rounded-2xl border border-[#e6edf5] bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]',
+        'flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-[#e6edf5] bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]',
         'animate-in fade-in-0 slide-in-from-bottom-2 duration-500',
         className,
       )}
       style={estilo}
     >
-      <header className="mb-2 flex items-start justify-between gap-2">
+      <header className="mb-2 flex shrink-0 items-start justify-between gap-2">
         <h3 className="text-[13px] leading-tight font-semibold text-slate-700">{panel.titulo}</h3>
         {panel.descripcion && (
           <Ayuda>
@@ -49,7 +49,7 @@ function Tarjeta({ panel, indice, children, className }: { panel: PanelCuadro; i
           </Ayuda>
         )}
       </header>
-      <div className="relative min-h-0 flex-1">{panel.error ? <SinDatos texto={panel.error} /> : children}</div>
+      <div className="relative min-h-0 flex-1 overflow-hidden">{panel.error ? <SinDatos texto={panel.error} /> : children}</div>
     </section>
   )
 }
@@ -68,7 +68,7 @@ function ValorStat({ panel, valor, grande }: { panel: PanelCuadro; valor: number
   const largo = texto.length > 8
   return (
     <span
-      className={cn('font-semibold tracking-tight whitespace-nowrap tabular-nums', grande ? (largo ? 'text-2xl leading-none' : 'text-[1.9rem] leading-none') : 'text-lg')}
+      className={cn('shrink-0 font-semibold tracking-tight whitespace-nowrap tabular-nums', grande ? (largo ? 'text-2xl leading-none' : 'text-[1.9rem] leading-none') : 'text-sm leading-none')}
       style={{ color: tono }}
     >
       {texto}
@@ -92,10 +92,10 @@ export function PanelStat({ panel, indice }: { panel: PanelCuadro; indice: numbe
           )}
         </div>
       ) : (
-        <ul className="grid h-full content-end gap-1">
+        <ul className="flex h-full min-h-0 flex-col justify-start gap-1 overflow-y-auto">
           {valores.map((v, i) => (
-            <li key={`${v.nombre}-${i}`} className="flex items-baseline justify-between gap-2">
-              <span className="truncate text-xs text-slate-500">{v.nombre}</span>
+            <li key={`${v.nombre}-${i}`} className="flex min-w-0 items-baseline justify-between gap-2">
+              <span className="min-w-0 truncate text-xs text-slate-500">{v.nombre}</span>
               <ValorStat panel={panel} valor={v.valor} grande={false} />
             </li>
           ))}

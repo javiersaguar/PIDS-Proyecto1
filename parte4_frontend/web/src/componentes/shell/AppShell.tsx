@@ -53,7 +53,7 @@ export function AppShell() {
   const amplio = esPanel || esExplorador || esTiempoReal || esOperaciones || esObservabilidad
 
   return (
-    <ProveedorGestos panelAbierto={asistenteAbierto} elevada={lienzo}>
+    <ProveedorGestos menuAbierto={menuAbierto}>
     <AtajosGestos abierto={asistenteAbierto} alAbrir={abrirAsistente} alCerrar={cerrarAsistente} />
     <div className="min-h-svh bg-fondo">
       <a

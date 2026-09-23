@@ -1,8 +1,9 @@
 """Integración con la parte 1: gestos recibidos en directo (SSE) desde la API de captura.
 
-La usan los dos chatbots de Chainlit (el de Ollama y el RAG). Qué hace cada gesto está en `config/gestos.json`, la
-misma tabla que lee TAXI AI en el portal: 👍 confirma la alternativa, ✋ la descarta y ✌️ hace la siguiente pregunta
-de ejemplo. Leer en voz alta, abrir y cerrar solo existen en el portal: aquí esos gestos se ignoran.
+La usan los dos chatbots de Chainlit (el de Ollama y el RAG) y el BFF del portal. Qué hace cada gesto está en
+`config/gestos.json`, la misma tabla que lee TAXI AI. Aquí solo cuenta ✌️, que hace una pregunta al azar
+(`pregunta_al_azar`, con las plantillas de «variantes»); cambiar de motor, pasar de sección, leer, abrir y cerrar
+son del portal y aquí se ignoran.
 
 Desactivada por defecto (GESTOS_ACTIVOS=false).
 """
@@ -12,6 +13,8 @@ import asyncio
 import json
 import logging
 import os
+import random
+import string
 from collections.abc import Awaitable, Callable
 from pathlib import Path
 
@@ -30,22 +33,39 @@ CONFIANZA_MINIMA = float(os.environ.get('GESTOS_CONFIANZA_MINIMA', CONFIG['confi
 
 # Significado de cada gesto dentro de los chatbots (distinto de los comandos del tanque de la demo de Windows)
 ACCIONES: dict[str, str] = {gesto: datos['accion'] for gesto, datos in CONFIG['gestos'].items()}
-PREGUNTAS: list[str] = CONFIG['preguntas']
+VARIANTES: dict = CONFIG['variantes']
+CAMPOS_PLANTILLA = {'zona', 'barrio', 'barrio2', 'dia', 'desde', 'hasta', 'hora'}
 
 Accion = Callable[[], Awaitable[None]]
 
 
 def aviso(evento: dict) -> str:
-    """El mensaje que deja el gesto en el chat: «👍 Gesto recibido: **thumbsup** → confirmar (97 %)»."""
+    """El mensaje que deja el gesto en el chat: «✌️ Gesto recibido: **scissors** → siguiente (97 %)»."""
     datos = CONFIG['gestos'].get(evento.get('gesto'), {})
     confianza = evento.get('confianza')
     porcentaje = f' ({confianza:.0%})' if isinstance(confianza, (int, float)) else ''
     return f'{datos.get("emoji", "✋")} Gesto recibido: **{evento.get("gesto")}** → {datos.get("accion", "?")}{porcentaje}'
 
 
-def siguiente_pregunta(indice: int) -> tuple[str, int]:
-    """La pregunta de ejemplo que toca y el índice de la siguiente (da la vuelta al llegar al final)."""
-    return PREGUNTAS[indice % len(PREGUNTAS)], (indice + 1) % len(PREGUNTAS)
+def campos(plantilla: str) -> set[str]:
+    return {campo for _, campo, _, _ in string.Formatter().parse(plantilla) if campo}
+
+
+def pregunta_al_azar(azar: random.Random | None = None, anterior: str | None = None) -> str:
+    """✌️: una pregunta nueva a partir de una plantilla con zona, barrio, día y horas de 2020 elegidos al azar.
+    Algunas plantillas piden un viaje concreto, para que se vea el filtro de privacidad y su alternativa.
+    No repite la anterior."""
+    azar = azar or random.Random()
+    texto = ''
+    for _ in range(10):
+        barrio, barrio2 = azar.sample(VARIANTES['barrios'], 2)
+        desde, hasta = azar.choice(VARIANTES['franjas'])
+        texto = azar.choice(VARIANTES['plantillas']).format(
+            zona=azar.choice(VARIANTES['zonas']), barrio=barrio, barrio2=barrio2, dia=azar.choice(VARIANTES['dias']),
+            desde=desde, hasta=hasta, hora=f'{azar.randint(0, 23)}:{azar.randint(1, 59):02d}')
+        if texto != anterior:
+            break
+    return texto
 
 
 async def escuchar(al_recibir: Callable[[str, dict], Awaitable[None]]) -> None:

@@ -1,11 +1,11 @@
 /**
  * Qué hace cada gesto de la parte 1: la tabla de `config/gestos.json`, la misma que leen los dos chatbots de Chainlit
- * (`parte3_chatbot/gestos.py`). Aquí se usan las seis acciones; leer, abrir y cerrar solo existen en el portal.
+ * (`parte3_chatbot/gestos.py`). Aquí se usan las seis acciones; en Chainlit solo ✌️ (otra pregunta).
  */
 import tabla from '../../../../config/gestos.json'
 
 export type Gesto = 'ok' | 'paper' | 'rock' | 'rockandroll' | 'scissors' | 'thumbsup'
-export type Accion = 'confirmar' | 'cancelar' | 'siguiente' | 'leer' | 'abrir' | 'cerrar'
+export type Accion = 'siguiente' | 'motor' | 'seccion' | 'leer' | 'abrir' | 'cerrar'
 
 export interface DatosGesto {
   emoji: string
@@ -15,7 +15,7 @@ export interface DatosGesto {
 }
 
 export const GESTOS = tabla.gestos as Record<Gesto, DatosGesto>
-/** En el orden de la tabla: confirmar, parar, otra pregunta, leer, abrir y cerrar. */
+/** En el orden de la tabla: otra pregunta, cambiar de motor, siguiente sección, leer, abrir y cerrar. */
 export const LISTA_GESTOS = Object.keys(GESTOS) as Gesto[]
 export const PREGUNTAS_GESTO: readonly string[] = tabla.preguntas
 export const CONFIANZA_MINIMA: number = tabla.confianza_minima

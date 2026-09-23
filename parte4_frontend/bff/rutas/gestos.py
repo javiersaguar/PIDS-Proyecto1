@@ -3,6 +3,7 @@ plataforma (la demo de Windows) llegan al portal.
 
   POST /api/gestos           {gesto, confianza, dispositivo} -> 202 {enviado}
   GET  /api/gestos/stream    text/event-stream: un evento `gesto` por cada gesto nuevo de la plataforma
+  GET  /api/gestos/pregunta  ?anterior=… -> {pregunta}: la de ✌️, al azar (el mismo generador que los chatbots de Chainlit)
 
 El navegador reconoce el gesto con la cámara y el MLP de la parte 1 (`web/src/gestos`); aquí solo llega la etiqueta
 y la confianza, nunca la imagen ni los puntos de la mano. El BFF lo reenvía a `POST /gestos` de la API de captura
@@ -16,9 +17,12 @@ gestos siguen actuando en el propio navegador.
 """
 from __future__ import annotations
 
+import importlib.util
 import json
 import logging
 from collections.abc import AsyncIterator
+from functools import lru_cache
+from types import ModuleType
 from typing import Literal
 
 import httpx
@@ -26,6 +30,7 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 from sse_starlette import EventSourceResponse, ServerSentEvent
 
+from ..configuracion import RAIZ
 from ..seguridad import ConfiguracionDep, HttpDep
 
 log = logging.getLogger('pids.frontend')
@@ -34,6 +39,15 @@ router = APIRouter(tags=['gestos'])
 MODELO = 'portal · mlp_muneca_escala_rot'
 TIEMPO_ENVIO = 3.0
 CAMPOS = ('gesto', 'confianza', 'dispositivo', 'instante')
+
+
+@lru_cache(maxsize=1)
+def modulo_gestos() -> ModuleType:
+    """`parte3_chatbot/gestos.py`, cargado por su ruta (con un nombre propio, para no chocar con este módulo)."""
+    especificacion = importlib.util.spec_from_file_location('pids_chatbot_gestos', RAIZ / 'parte3_chatbot' / 'gestos.py')
+    modulo = importlib.util.module_from_spec(especificacion)
+    especificacion.loader.exec_module(modulo)
+    return modulo
 
 
 class GestoPortal(BaseModel):
@@ -54,6 +68,11 @@ async def enviar_gesto(gesto: GestoPortal, cfg: ConfiguracionDep, http: HttpDep)
         log.warning('no se ha podido enviar el gesto a la API de captura: %s', type(error).__name__)
         return {'enviado': False}
     return {'enviado': respuesta.status_code == 202}
+
+
+@router.get('/gestos/pregunta')
+async def pregunta(anterior: str | None = None) -> dict:
+    return {'pregunta': modulo_gestos().pregunta_al_azar(anterior=anterior)}
 
 
 async def _retransmitir(request: Request, http: httpx.AsyncClient, url: str, clave: str) -> AsyncIterator[ServerSentEvent]:

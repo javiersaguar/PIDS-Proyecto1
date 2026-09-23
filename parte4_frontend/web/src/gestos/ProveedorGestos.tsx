@@ -29,13 +29,14 @@ import { TarjetaGestos } from './TarjetaGestos'
 const MS_ENTRE_DETECCIONES = 90
 const ESPERA_INICIAL_MS = 2_000
 const ESPERA_MAXIMA_MS = 60_000
+/** Los ids de los gestos no se repiten en toda la página, aunque el proveedor se vuelva a montar (al volver a entrar):
+ * el chat recuerda el último que atendió. */
+let ultimoId = 0
 
 interface Props {
   children: ReactNode
-  /** El panel de TAXI AI está abierto: la tarjeta de la cámara se aparta a su izquierda. */
-  panelAbierto: boolean
-  /** Página a pantalla completa (el grafo): la tarjeta sube, como el botón de TAXI AI. */
-  elevada: boolean
+  /** El menú de la izquierda está abierto: la tarjeta de la cámara se pone a su lado. */
+  menuAbierto: boolean
 }
 
 interface Recursos {
@@ -63,7 +64,7 @@ function dormir(ms: number, señal: AbortSignal): Promise<void> {
   })
 }
 
-export function ProveedorGestos({ children, panelAbierto, elevada }: Props) {
+export function ProveedorGestos({ children, menuAbierto }: Props) {
   const [estado, setEstado] = useState<EstadoCamara>('apagada')
   const [error, setError] = useState<string | null>(null)
   const [destino, setDestino] = useState<DestinoGesto | null>(null)
@@ -72,7 +73,6 @@ export function ProveedorGestos({ children, panelAbierto, elevada }: Props) {
   const recursos = useRef<Recursos | null>(null)
   const oyentes = useRef(new Set<(evento: EventoGesto) => void>())
   const ultimo = useRef<EventoGesto | null>(null)
-  const contador = useRef(0)
   const [lectura] = useState(() => new AlmacenLectura())
 
   const cambiarEstado = useCallback((nuevo: EstadoCamara) => {
@@ -81,8 +81,8 @@ export function ProveedorGestos({ children, panelAbierto, elevada }: Props) {
   }, [])
 
   const emitir = useCallback((gesto: Gesto, confianza: number, origen: EventoGesto['origen']) => {
-    contador.current += 1
-    const evento: EventoGesto = { id: contador.current, gesto, confianza, origen, instante: Date.now() }
+    ultimoId += 1
+    const evento: EventoGesto = { id: ultimoId, gesto, confianza, origen, instante: Date.now() }
     ultimo.current = evento
     const datos = GESTOS[gesto]
     toast(`${datos.emoji} ${datos.titulo}`, {
@@ -232,7 +232,7 @@ export function ProveedorGestos({ children, panelAbierto, elevada }: Props) {
   return (
     <ContextoGestos.Provider value={valor}>
       {children}
-      {estado !== 'apagada' && <TarjetaGestos videoRef={videoRef} panelAbierto={panelAbierto} elevada={elevada} />}
+      {estado !== 'apagada' && <TarjetaGestos videoRef={videoRef} menuAbierto={menuAbierto} />}
     </ContextoGestos.Provider>
   )
 }

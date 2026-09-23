@@ -22,7 +22,7 @@ make rag-comprobar            # el proveedor del LLM externo responde
 - Hacer una pregunta cualquiera a TAXI AI con Ollama para que el modelo ya esté cargado en la GPU: la primera
   respuesta tarda más.
 - Entrar en el portal (http://localhost:8020) **antes** de empezar a grabar: la contraseña no debe salir en el vídeo.
-- Parte 1: la cámara destapada y con luz de frente; probar una vez «Gestos» en TAXI AI (el navegador pide permiso la
+- Parte 1: la cámara destapada y con luz de frente; probar una vez «Gestos» del menú (el navegador pide permiso la
   primera vez y descarga MediaPipe). Para que también reaccionen los chatbots de Chainlit, `GESTOS_ACTIVOS=true` en
   `.env` (ver [`integracion/README.md`](../integracion/README.md)). Con un solo chat abierto: el gesto llega a todos.
   Si algo falla, está el vídeo `docs/capturas/cu8_gesto.mp4`.
@@ -238,16 +238,19 @@ Chainlit de la parte 3 siguen ahí (http://localhost:8010 y :8011); el portal la
 
 ## 9 · Parte 1 e integración: TAXI AI con la mano (2 min)
 
-**Pantalla:** menú → **Grafo**, con TAXI AI abierto → botón **«Gestos»** → permitir la cámara. Sale la tarjeta con el
+**Pantalla:** menú → **Grafo**, con TAXI AI abierto → **«Gestos»** en el menú de la izquierda → permitir la cámara. Sale la tarjeta con el
 vídeo en espejo, los 21 puntos de la mano, el gesto que ve el modelo y la chuleta de los seis gestos.
 
-1. **✊** cierra TAXI AI y **🤘** lo vuelve a abrir. En el grafo, la barra de arriba dice «Gesto 🤘 Abrir TAXI AI: API
-   de captura → Redpanda → chatbots» y se ilumina el tramo Captura → Redpanda.
-2. **✌️** hace la primera pregunta de ejemplo (JFK el 15 de enero) y el asistente responde.
-3. Escribir «Dame el viaje de las 3:12 del 15 de enero desde Times Square»: el bot lo rechaza y propone la
-   alternativa. **👍** la ejecuta (54 viajes).
-4. **👌** lee la respuesta en voz alta; **✋** la calla.
-5. *Opcional:* con el chatbot RAG de Chainlit abierto en otra ventana (http://localhost:8011), un ✌️ hace la pregunta
+1. **✊** cierra TAXI AI y **🤘** lo vuelve a abrir. En el grafo, la barra de arriba dice «Gesto 🤘 Abrir TAXI AI (API
+   de captura → Redpanda)» y se ilumina el tramo Captura → Redpanda.
+2. **✌️** hace una pregunta al azar (cada vez otra zona, barrio, día u hora) y el asistente responde; a veces pide
+   un viaje concreto y sale rechazada con su alternativa.
+3. **👍** cambia de motor: de Ollama (en el equipo) a DeepSeek (en la UE), con una conversación nueva. Otro **✌️**
+   pregunta ahora al otro chatbot; **👍** vuelve a Ollama.
+4. **👌** lee la respuesta en voz alta; otro **👌** la calla.
+5. **✋** pasa a la siguiente sección del menú, con TAXI AI abierto: Panel, Explorador, Tiempo real… y, tras
+   Observabilidad, vuelta al Panel. El asistente no es una sección: sigue abierto y conserva la conversación.
+6. *Opcional:* con el chatbot RAG de Chainlit abierto en otra ventana (http://localhost:8011), un ✌️ hace la pregunta
    también allí: el gesto ha pasado por la cola de Redpanda y lo reciben todos los chatbots.
 
 **Qué se dice:**
@@ -257,8 +260,8 @@ vídeo en espejo, los 21 puntos de la mano, el gesto que ve el modelo y la chule
 > los cinco. Ese mismo modelo lo hemos llevado al navegador: MediaPipe saca los puntos de la mano y nuestro MLP los
 > clasifica aquí mismo, con las mismas predicciones que en Python. **La imagen no sale del navegador**: a la
 > plataforma solo llega la etiqueta del gesto y su confianza, por la API de captura, como cualquier otra fuente de
-> datos, y de la cola de Redpanda la reciben los chatbots. El gesto más importante es 👍: es la persona la que acepta
-> la alternativa agregada que le ofrece el filtro de privacidad.
+> datos, y de la cola de Redpanda la reciben los chatbots. Con la mano se maneja todo: preguntar, cambiar entre el
+> modelo local y el de la UE, escuchar la respuesta y recorrer el portal.
 
 **Plan B:** la demo de Windows (`parte1_gestos/demo/src/demo-gestures-PIDS.py` con `PIDS_CLAVE_GESTOS`) hace lo mismo
 desde fuera del navegador: sus gestos también manejan TAXI AI. Y si no hay cámara, el vídeo `docs/capturas/cu8_gesto.mp4`.
@@ -313,7 +316,7 @@ Detalle: [`arquitectura.md`](arquitectura.md#alta-disponibilidad).
 > que funciona sin nada nuestro. El túnel solo expone el portal: ningún otro servicio sale del equipo.
 
 Enseñar el aviso de abajo a la izquierda («En vivo» / «Demostración») y cambiar de modo. En la demostración,
-TAXI AI → «Gestos»: ✌️ recorre las preguntas grabadas y 👍 confirma la alternativa, todo en el navegador de quien mira.
+«Gestos» en el menú: ✌️ recorre las preguntas grabadas y ✋ recorre las secciones, todo en el navegador de quien mira.
 
 > Y la parte 1 también está ahí: cualquiera con una cámara puede manejar el asistente con la mano desde la web, sin
 > instalar nada. El modelo de gestos corre en su navegador.

@@ -235,6 +235,8 @@ export interface Cuadro { uid: string; titulo: string; periodo: string; actualiz
 // --- gestos de la parte 1 ---
 // POST /api/gestos {gesto: 'ok'|'paper'|'rock'|'rockandroll'|'scissors'|'thumbsup', confianza: 0..1,
 //                   dispositivo: 'portal-[a-z0-9]{6,32}'} -> 202 {enviado: boolean}   (demostración: {enviado: false, demostracion: true})
+// GET /api/gestos/pregunta?anterior=… -> {pregunta}: la de ✌️, al azar (`pregunta_al_azar` de parte3_chatbot/gestos.py);
+//   en la demostración, las grabadas de `preguntas`, una detrás de otra
 // GET /api/gestos/stream -> text/event-stream: `gesto` {gesto, confianza, dispositivo, instante}; 503 sin clave de
 //   gestos; 404 en la demostración (el portal deja de escuchar)
 ```

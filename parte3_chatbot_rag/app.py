@@ -7,9 +7,8 @@ Aquí solo va la interfaz:
   - las fuentes recuperadas (documentos, zonas, ejemplos y fichas de agregados) van en un desplegable
     «Fuentes», con los tokens que ha costado el turno;
   - si la API rechaza la consulta, se muestra el motivo y un botón para lanzar la alternativa agregada.
-Gestos de la parte 1 (con GESTOS_ACTIVOS): los mismos que el chatbot de Ollama, con su módulo
-(parte3_chatbot/gestos.py) y la tabla de config/gestos.json: 👍 confirma, ✋ cancela y ✌️ hace la siguiente
-pregunta de ejemplo.
+Gestos de la parte 1 (con GESTOS_ACTIVOS): como en el chatbot de Ollama, con su módulo (parte3_chatbot/gestos.py)
+y la tabla de config/gestos.json: ✌️ hace una pregunta al azar; los demás gestos manejan el portal.
 
 Arranque: chainlit run app.py --host 0.0.0.0 --port 8000 --headless   (make chatbot-rag → http://localhost:8011)
 """
@@ -115,9 +114,9 @@ async def _cancelar_alternativa() -> None:
 
 
 async def _pregunta_de_ejemplo() -> None:
-    """✌️: la siguiente pregunta de `config/gestos.json`, como si la hubiera escrito el usuario."""
-    pregunta, siguiente = gestos.siguiente_pregunta(cl.user_session.get('pregunta_gesto') or 0)
-    cl.user_session.set('pregunta_gesto', siguiente)
+    """✌️: una pregunta al azar (plantillas de `config/gestos.json`), como si la hubiera escrito el usuario."""
+    pregunta = gestos.pregunta_al_azar(anterior=cl.user_session.get('pregunta_gesto'))
+    cl.user_session.set('pregunta_gesto', pregunta)
     await cl.Message(content=pregunta, author='Tú', type='user_message').send()
     await _responder(pregunta=pregunta)
 
@@ -130,11 +129,8 @@ async def inicio() -> None:
     cl.user_session.set('agente', agente)
     cl.user_session.set('contador', contador)
     cl.user_session.set('alternativa', None)
-    cl.user_session.set('tarea_gestos', gestos.enganchar_a_chainlit({
-        'confirmar': _ejecutar_alternativa,
-        'cancelar': _cancelar_alternativa,
-        'siguiente': _pregunta_de_ejemplo,
-    }))
+    # de los gestos de la parte 1, en Chainlit solo ✌️: los demás (motor, secciones, leer…) son del portal
+    cl.user_session.set('tarea_gestos', gestos.enganchar_a_chainlit({'siguiente': _pregunta_de_ejemplo}))
     await cl.Message(content=BIENVENIDA).send()
 
 

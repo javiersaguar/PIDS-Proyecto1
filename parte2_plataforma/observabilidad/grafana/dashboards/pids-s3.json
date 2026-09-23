@@ -170,7 +170,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "SeaweedFS_volumeServer_total_disk_size",
+          "expr": "sum(SeaweedFS_volumeServer_total_disk_size)",
           "instant": true
         }
       ],
@@ -188,7 +188,8 @@
           "unit": "bytes"
         },
         "overrides": []
-      }
+      },
+      "description": "Espacio que ocupan los volúmenes en disco, sumados."
     },
     {
       "id": 6,

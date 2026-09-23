@@ -1,32 +1,32 @@
 {
-  "descripcion": "Qué hace cada gesto de la parte 1 en los chatbots. La leen los dos chatbots de Chainlit (parte3_chatbot/gestos.py) y TAXI AI en el portal (parte4_frontend/web/src/gestos). Las acciones que un chatbot no tiene se ignoran: leer, abrir y cerrar solo existen en el portal. «preguntas»: las que hace ✌️, en orden y dando la vuelta; la última es una petición individual, para que 👍 confirme su alternativa.",
+  "descripcion": "Qué hace cada gesto de la parte 1. La leen los dos chatbots de Chainlit (parte3_chatbot/gestos.py), el BFF del portal y TAXI AI (parte4_frontend/web/src/gestos). En Chainlit solo tiene sentido ✌️ (otra pregunta); cambiar de motor, pasar de sección, leer, abrir y cerrar son del portal y allí se ignoran. ✌️ hace una pregunta al azar a partir de «variantes» (plantillas con zonas, barrios, días y horas de 2020). «preguntas» son las que tienen conversación grabada: las usa la demostración pública, que no tiene modelo.",
   "confianza_minima": 0.85,
   "estabilidad": 4,
   "repetir_cada_s": 3,
   "gestos": {
-    "thumbsup": {
-      "emoji": "👍",
-      "accion": "confirmar",
-      "titulo": "Confirmar",
-      "texto": "Ejecuta la alternativa agregada que propone el asistente tras un rechazo"
-    },
-    "paper": {
-      "emoji": "✋",
-      "accion": "cancelar",
-      "titulo": "Parar",
-      "texto": "Descarta la alternativa, corta la respuesta en curso o calla la lectura en voz alta"
-    },
     "scissors": {
       "emoji": "✌️",
       "accion": "siguiente",
       "titulo": "Otra pregunta",
-      "texto": "Hace la siguiente pregunta de ejemplo"
+      "texto": "Hace una pregunta al azar sobre los viajes de 2020: otra zona, barrio, día u hora cada vez"
+    },
+    "thumbsup": {
+      "emoji": "👍",
+      "accion": "motor",
+      "titulo": "Cambiar de motor",
+      "texto": "Pasa TAXI AI de Ollama a DeepSeek y al revés; empieza una conversación nueva"
+    },
+    "paper": {
+      "emoji": "✋",
+      "accion": "seccion",
+      "titulo": "Siguiente sección",
+      "texto": "Pasa a la siguiente sección del menú (del Panel a Observabilidad y vuelta a empezar)"
     },
     "ok": {
       "emoji": "👌",
       "accion": "leer",
       "titulo": "Leer en voz alta",
-      "texto": "Lee en voz alta la última respuesta, para usarlo sin mirar la pantalla"
+      "texto": "Lee en voz alta la última respuesta; si ya está leyendo, la calla"
     },
     "rockandroll": {
       "emoji": "🤘",
@@ -47,5 +47,78 @@
     "¿Cuál fue la propina media en Manhattan la primera semana de febrero?",
     "¿Cuántos viajes hubo de Queens a Manhattan el 10 de enero?",
     "Dame el viaje de las 3:12 del 15 de enero desde Times Square"
-  ]
+  ],
+  "variantes": {
+    "plantillas": [
+      "¿Cuántos viajes salieron de {zona} el {dia} entre las {desde} y las {hasta}?",
+      "¿A qué hora salieron más viajes de {zona} el {dia}?",
+      "¿Cuál fue el importe medio de los viajes desde {zona} el {dia}?",
+      "¿Qué barrio tuvo más viajes el {dia}?",
+      "¿Cuál fue la propina media en {barrio} el {dia}?",
+      "¿Qué porcentaje de viajes se pagó con tarjeta en {barrio} el {dia}?",
+      "¿Cuál fue la distancia media de los viajes desde {barrio} el {dia}?",
+      "¿Cuántos viajes hubo de {barrio} a {barrio2} el {dia}?",
+      "Viajes por hora desde Staten Island el {dia}",
+      "Dame el viaje de las {hora} del {dia} desde {zona}",
+      "¿Quién cogió un taxi en {zona} a las {hora} del {dia}?"
+    ],
+    "zonas": [
+      "JFK",
+      "LaGuardia",
+      "Times Square",
+      "Midtown Center",
+      "Penn Station",
+      "East Village",
+      "Upper East Side South",
+      "Central Park",
+      "Park Slope",
+      "Greenpoint",
+      "Chinatown"
+    ],
+    "barrios": [
+      "Manhattan",
+      "Brooklyn",
+      "Queens",
+      "Bronx",
+      "Staten Island"
+    ],
+    "dias": [
+      "1 de enero",
+      "15 de enero",
+      "10 de febrero",
+      "3 de marzo",
+      "14 de marzo",
+      "1 de abril",
+      "15 de mayo",
+      "4 de julio",
+      "20 de agosto",
+      "15 de septiembre",
+      "31 de octubre",
+      "26 de noviembre",
+      "24 de diciembre",
+      "31 de diciembre"
+    ],
+    "franjas": [
+      [
+        7,
+        10
+      ],
+      [
+        8,
+        12
+      ],
+      [
+        13,
+        16
+      ],
+      [
+        17,
+        20
+      ],
+      [
+        18,
+        22
+      ]
+    ]
+  }
 }

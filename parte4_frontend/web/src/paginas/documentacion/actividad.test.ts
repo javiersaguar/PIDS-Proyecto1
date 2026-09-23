@@ -91,7 +91,11 @@ describe('flujosDe', () => {
     const enPlataforma = flujosDe(con({ gesto: { gesto: 'thumbsup', enPlataforma: true } }))
     expect(enPlataforma.aristas.has('captura-redpanda')).toBe(true)
     expect(enPlataforma.nodos.get('captura')?.texto).toBe('Gesto 👍')
-    expect(enPlataforma.nodos.get('chatbots')?.texto).toBe('👍 Confirmar')
+    expect(enPlataforma.nodos.get('chatbots')?.texto).toBe('👍 Cambiar de motor')
+    // ✋ cambia de sección del portal: su pastilla va en el Portal, no en los chatbots
+    const seccion = flujosDe(con({ gesto: { gesto: 'paper', enPlataforma: true } }))
+    expect(seccion.nodos.get('portal')?.texto).toBe('✋ Siguiente sección')
+    expect(seccion.nodos.has('chatbots')).toBe(false)
     const enNavegador = flujosDe(con({ gesto: { gesto: 'scissors', enPlataforma: false } }))
     expect(enNavegador.aristas.size).toBe(0)
     expect(enNavegador.nodos.get('chatbots')?.texto).toBe('✌️ Otra pregunta')

@@ -13,6 +13,7 @@
  *     nada ni cambia el tiempo real grabado.
  */
 import type { Catalogo, EstadoSesion, Zona } from '@/api/tipos'
+import { PREGUNTAS_GESTO } from '@/gestos/tabla'
 
 import { type Instantanea, notaIncompleta } from './datos'
 import {
@@ -97,6 +98,8 @@ export class BffDemo {
   /** La captura en directo de la demostración: solo su reloj, para animar el grafo. */
   private captura: { inicio: number; desde: number; velocidad: number } | null = null
   private relojCaptura = Date.UTC(2020, 11, 1)
+  /** La siguiente pregunta grabada que hace ✌️. */
+  private preguntaGesto = 0
 
   constructor(datos: Instantanea, ahora: () => number = Date.now) {
     this.datos = datos
@@ -121,6 +124,10 @@ export class BffDemo {
     // Gestos: el navegador los reconoce y TAXI AI los atiende igual, pero no hay plataforma a la que enviarlos
     if (metodo === 'POST' && ruta === '/api/gestos') return json({ enviado: false, demostracion: true }, 202)
     if (metodo === 'GET' && ruta === '/api/gestos/stream') return detalle(404, 'En la demostración no hay gestos de la plataforma')
+    // ✌️: sin modelo, solo las preguntas con conversación grabada, una detrás de otra
+    if (metodo === 'GET' && ruta === '/api/gestos/pregunta') {
+      return json({ pregunta: PREGUNTAS_GESTO[this.preguntaGesto++ % PREGUNTAS_GESTO.length] })
+    }
     return detalle(404, 'Not Found')
   }
 

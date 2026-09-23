@@ -85,7 +85,8 @@ describe('tabla de gestos (config/gestos.json)', () => {
   it('da una acción distinta a cada una de las seis clases del modelo', () => {
     expect([...LISTA_GESTOS].sort()).toEqual([...MODELO.clases].sort())
     expect(new Set(LISTA_GESTOS.map((g) => GESTOS[g].accion)).size).toBe(6)
-    expect(GESTOS.thumbsup.accion).toBe('confirmar')
+    expect(GESTOS.thumbsup.accion).toBe('motor')
+    expect(GESTOS.paper.accion).toBe('seccion')
     expect(PREGUNTAS_GESTO.at(-1)).toMatch(/^Dame el viaje/)
   })
 })

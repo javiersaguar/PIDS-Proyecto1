@@ -68,7 +68,7 @@ El mapa de todo lo que falta para cerrar el proyecto está en
   una webcam real, con su luz y su encuadre; y el 22/09 la del portátil daba fotogramas negros (obturador o tapa).
   Es la escena 9 de la demo.
 - **Qué hay que hacer:**
-  1. En el portátil, http://localhost:8020 → TAXI AI → «Gestos»: los seis gestos, con la mano a distintas distancias
+  1. En el portátil, http://localhost:8020 → «Gestos» en el menú de la izquierda: los seis gestos, con la mano a distintas distancias
      y con las dos manos. Apuntar cuáles cuestan.
   2. Lo mismo en https://happytaxi-rust.vercel.app, en vivo y en la demostración (y en un móvil, que también vale).
   3. Si algún gesto no entra, probar a subir o bajar `confianza_minima` en `config/gestos.json` (0,85) antes de

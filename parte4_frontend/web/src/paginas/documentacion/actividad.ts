@@ -7,7 +7,8 @@
  *   Spark publicando    Redpanda → Spark → MongoDB
  *   el portal consulta  MongoDB → API de acceso → Portal
  *   un chatbot         MongoDB → API de acceso → Chatbots → Ollama o Helmcode (DeepSeek)
- *   un gesto           Captura → Redpanda (si entró en la plataforma) y la pastilla del gesto en Chatbots
+ *   un gesto           Captura → Redpanda (si entró en la plataforma) y la pastilla del gesto en Chatbots (en el
+ *                      Portal si es ✋, que cambia de sección)
  */
 import type { Actividad } from '@/api/actividad'
 import { describirCarga } from '@/api/actividad'
@@ -99,13 +100,13 @@ export function flujosDe(actividad: Actividad): Flujos {
   }
 
   if (actividad.gesto) {
-    const { emoji, titulo } = GESTOS[actividad.gesto.gesto]
+    const { emoji, titulo, accion } = GESTOS[actividad.gesto.gesto]
     if (actividad.gesto.enPlataforma) {
       activar(flujos, [['captura', 'redpanda']])
       realzar(flujos, 'captura', `Gesto ${emoji}`, 'verde')
       realzar(flujos, 'redpanda', 'Cola de gestos', 'verde')
     }
-    realzar(flujos, 'chatbots', `${emoji} ${titulo}`, 'cian')
+    realzar(flujos, accion === 'seccion' ? 'portal' : 'chatbots', `${emoji} ${titulo}`, 'cian')
   }
 
   return flujos

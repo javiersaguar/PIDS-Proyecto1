@@ -3,8 +3,11 @@
  * de la API (código y cuerpo) a consultas permitidas, enmascaradas, rechazadas y mal formadas, grabadas por
  * `parte4_frontend/demo/instantanea.py` con la misma instantánea que usa la demo.
  */
+import { PREGUNTAS_GESTO } from '@/gestos/tabla'
+
 import { Instantanea } from './datos'
 import { validar } from './privacidad'
+
 import { BffDemo, normalizar, type Contestacion } from './rutas'
 
 interface Referencia {
@@ -170,6 +173,11 @@ describe('resto del BFF de la demostración', () => {
     expect(cuerpo(envio)).toEqual({ enviado: false, demostracion: true })
     const flujo = await demo.atender(peticion('GET', '/api/gestos/stream'))
     expect(flujo.tipo === 'json' && flujo.estado).toBe(404)
+    // ✌️ sin modelo: las preguntas grabadas, una detrás de otra
+    const preguntas = []
+    for (let i = 0; i < 6; i++) preguntas.push(cuerpo(await demo.atender(peticion('GET', '/api/gestos/pregunta'))).pregunta)
+    expect(preguntas.slice(0, 5)).toEqual([...PREGUNTAS_GESTO])
+    expect(preguntas[5]).toBe(PREGUNTAS_GESTO[0])
   })
 
   it('cerrar la sesión exige volver a entrar; cualquier contraseña vale', async () => {

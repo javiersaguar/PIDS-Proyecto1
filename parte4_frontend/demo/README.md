@@ -43,8 +43,8 @@ pública»). La demostración no depende de nada del equipo: con el portátil ap
   demostración no se lanzan operaciones.
 - **Grafo**: «Capturar datos» anima el camino de la captura con un reloj de 2020 que avanza, pero no envía nada ni
   cambia el tiempo real grabado (lo dice el propio control).
-- **Gestos**: TAXI AI → «Gestos» reconoce la mano con la cámara de quien mira (MediaPipe y el MLP de la parte 1, en su
-  navegador). ✌️ recorre las preguntas grabadas, 👍 confirma la alternativa, 👌 lee la respuesta y 🤘/✊ abren y cierran
+- **Gestos**: «Gestos», en el menú, reconoce la mano con la cámara de quien mira (MediaPipe y el MLP de la parte 1, en su
+  navegador). ✌️ recorre las preguntas grabadas, ✋ pasa de sección, 👌 lee la respuesta y 🤘/✊ abren y cierran
   el panel. El gesto no se envía a ningún sitio: no hay plataforma detrás.
 - **Observabilidad**: los ocho cuadros de Grafana con los datos de Prometheus del momento de la grabación
   (`public/demo/observabilidad/`, «Datos grabados el …» en la página). Son métricas de la plataforma: estado de los

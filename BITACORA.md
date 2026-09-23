@@ -63,6 +63,7 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 | 22/09/2026 | La regla de autoría se hace cumplir con un hook `commit-msg` y un CI «Autoría»; ningún commit lleva `Co-Authored-By` (ni entre miembros) | Una coautoría automática llegó a `main` en el PR #1 y solo se pudo quitar recreando el repositorio | Javier Saguar | Vigente |
 | 22/09/2026 | Grafana deja **ver** los cuadros sin clave (rol Viewer anónimo) para incrustarlos en el portal; editar sigue pidiendo `admin` | Solo escucha en 127.0.0.1 y los cuadros enseñan métricas y agregados ya protegidos, nunca viajes. Es la excepción a «solo se publica lo que tiene credencial» de T08 | Javier Saguar | Vigente |
 | 22/09/2026 | Se publica el vídeo del CU8 (`docs/capturas/cu8_gesto.mp4`), en el que se ven miembros del grupo; el dataset completo de gestos (3000 fotos) sigue fuera del repositorio | Es la prueba de la integración gestos ↔ chatbot; el propio repositorio de la asignatura trae fotos de los profesores como dataset de prueba | Javier Saguar | Vigente |
+| 23/09/2026 | 👍 cambia el motor de TAXI AI (Ollama ↔ DeepSeek) y ✋ pasa a la siguiente sección del menú; ya no confirman ni cancelan la alternativa de un rechazo (se hace con sus botones) | Así los gestos manejan el portal entero y enseñan los dos chatbots; confirmar solo servía tras un rechazo y casi siempre parecía no hacer nada | Javier Saguar | Vigente |
 | 22/09/2026 | Los gestos de la parte 1 se reconocen también **en el navegador** (MediaPipe para web y el MLP de la parte 1 exportado a JSON), con la tabla de acciones común en `config/gestos.json` | Hace la integración visible en la web pública sin Windows ni Python; la imagen no sale del navegador y a la plataforma solo llega la etiqueta, como desde la demo de Windows | Javier Saguar | Vigente |
 | 22/09/2026 | Se mantienen los dos chatbots y la demo enseña los dos. Cada miembro pone su `LLM_API_KEY` en su `.env` | Confirma la propuesta del 21/09. Ollama cumple la regla 9 sin que la pregunta salga del equipo. Helmcode (UE, sin registro de prompts) se queda: los dos pasan 21/21 y 0/105, y el portal ya los trata igual. La clave no se comparte por el chat | Javier Saguar | Vigente |
 
@@ -88,6 +89,41 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 ---
 
 ## Entradas
+
+### 2026-09-23 · Javier Saguar · Gestos: botón en el menú, tarjeta más grande, ✌️ al azar, 👍 cambia de motor y ✋ de sección
+
+- **Rama / commits:** `main`
+- **Qué he hecho:**
+  - El interruptor «Gestos» pasa de la cabecera de TAXI AI al **menú de la izquierda** (sección «Parte 1»), con su
+    estado: apagados, preparando, cámara activa o sin cámara.
+  - La tarjeta de la cámara es **más grande** (hecho con Cursor, revisado): 22 rem, el vídeo más visible y cada gesto
+    con su explicación. Al revisarla, en el grafo se salía por arriba de la pantalla; ahora va abajo a la izquierda,
+    junto al menú (ni TAXI AI ni su panel la tapan) y su altura se limita a la pantalla.
+  - **✌️ con preguntas al azar**: 11 plantillas en `config/gestos.json` («variantes») con 11 zonas, 5 barrios, 14 días
+    de 2020 y varias franjas; cientos de preguntas distintas, que no son las casillas de ejemplo. Dos plantillas piden
+    un viaje concreto, para que el filtro lo rechace y 👍 tenga algo que confirmar. Las genera `pregunta_al_azar`
+    (`parte3_chatbot/gestos.py`) en los dos Chainlit y, por `GET /api/gestos/pregunta`, en el portal. Zonas elegidas
+    para que la búsqueda por nombre dé una sola (no «Astoria» ni «Williamsburg», que dan varias). La demostración
+    pública sigue con las cinco grabadas.
+  - Arreglado de paso: los ids de los gestos empezaban en 1 al volver a montar el proveedor (por ejemplo, al entrar de
+    nuevo), y el chat, que recuerda el último que atendió, ignoraba los nuevos.
+  - También de Cursor, revisado: el cuadro de S3 suma el disco de los volúmenes y los valores múltiples caben en su tarjeta.
+  - **👍 y ✋ cambian de función** (decisión de hoy): 👍 pasa TAXI AI de Ollama a DeepSeek y al revés (conversación
+    nueva; si el otro motor no está, lo dice) y ✋ pasa a la siguiente sección del menú (Panel → Explorador → … →
+    Observabilidad → Panel). TAXI AI no es una sección: ✋ no pasa por él, y si está abierto sigue abierto con su
+    conversación. 👌 hereda el «callar»: si ya está leyendo, calla. La alternativa de un rechazo se confirma o se
+    cancela con sus botones. En Chainlit solo queda ✌️ (los otros gestos son del portal). En el grafo, la pastilla de
+    ✋ va en el Portal.
+- **Ficheros clave:** `config/gestos.json`, `parte3_chatbot/gestos.py`, `parte4_frontend/bff/rutas/gestos.py`,
+  `parte4_frontend/web/src/gestos/{BotonGestos,TarjetaGestos,ProveedorGestos}.tsx`, `componentes/shell/BarraLateral.tsx`,
+  `paginas/asistente/useGestosChat.ts`, `demo/rutas.ts`
+- **Cómo comprobarlo:** http://localhost:8020 → «Gestos» en el menú; ✌️ varias veces. `uv run pytest tests/test_gestos.py`.
+- **Resultado:** 501 tests de Python y 202 de Vitest en verde, `tsc` y lint limpios. En el portal, con cámara simulada,
+  ✌️ abre TAXI AI y pregunta al azar (una de ellas, un viaje concreto, sale rechazada con su alternativa); en los dos
+  Chainlit, ✌️ pregunta al azar y responden.
+- **Pendiente y riesgos:** el vídeo `docs/capturas/cu8_gesto.mp4` enseña la versión anterior (👍 confirmaba la
+  alternativa). Con la cámara, un ✋ sostenido pasa de sección cada 3 s. Alguna pregunta al azar puede no tener datos
+  (por ejemplo, un flujo con pocos viajes sale «oculto»): es lo esperado.
 
 ### 2026-09-22 · Javier Saguar · T19: la muestra no pisa el histórico
 

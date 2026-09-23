@@ -11,7 +11,7 @@ Todos acceden a los datos procesados de la parte 2 a través de la API de acceso
 | CU5 | Petición individual (rechazo) | «Dame el viaje de las 3:12 desde Times Square» | — | Rechazo sin pasar por el LLM + alternativa |
 | CU6 | Grupos pequeños (enmascarado) | «Viajes por hora desde Staten Island el 1 de enero» | hora_zona | Grupos `oculto` sin cifras y explicación |
 | CU7 | Tiempo real | «¿Cuántos viajes llevamos en la última hora simulada?» | hora_zona (tiempo_real) | Datos en streaming con la misma protección |
-| CU8 | Confirmación por gestos (integración) | El bot propone una alternativa y el usuario hace 👍 (con la demo de Windows o con la cámara del portal) | — | Parte 1 → parte 3 |
+| CU8 | Manejar el asistente con gestos (integración) | ✌️ pregunta al azar, 👍 cambia de motor, 👌 lee la respuesta, ✋ pasa de sección (con la demo de Windows o con la cámara del portal) | — | Parte 1 → parte 3 |
 
 ## Resultados medidos
 
@@ -250,7 +250,9 @@ Hechas con la interfaz real (http://localhost:8010) en la versión final, en `do
 | [`cu8_cancelada.png`](capturas/cu8_cancelada.png) | CU8: la mano abierta cancela |
 
 CU8 (gestos): el 22/09 el 👍 ejecutó la alternativa y el ✋ la canceló. El vídeo está en `docs/capturas/cu8_gesto.mp4`.
+Desde el 23/09 esos dos gestos hacen otra cosa (👍 cambia de motor y ✋ pasa de sección; la alternativa se confirma con
+su botón), así que el vídeo enseña la versión anterior.
 Desde la misma tarde, CU8 funciona en los tres chatbots (los dos de Chainlit y TAXI AI en el portal) y con la cámara
-del navegador, con el MLP de la parte 1: ✌️ hace además la siguiente pregunta de ejemplo, y en el portal 👌 lee la
+del navegador, con el MLP de la parte 1: ✌️ hace además una pregunta al azar, y en el portal 👌 lee la
 respuesta en voz alta y 🤘/✊ abren y cierran el asistente. Tabla y pruebas en
 [`integracion/README.md`](../integracion/README.md).

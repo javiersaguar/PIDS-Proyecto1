@@ -1,4 +1,5 @@
-/** 👌: la última respuesta del asistente, leída en voz alta con la síntesis de voz del navegador (sin servidor). */
+/** 👌: la última respuesta del asistente, leída en voz alta con la síntesis de voz del navegador (sin servidor);
+ * si ya está leyendo, 👌 la calla. */
 
 /** Markdown → texto que se puede leer: cada fila de una tabla como una frase; sin enlaces, negritas ni código. */
 export function textoParaLeer(markdown: string, maximo = 700): string {
@@ -45,4 +46,8 @@ export function callar(): boolean {
   const hablaba = window.speechSynthesis.speaking || window.speechSynthesis.pending
   window.speechSynthesis.cancel()
   return hablaba
+}
+
+export function hablando(): boolean {
+  return vozDisponible() && (window.speechSynthesis.speaking || window.speechSynthesis.pending)
 }

@@ -101,3 +101,10 @@ def test_el_flujo_retransmite_solo_los_gestos_y_sin_el_cliente(cliente):
     assert datos == [{'gesto': 'paper', 'confianza': 0.98, 'dispositivo': 'PORTATIL',
                       'instante': '2026-09-22T18:00:00+00:00'}]
     assert texto.count('event: gesto') == 1
+
+
+def test_la_pregunta_de_la_v_sale_del_generador_de_los_chatbots(cliente):
+    primera = cliente.get('/api/gestos/pregunta').json()['pregunta']
+    assert primera and '{' not in primera
+    otra = cliente.get('/api/gestos/pregunta', params={'anterior': primera}).json()['pregunta']
+    assert otra != primera

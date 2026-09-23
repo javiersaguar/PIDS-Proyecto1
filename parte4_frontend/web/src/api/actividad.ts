@@ -197,7 +197,7 @@ export function describirActividad(actividad: Actividad): string[] {
   if (actividad.chatHelmcode) frases.push('El asistente consulta con DeepSeek, en Helmcode')
   if (actividad.gesto) {
     const { emoji, titulo } = GESTOS[actividad.gesto.gesto]
-    frases.push(`Gesto ${emoji} ${titulo}${actividad.gesto.enPlataforma ? ': API de captura → Redpanda → chatbots' : ''}`)
+    frases.push(`Gesto ${emoji} ${titulo}${actividad.gesto.enPlataforma ? ' (API de captura → Redpanda)' : ''}`)
   }
   return frases
 }

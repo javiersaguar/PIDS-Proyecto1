@@ -71,3 +71,11 @@ export function seccionDe(pathname: string): Seccion | undefined {
   if (pathname === '/') return SECCIONES[0]
   return SECCIONES.find((s) => s.ruta !== '/' && (pathname === s.ruta || pathname.startsWith(`${s.ruta}/`)))
 }
+
+/** La sección que sigue a la de `ruta` en el menú, dando la vuelta al llegar a la última (✋ en los gestos); desde una
+ * ruta que no es de ninguna sección, la primera. */
+export function seccionSiguiente(ruta: string): string {
+  const actual = seccionDe(ruta)
+  const indice = actual ? SECCIONES.indexOf(actual) : -1
+  return SECCIONES[(indice + 1) % SECCIONES.length].ruta
+}

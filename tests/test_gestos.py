@@ -3,6 +3,8 @@ chatbots de Chainlit (`parte3_chatbot/gestos.py`). TAXI AI, en el portal, lee la
 `parte4_frontend/web/src/gestos`)."""
 import asyncio
 import json
+import random
+import re
 import sys
 from pathlib import Path
 
@@ -24,26 +26,36 @@ def test_la_tabla_cubre_los_seis_gestos_del_modelo_con_acciones_distintas():
     assert sorted(G.CONFIG['gestos']) == sorted(CLASES_PARTE1)
     acciones = list(G.ACCIONES.values())
     assert len(set(acciones)) == len(acciones)
-    assert set(acciones) == {'confirmar', 'cancelar', 'siguiente', 'leer', 'abrir', 'cerrar'}
-    assert G.ACCIONES['thumbsup'] == 'confirmar' and G.ACCIONES['paper'] == 'cancelar'   # como en el vídeo de CU8
+    assert set(acciones) == {'siguiente', 'motor', 'seccion', 'leer', 'abrir', 'cerrar'}
+    assert G.ACCIONES['scissors'] == 'siguiente' and G.ACCIONES['thumbsup'] == 'motor' and G.ACCIONES['paper'] == 'seccion'
     assert 0.5 <= G.CONFIANZA_MINIMA <= 1
 
 
-def test_las_preguntas_de_la_v_estan_grabadas_en_la_demostracion_publica():
-    # ✌️ tiene que funcionar también en Vercel sin el equipo: cada pregunta tiene su conversación grabada
-    assert set(G.PREGUNTAS) <= set(INSTANTANEA.PREGUNTAS_CHAT)
-    assert 'Dame el viaje' in G.PREGUNTAS[-1]                  # la última se rechaza y 👍 confirma su alternativa
+def test_las_preguntas_de_la_demostracion_estan_grabadas():
+    # en Vercel sin el equipo, ✌️ recorre estas: cada una tiene su conversación grabada
+    assert set(G.CONFIG['preguntas']) <= set(INSTANTANEA.PREGUNTAS_CHAT)
+    assert 'Dame el viaje' in G.CONFIG['preguntas'][-1]       # la última se rechaza y enseña la alternativa
 
 
-def test_siguiente_pregunta_da_la_vuelta():
-    n = len(G.PREGUNTAS)
-    assert G.siguiente_pregunta(0) == (G.PREGUNTAS[0], 1)
-    assert G.siguiente_pregunta(n - 1) == (G.PREGUNTAS[-1], 0)
-    assert G.siguiente_pregunta(n + 1)[0] == G.PREGUNTAS[1]
+def test_las_plantillas_solo_usan_campos_conocidos():
+    for plantilla in G.VARIANTES['plantillas']:
+        assert G.campos(plantilla) <= G.CAMPOS_PLANTILLA, plantilla
+    assert len(set(G.VARIANTES['barrios'])) >= 2
+
+
+def test_pregunta_al_azar_varia_no_repite_la_anterior_y_a_veces_pide_un_viaje_concreto():
+    azar = random.Random(7)
+    preguntas = [G.pregunta_al_azar(azar) for _ in range(300)]
+    assert all('{' not in p and '}' not in p for p in preguntas)
+    assert len(set(preguntas)) > 150
+    assert any(p.startswith('Dame el viaje') for p in preguntas)            # para que se vea el filtro de privacidad
+    assert all(re.search(r'\bde (\w+) a \1\b', p) is None for p in preguntas)   # nunca «de Queens a Queens»
+    anterior = G.pregunta_al_azar(random.Random(1))
+    assert G.pregunta_al_azar(random.Random(1), anterior=anterior) != anterior
 
 
 def test_aviso_dice_el_gesto_la_accion_y_la_confianza():
-    assert G.aviso({'gesto': 'thumbsup', 'confianza': 0.97}) == '👍 Gesto recibido: **thumbsup** → confirmar (97%)'
+    assert G.aviso({'gesto': 'thumbsup', 'confianza': 0.97}) == '👍 Gesto recibido: **thumbsup** → motor (97%)'
     assert G.aviso({'gesto': 'scissors'}) == '✌️ Gesto recibido: **scissors** → siguiente'
 
 
@@ -72,10 +84,10 @@ def test_escuchar_entrega_solo_gestos_con_accion_y_confianza_suficiente(monkeypa
 
     with pytest.raises(asyncio.CancelledError):
         asyncio.run(G.escuchar(al_recibir))
-    assert recibidos == [('confirmar', 'thumbsup'), ('siguiente', 'scissors')]
+    assert recibidos == [('motor', 'thumbsup'), ('siguiente', 'scissors')]
     assert conexiones[0] == 'clave-chatbot'
 
 
 def test_sin_gestos_activos_no_se_engancha_nada(monkeypatch):
     monkeypatch.setattr(G, 'ACTIVOS', False)
-    assert G.enganchar_a_chainlit({'confirmar': None}) is None
+    assert G.enganchar_a_chainlit({'siguiente': None}) is None

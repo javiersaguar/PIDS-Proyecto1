@@ -6,7 +6,7 @@ el mismo sitio:
 
 | Dónde se reconoce | Con qué | Cuándo usarla |
 |---|---|---|
-| **El navegador**, en el portal (botón «Gestos» de TAXI AI) | MediaPipe para web (los 21 puntos de la mano) y **el MLP de la parte 1** exportado a JSON (`parte1_gestos/entrenamiento/exportar_web.py`) | En la demo y en la web pública de Vercel: no hace falta Windows ni Python, basta una cámara |
+| **El navegador**, en el portal (botón «Gestos» del menú de la izquierda) | MediaPipe para web (los 21 puntos de la mano) y **el MLP de la parte 1** exportado a JSON (`parte1_gestos/entrenamiento/exportar_web.py`) | En la demo y en la web pública de Vercel: no hace falta Windows ni Python, basta una cámara |
 | **La demo de Windows** (`parte1_gestos/demo/src/demo-gestures-PIDS.py`) | El pipeline de la parte 1 en Python (Keras) | Para enseñar la parte 1 tal cual, con su ventana y los comandos del tanque |
 
 ```mermaid
@@ -35,19 +35,26 @@ con [`parte3_chatbot/gestos.py`](../parte3_chatbot/gestos.py) y TAXI AI con `par
 
 | Gesto | Acción | Chainlit (Ollama y RAG) | TAXI AI (portal) |
 |---|---|---|---|
-| 👍 `thumbsup` | Confirmar | Ejecuta la alternativa agregada que propuso el rechazo | Igual |
-| ✋ `paper` | Parar | Descarta la alternativa | Calla la lectura; si no, descarta la alternativa; si no, corta la respuesta |
-| ✌️ `scissors` | Otra pregunta | Hace la siguiente pregunta de ejemplo | Igual |
-| 👌 `ok` | Leer en voz alta | — | Lee la última respuesta (síntesis de voz del navegador) |
+| ✌️ `scissors` | Otra pregunta | Hace una pregunta al azar (plantillas de `variantes`) | Igual; en la demostración, una de las grabadas |
+| 👍 `thumbsup` | Cambiar de motor | — | Pasa de Ollama a DeepSeek y al revés (conversación nueva); si el otro no está disponible, lo dice |
+| ✋ `paper` | Siguiente sección | — | Pasa a la siguiente sección del menú y, tras la última, a la primera. TAXI AI no es una sección: sigue abierto |
+| 👌 `ok` | Leer en voz alta | — | Lee la última respuesta (síntesis de voz del navegador); si ya está leyendo, la calla |
 | 🤘 `rockandroll` | Abrir TAXI AI | — | Abre el panel desde cualquier página |
 | ✊ `rock` | Cerrar TAXI AI | — | Cierra el panel; la conversación sigue |
 
-Por qué estas: **confirmar y cancelar** son el momento de E3 en el que la persona decide (acepta o no la
-alternativa agregada que le ofrece el filtro de privacidad); **otra pregunta** permite recorrer los casos de uso sin
-teclado; **leer en voz alta** es para usar el asistente sin mirar la pantalla (un operador, una sala de control), y
-**abrir y cerrar** manejan el portal con la mano. Las preguntas de ✌️ son las de `preguntas` en la misma tabla: las
-tres de ejemplo, un flujo entre barrios y, la última, una petición individual, para que 👍 confirme su alternativa.
-Todas están grabadas en la demostración pública, así que ✌️ también funciona en Vercel sin el equipo.
+Por qué estas: **otra pregunta** recorre lo que se puede consultar sin teclado; **cambiar de motor** enseña los dos
+chatbots (el local y el de la UE) con la misma pregunta; **siguiente sección** recorre el portal con la mano; **leer en
+voz alta** es para usar el asistente sin mirar la pantalla (un operador, una sala de control), y **abrir y cerrar**
+manejan el panel. Hasta el 23/09, 👍 confirmaba la alternativa de un rechazo y ✋ la cancelaba (así sale en el vídeo
+`docs/capturas/cu8_gesto.mp4`); ahora eso se hace con los botones «✅ Consultar la alternativa» / «✖ Cancelar».
+
+Las preguntas de ✌️ salen al azar de `variantes` en la misma tabla: 11 plantillas (volumen por zona y franja, hora
+punta, importe, propina, pago con tarjeta, distancia, flujos entre barrios, Staten Island por horas y dos peticiones
+de un viaje concreto, que el filtro rechaza y enseña su alternativa) con 11 zonas, 5 barrios, 14 días de
+2020 y varias franjas: cientos de preguntas distintas, que no son las de las casillas de ejemplo del chat. Las genera
+`pregunta_al_azar` (`parte3_chatbot/gestos.py`), la misma función en los dos Chainlit y en el portal (el BFF la da en
+`GET /api/gestos/pregunta`). La demostración pública no tiene modelo, así que ahí ✌️ recorre las de `preguntas`, que
+tienen conversación grabada.
 
 ## Privacidad (E3)
 
@@ -64,7 +71,7 @@ Todas están grabadas en la demostración pública, así que ✌️ también fun
 
 ## Cómo probarlo
 
-**En el portal (la forma más sencilla):** http://localhost:8020 → «TAXI AI» → «Gestos» y permitir la cámara. La
+**En el portal (la forma más sencilla):** http://localhost:8020 → «Gestos» en el menú de la izquierda y permitir la cámara. La
 tarjeta enseña el vídeo en espejo con los puntos de la mano, el gesto que ve el modelo y una barra que se llena al
 sostenerlo. Funciona igual en https://happytaxi-rust.vercel.app: en vivo (con el túnel) los gestos entran además en
 la plataforma; en la demostración se quedan en el navegador y TAXI AI contesta con las conversaciones grabadas. La
@@ -82,8 +89,8 @@ python parte1_gestos\demo\src\demo-gestures-PIDS.py
 ```
 
 3. En un chatbot (Chainlit en :8010 o :8011, o TAXI AI en el portal), una pregunta individual (por ejemplo «Dame el
-   viaje de las 3:12 del 15 de enero desde Times Square»). El bot propone la alternativa; 👍 la ejecuta y ✋ la
-   cancela. Con el chat abierto, ✌️ hace la siguiente pregunta de ejemplo.
+   viaje de las 3:12 del 15 de enero desde Times Square»), y ✌️ para otra al azar. En el portal, además, 👍 cambia
+   de motor y ✋ pasa de sección.
 
 Sin cámara, el mismo POST que haría la demo:
 

@@ -3,12 +3,13 @@
  * (`componentes/shell/PanelAsistente.tsx`). Ya no es una sección del menú: se abre desde cualquier página con el
  * botón «TAXI AI» y al cerrarlo la conversación sigue viva.
  *
- * Cabecera con «Gestos», «Nueva conversación» y cerrar; hilo de mensajes (o la bienvenida con tres ejemplos) y el
- * cuadro de texto abajo. Todo en una sola columna, pensado para los 30 rem del panel. Con «Gestos» encendido, los
- * gestos de la parte 1 manejan el chat (`useGestosChat`).
+ * Cabecera con «Nueva conversación» y cerrar; hilo de mensajes (o la bienvenida con tres ejemplos) y el cuadro de
+ * texto abajo. Todo en una sola columna, pensado para los 30 rem del panel. Con «Gestos» encendido (en el menú de la
+ * izquierda), los gestos de la parte 1 manejan el chat (`useGestosChat`).
  */
 import { BarChart3, CircleDollarSign, MapPin, MessageSquarePlus, Sparkles, X, type LucideIcon } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
 
 import { useMotores } from '@/api/chat'
 import type { Motor } from '@/api/tipos'
@@ -19,7 +20,6 @@ import { SelectorMotor } from '@/componentes/chat/SelectorMotor'
 import { useConversacion } from '@/componentes/chat/useConversacion'
 import { EstadoCargando, EstadoError, EstadoNoDisponible } from '@/componentes/shell/Estados'
 import { Button } from '@/componentes/ui/button'
-import { BotonGestos } from '@/gestos/BotonGestos'
 
 import { useGestosChat } from './useGestosChat'
 
@@ -81,7 +81,6 @@ export function Asistente({ alCerrar }: Props) {
   const elegidoDisponible = listaMotores.some((m) => m.id === motorElegido && m.disponible) ? motorElegido : null
   const motor = elegidoDisponible ?? listaMotores.find((m) => m.disponible)?.id ?? null
   const conversacion = useConversacion(motor)
-  useGestosChat(conversacion)
   const hiloRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -94,6 +93,19 @@ export function Asistente({ alCerrar }: Props) {
     setMotorElegido(id)
     conversacion.reiniciar()
   }
+
+  // 👍: al otro motor (Ollama ↔ DeepSeek), si está disponible
+  const alternarMotor = () => {
+    const otro = listaMotores.find((m) => m.id !== motor)
+    if (!otro) return
+    if (!otro.disponible) {
+      toast(`${otro.nombre} no está disponible ahora`, { description: 'TAXI AI sigue con el mismo motor.' })
+      return
+    }
+    cambiarMotor(otro.id)
+    toast(`TAXI AI con ${otro.nombre}`, { description: `${otro.modelo} · conversación nueva` })
+  }
+  useGestosChat(conversacion, alternarMotor)
 
   const ultimoAsistente = conversacion.mensajes.filter(esAsistente).at(-1)
   const puedeEscribir = conversacion.sesion !== null && !conversacion.creandoSesion
@@ -210,7 +222,6 @@ export function Asistente({ alCerrar }: Props) {
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-1">
-          {motor && <BotonGestos />}
           {motor && (
             <Button variant="ghost" size="sm" className="text-slate-500" onClick={conversacion.reiniciar}>
               <MessageSquarePlus aria-hidden />

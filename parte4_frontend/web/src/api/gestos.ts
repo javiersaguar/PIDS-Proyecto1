@@ -3,6 +3,7 @@
  *
  *   await enviarGesto({gesto: 'thumbsup', confianza: 0.97, dispositivo})   // POST /api/gestos -> {enviado}
  *   await escucharGestos(alRecibir, señal)                                 // GET /api/gestos/stream (SSE)
+ *   const { pregunta } = await pedirPregunta(anterior)                     // GET /api/gestos/pregunta (la de ✌️)
  *
  * El gesto que reconoce el navegador va a la API de captura (cliente `gestos`) y de ahí a la cola de Redpanda, igual
  * que los de la demo de Windows; los que entran por la plataforma llegan aquí. Se usa `fetch` (no `EventSource`)
@@ -31,6 +32,12 @@ export interface ResultadoEnvio {
   enviado: boolean
   /** Solo en la demostración: el gesto se queda en el navegador. */
   demostracion?: boolean
+}
+
+/** ✌️: una pregunta al azar hecha con las plantillas de `config/gestos.json` (en la demostración, una grabada). */
+export function pedirPregunta(anterior: string | null): Promise<{ pregunta: string }> {
+  const consulta = anterior ? `?anterior=${encodeURIComponent(anterior)}` : ''
+  return api<{ pregunta: string }>(`/api/gestos/pregunta${consulta}`)
 }
 
 export function enviarGesto(gesto: GestoEnviado): Promise<ResultadoEnvio> {
