@@ -81,9 +81,14 @@ En el portal, sección Operaciones, el interruptor «Inventar más viajes» del 
 
 **Cuidado con la marca de agua del tiempo real.** Spark descarta los viajes anteriores a la última hora
 que ya ha publicado, así que enviar viajes del 1 de enero cuando el tiempo real va por diciembre no
-cambia nada (le pasa igual a la muestra tal cual). El portal lo resuelve solo: pregunta a la API de
-acceso por dónde va y fecha los viajes a partir de ahí. Desde la línea de comandos hay que decirlo:
+cambia nada (le pasa igual a la muestra tal cual). El portal lo resuelve solo, también para la muestra
+de 999: pregunta a la API de acceso por dónde va y mueve los viajes al día siguiente al último publicado,
+con la misma hora y duración. Desde la línea de comandos hay que decirlo con `--desde`:
 
 ```bash
-python -m parte2_plataforma.simulador.simulador --sinteticos 20000 --desde 2020-12-11 --ritmo 200
+python -m parte2_plataforma.simulador.simulador --desde 2020-12-12 --ritmo 200                     # la muestra
+python -m parte2_plataforma.simulador.simulador --sinteticos 20000 --desde 2020-12-12 --ritmo 200  # inventados
 ```
+
+Probado el 24/09 con la plataforma real: con el tiempo real en el 11/12/2020, la muestra movida al 12/12
+aparece a los 20 segundos (Manhattan 932, Queens 41, Brooklyn 12; el resto, oculto).

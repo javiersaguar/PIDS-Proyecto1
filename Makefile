@@ -10,7 +10,7 @@ SIN_GPU ?=
 COMPOSE := docker compose $(if $(SIN_GPU),-f docker-compose.yml -f docker-compose.sin-gpu.yml,)
 PERFILES_TODO := --profile spark --profile airflow --profile observabilidad --profile chatbot --profile rag \
 		--profile frontend
-PERFILES_UNA_VEZ := --profile herramientas --profile simulador --profile rag-indexar --profile tunel
+PERFILES_UNA_VEZ := --profile herramientas --profile simulador --profile rag-indexar --profile tunel --profile ver
 WEB := parte4_frontend/web
 
 .DEFAULT_GOAL := ayuda
@@ -18,7 +18,7 @@ WEB := parte4_frontend/web
 	    chatbot chatbot-rag rag-clave rag-indexar rag-comprobar rag-casos rag-bateria rag-comparar frontend frontend-dev \
 	    herramientas todo arrancar parar estado logs tiempo-real simular sinteticos historico historico-muestra \
 	    datos-muestra descargar borrar-todo alta-disponibilidad tiempo-real-reiniciar captura-preparar capturar \
-	    capturar-parar tunel tunel-parar
+	    capturar-parar tunel tunel-parar localhost ver ver-cerrar
 
 ayuda: ## Muestra esta ayuda
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  make %-18s %s\n", $$1, $$2}'
@@ -85,6 +85,17 @@ tunel: _env ## Túnel del portal a internet (ngrok) para la web pública de Verc
 
 tunel-parar: ## Apaga el túnel: la web pública vuelve a la instantánea
 	$(COMPOSE) --profile tunel stop tunel
+
+localhost: ## Todas las direcciones que se pueden abrir en el navegador y si responden (ARGS=--abrir las abre)
+	@python3 scripts/localhost.py $(ARGS)
+
+ver: _env ## Abre un rato, de solo lectura, Prometheus (9091), Spark (8090), Qdrant (6333) y el estado de SeaweedFS (9333)
+	$(COMPOSE) --profile ver up -d --no-deps ver
+	@sleep 1 && python3 scripts/localhost.py
+	@echo "\nSin login y solo en este equipo: ciérralas con «make ver-cerrar» al terminar (docs/seguridad.md)"
+
+ver-cerrar: ## Cierra las interfaces sin login que abrió «make ver»
+	$(COMPOSE) --profile ver rm -sf ver
 
 herramientas: _env ## Consola de Redpanda en la red interna (no se publica: muestra mensajes crudos)
 	$(COMPOSE) --profile herramientas up -d

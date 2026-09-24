@@ -28,7 +28,7 @@ DIST_SPA = RAIZ / 'parte4_frontend' / 'web' / 'dist'
 SERVICIOS: dict[str, tuple[str, str, str]] = {
     'ACCESO_URL': ('acceso', 'PUERTO_ACCESO', '8002'),
     'CAPTURA_URL': ('captura', 'PUERTO_CAPTURA', '8001'),
-    'PROMETHEUS_URL': ('prometheus', 'PUERTO_PROMETHEUS', '9090'),
+    'PROMETHEUS_URL': ('prometheus', 'PUERTO_PROMETHEUS', '9091'),   # solo con `make ver` (9090 suele estar cogido)
     'AIRFLOW_URL': ('airflow-apiserver', 'PUERTO_AIRFLOW', '8085'),
     'OLLAMA_URL': ('ollama', 'PUERTO_OLLAMA', '11435'),
     'GRAFANA_URL': ('grafana', 'PUERTO_GRAFANA', '3000'),     # estado de las alertas (Observabilidad)
@@ -39,11 +39,15 @@ MONGO = ('mongo', 'PUERTO_MONGO', '27018')
 ENLACES_POR_DEFECTO: dict[str, str] = {
     'grafana': 'http://localhost:3000',
     'airflow': 'http://localhost:8085',
-    'spark': '',   # la interfaz no se publica: no tiene autenticación (docs/seguridad.md)
     'chatbot': 'http://localhost:8010',
     'chatbot_rag': 'http://localhost:8011',
     'api_acceso': 'http://localhost:8002/docs',
     'api_captura': 'http://localhost:8001/docs',
+    # Sin login: solo responden mientras `make ver` está en marcha (proxy de solo lectura, docs/seguridad.md)
+    'spark': 'http://localhost:8090',
+    'prometheus': 'http://localhost:9091',
+    'qdrant': 'http://localhost:6333/dashboard',
+    'seaweed': 'http://localhost:9333',
 }
 OLLAMA_MODELO_POR_DEFECTO = 'llama3.1:8b'
 DURACION_SESION = timedelta(hours=12)

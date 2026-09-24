@@ -1,16 +1,27 @@
 /**
  * Tarjeta «Carga histórica»: elige un mes de 2020 (o solo la muestra de 999 viajes), confirma lo que va a pasar
  * y pide la carga. Debajo, las últimas cargas con su resultado, refrescadas cada 15 s.
+ *
+ * Con el histórico ya cargado, la muestra no puede volver a cargarse (sustituiría los grupos del 1 de enero, T19):
+ * en lugar del interruptor apagado aparece «Enviar los 999 al tiempo real», que usa el simulador del portal.
  */
 import { differenceInSeconds, parseISO } from 'date-fns'
-import { CalendarDays, ExternalLink, LoaderCircle, Play, RefreshCw } from 'lucide-react'
+import { CalendarDays, ExternalLink, LoaderCircle, Play, Radio, RefreshCw } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
-import { mensajeDeError } from '@/api/cliente'
-import { MESES_2020, useEjecucionesAirflow, useEnlaces, useEstadoMuestra, useLanzarCarga } from '@/api/operaciones'
+import { ErrorApi, mensajeDeError } from '@/api/cliente'
+import {
+  MESES_2020,
+  useEjecucionesAirflow,
+  useEnlaces,
+  useEstadoMuestra,
+  useIniciarSimulacion,
+  useLanzarCarga,
+  useSimulacion,
+} from '@/api/operaciones'
 import type { EjecucionAirflow } from '@/api/tipos'
-import { formatearFechaHora, formatearSegundos } from '@/componentes/chat/formato'
+import { formatearFecha, formatearFechaHora, formatearSegundos } from '@/componentes/chat/formato'
 import { EstadoCargando, EstadoError, EstadoVacio } from '@/componentes/shell'
 import { Badge } from '@/componentes/ui/badge'
 import { Button } from '@/componentes/ui/button'
@@ -72,6 +83,41 @@ function descripcionConf(conf: Record<string, unknown>): string {
   const muestra = conf.muestra === true
   if (muestra) return mes ? `Muestra de prueba, ${mes}` : 'Muestra de prueba'
   return mes ?? '—'
+}
+
+const FICHERO_MUESTRA = 'yellow_tripdata_2020_muestra.csv'
+
+/** Los 999 viajes de prueba al tiempo real (simulador del portal): lo que sí se puede hacer con el año cargado. */
+function MuestraAlTiempoReal() {
+  const simulacion = useSimulacion()
+  const iniciar = useIniciarSimulacion()
+  const activa = simulacion.data?.activa === true
+
+  const enviar = () => {
+    iniciar.mutate(
+      { fichero: FICHERO_MUESTRA },
+      {
+        onSuccess: (estado) =>
+          toast.success('Los 999 viajes de prueba van al tiempo real', {
+            description: estado.dia
+              ? `Aparecerán en Tiempo real como viajes del ${formatearFecha(estado.dia)} en unos 30 segundos.`
+              : 'Aparecerán en Tiempo real en unos 30 segundos.',
+          }),
+        onError: (error) =>
+          toast.error(
+            error instanceof ErrorApi && error.status === 409 ? 'Ya hay una simulación activa' : 'No se han podido enviar',
+            { description: error instanceof ErrorApi && error.status === 409 ? 'Párala abajo, en el simulador.' : mensajeDeError(error) },
+          ),
+      },
+    )
+  }
+
+  return (
+    <Button variant="outline" className="bg-white" onClick={enviar} disabled={activa || iniciar.isPending || simulacion.isPending}>
+      {iniciar.isPending ? <LoaderCircle className="animate-spin" aria-hidden /> : <Radio aria-hidden />}
+      {activa ? 'Simulación en marcha' : 'Enviar los 999 al tiempo real'}
+    </Button>
+  )
 }
 
 function TablaEjecuciones() {
@@ -143,9 +189,10 @@ export function CargaHistorica() {
   const [confirmando, setConfirmando] = useState(false)
   const lanzar = useLanzarCarga()
   const estadoMuestra = useEstadoMuestra()
-  const bloqueada = estadoMuestra.isPending || estadoMuestra.isError || estadoMuestra.data?.bloqueada === true
-  const motivo = estadoMuestra.data?.bloqueada
-    ? estadoMuestra.data.motivo
+  const historicoCargado = estadoMuestra.data?.bloqueada === true
+  const bloqueada = estadoMuestra.isPending || estadoMuestra.isError || historicoCargado
+  const motivo = historicoCargado
+    ? 'El histórico de 2020 ya está cargado: los 999 viajes de prueba no se vuelven a cargar porque sustituirían los datos del 1 de enero. Se pueden enviar al tiempo real, que no toca el histórico.'
     : estadoMuestra.isError
       ? 'No se ha podido comprobar si el histórico ya está cargado. La muestra no se puede lanzar.'
       : estadoMuestra.isPending
@@ -204,18 +251,22 @@ export function CargaHistorica() {
               </SelectContent>
             </Select>
           </div>
-          <div className="flex h-8 items-center gap-2">
-            <Switch
-              id="solo-muestra"
-              checked={usarMuestra}
-              onCheckedChange={setMuestra}
-              disabled={bloqueada}
-              aria-describedby={motivo ? 'motivo-muestra' : undefined}
-            />
-            <Label htmlFor="solo-muestra" className="font-normal text-slate-600">
-              Solo 999 viajes de prueba
-            </Label>
-          </div>
+          {historicoCargado ? (
+            <MuestraAlTiempoReal />
+          ) : (
+            <div className="flex h-8 items-center gap-2">
+              <Switch
+                id="solo-muestra"
+                checked={usarMuestra}
+                onCheckedChange={setMuestra}
+                disabled={bloqueada}
+                aria-describedby={motivo ? 'motivo-muestra' : undefined}
+              />
+              <Label htmlFor="solo-muestra" className="font-normal text-slate-600">
+                Solo 999 viajes de prueba
+              </Label>
+            </div>
+          )}
           <Button className="sm:ml-auto" onClick={() => setConfirmando(true)} disabled={lanzar.isPending}>
             <Play aria-hidden />
             Cargar viajes

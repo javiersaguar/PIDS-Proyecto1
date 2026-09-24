@@ -29,7 +29,7 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 | | |
 |---|---|
 | **Escenario** | E3 · privacidad total |
-| **Funciona y está probado en ejecución** | Núcleo (S3, Redpanda, MongoDB, APIs), carga histórica con Spark en modo cluster y supresión complementaria, tiempo real con streaming, filtro de privacidad (permitida / enmascarada / rechazada), DAG de Airflow, Prometheus (9 objetivos), ocho cuadros de Grafana con 3 alertas probadas, informe de auditoría, chatbot de Ollama con barreras sobre las cifras y **chatbot RAG** (LangChain + Qdrant + LLM externo en la UE) con las mismas barreras y una guardia de salida. 535 tests de Python, 17 de Scala y 205 del portal (Vitest) |
+| **Funciona y está probado en ejecución** | Núcleo (S3, Redpanda, MongoDB, APIs), carga histórica con Spark en modo cluster y supresión complementaria, tiempo real con streaming, filtro de privacidad (permitida / enmascarada / rechazada), DAG de Airflow, Prometheus (9 objetivos), ocho cuadros de Grafana con 3 alertas probadas, informe de auditoría, chatbot de Ollama con barreras sobre las cifras y **chatbot RAG** (LangChain + Qdrant + LLM externo en la UE) con las mismas barreras y una guardia de salida. 541 tests de Python, 17 de Scala y 206 del portal (Vitest) |
 | **Datos cargados** | Año 2020 completo, recargado el 21/09 con supresión complementaria: 23 684 852 viajes válidos; 287 003 grupos hora-zona publicados (430 126 ocultos). Índice de Qdrant: 438 documentos de conocimiento (reindexados el 22/09 con la etiqueta `oculto`) y 18 187 fichas de agregados gruesos |
 | **Métricas** | M1: 0 fugas en la API (31 casos), en el chatbot de Ollama (105 ejecuciones) y en el chatbot RAG (105 ejecuciones) · M2: con k = 10 se publica el 95,1 % de los viajes en hora-zona · M3: p95 35,4 s (objetivo < 60 s) |
 | **Chatbots** | Ollama: `llama3.1:8b` en GPU a temperatura 0,2, 21/21 casos en 2-3 s · RAG: `deepseek-v4-flash` (Helmcode, UE), 21/21 casos con p50 1,1 s y unos 6 000 tokens por pregunta. Detalle en `docs/chatbot_rag.md` |
@@ -60,6 +60,7 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 | 21/09/2026 | Una rama por persona y cambios a `main` por *pull request* | No pisarnos el trabajo | Javier Saguar | Vigente |
 | 21/09/2026 | **Segundo chatbot con LLM externo** (Helmcode, API compatible con OpenAI en la UE y sin registro de prompts) y RAG con Qdrant; el de Ollama se conserva | Modelo mayor sin depender de la GPU y con contexto recuperado; solo viajan la pregunta y agregados ya protegidos, con lista blanca de modelos UE y guardia de salida. Matiza la regla 9 de E3 («las preguntas no salen del equipo»), que sigue cumpliéndose con el chatbot de Ollama | Javier Saguar | Sustituida: confirmada el 22/09 |
 | 21/09/2026 | Trabajo en paralelo por bloques con contratos escritos (`CONTRATOS.md`: propiedad de ficheros y firmas) y una rama de integración `tarea/rag-base` | Cinco bloques a la vez sin conflictos: las tres ramas se fusionaron limpias | Javier Saguar | Vigente |
+| 24/09/2026 | Las interfaces sin login (Spark, Prometheus, Qdrant, estado de SeaweedFS) se abren solo con `make ver`, por un proxy de solo lectura en `127.0.0.1`; lo que lleva viajes individuales, nunca | Poder enseñarlas en la demo sin cambiar la decisión de la T08 por defecto | Javier Saguar | Vigente |
 | 22/09/2026 | La regla de autoría se hace cumplir con un hook `commit-msg` y un CI «Autoría»; ningún commit lleva `Co-Authored-By` (ni entre miembros) | Una coautoría automática llegó a `main` en el PR #1 y solo se pudo quitar recreando el repositorio | Javier Saguar | Vigente |
 | 22/09/2026 | Grafana deja **ver** los cuadros sin clave (rol Viewer anónimo) para incrustarlos en el portal; editar sigue pidiendo `admin` | Solo escucha en 127.0.0.1 y los cuadros enseñan métricas y agregados ya protegidos, nunca viajes. Es la excepción a «solo se publica lo que tiene credencial» de T08 | Javier Saguar | Vigente |
 | 22/09/2026 | Se publica el vídeo del CU8 (`docs/capturas/cu8_gesto.mp4`), en el que se ven miembros del grupo; el dataset completo de gestos (3000 fotos) sigue fuera del repositorio | Es la prueba de la integración gestos ↔ chatbot; el propio repositorio de la asignatura trae fotos de los profesores como dataset de prueba | Javier Saguar | Vigente |
@@ -89,6 +90,71 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 ---
 
 ## Entradas
+
+### 2026-09-24 · Javier Saguar · Todas las direcciones en localhost: `make localhost` y `make ver`
+
+- **Rama / commits:** `main`
+- **Qué he hecho:**
+  - `scripts/localhost.py` (`make localhost`): lista todo lo que se abre en el navegador, con su dirección
+    (leída de los `PUERTO_*` de `.env`), si responde ahora y con qué variable se entra, sin imprimir ninguna
+    clave. `ARGS=--abrir` abre en el navegador de Windows todo lo que responde.
+  - `make ver` / `make ver-cerrar`: un proxy aparte (Caddy, servicio `ver`) abre **de solo lectura** en
+    `127.0.0.1` las interfaces sin login: Spark (8090), Prometheus (9091), Qdrant (6333/dashboard) y la página
+    de estado de SeaweedFS (9333). No reinicia nada: el tiempo real sigue vivo.
+  - Portal, Panel → Accesos directos: se añaden Spark, Prometheus, SeaweedFS (S3) y Qdrant, marcados con
+    «make ver», y una nota con lo que nunca se abre.
+  - Prometheus se ve en el **9091** (`PUERTO_PROMETHEUS`), porque en este equipo el 9090 lo ocupa el Prometheus
+    del TFG (`tfg-ciberconciencia`, publicado en `0.0.0.0`).
+- **Por qué:** tener a mano todas las herramientas para la demo sin romper la decisión de la T08.
+- **Ficheros clave:** `scripts/localhost.py`, `docker/ver/Caddyfile`, `docker-compose.yml` (servicio `ver`),
+  `Makefile`, `parte4_frontend/web/src/paginas/panel/ServiciosYEnlaces.tsx`, `parte4_frontend/bff/configuracion.py`,
+  `docs/seguridad.md`, `README.md`
+- **Cómo comprobarlo:**
+  ```bash
+  make localhost
+  make ver && make localhost ARGS=--abrir
+  make ver-cerrar
+  ```
+- **Resultado:** con `make ver`, las 12 direcciones web responden. Probado que el proxy devuelve 403 al
+  borrado de series de Prometheus, al *kill* de Spark, al `DELETE` de colecciones y borrado de puntos de Qdrant,
+  y al borrado de colecciones y la búsqueda de volúmenes de SeaweedFS; la página de SeaweedFS no enseña ningún
+  nombre de fichero. `make ver-cerrar` las deja sin responder.
+- **Pendiente y riesgos:** mientras `make ver` está abierto, cualquier proceso del equipo puede leer esas
+  interfaces (sin login). Hay que cerrarlo al acabar. El proxy corta lo destructivo, pero no oculta
+  métricas ni el índice de Qdrant (agregados ya protegidos y documentación).
+- **Contexto para quien siga:** la consola de Redpanda, Kafka y el filer o los volúmenes de SeaweedFS **no**
+  se añaden al proxy: llevan viajes individuales (E3). El `.env` de cada uno necesita `PUERTO_SEAWEED`
+  (`make entorno-completar`) y, si tenía `PUERTO_PROMETHEUS=9090`, cambiarlo a 9091 si ese puerto está cogido.
+
+### 2026-09-24 · Javier Saguar · Los botones de los 999 viajes vuelven a funcionar
+
+- **Rama / commits:** `main` · pendiente de commit
+- **Qué he hecho:**
+  - **Simulador → «Empezar» con la muestra:** los viajes se enviaban, pero no aparecía nada. Son del
+    01/01/2020 y el tiempo real va por diciembre, así que la marca de agua de Spark los descartaba. Ahora el
+    BFF pregunta a la API de acceso por dónde va y los mueve al día siguiente al último publicado, con la misma
+    hora y duración (`sinteticos.desplazar_a_dia`). Vale igual para los viajes inventados. El estado lo cuenta
+    en `dia` y la tarjeta lo explica.
+  - **Carga histórica → «Solo 999 viajes de prueba»:** el interruptor estaba siempre apagado desde la T19 (con
+    el año cargado, la muestra sustituiría el 1 de enero). Con el histórico cargado se sustituye por «Enviar los
+    999 al tiempo real», que usa el simulador y no toca el histórico. En una instalación nueva sigue el
+    interruptor de siempre.
+  - Línea de comandos: `simulador.py --desde AAAA-MM-DD` mueve también el fichero (antes, solo los inventados).
+- **Por qué:** los dos botones de la muestra estaban rotos para la demo.
+- **Ficheros clave:** `parte2_plataforma/simulador/{sinteticos,simulador}.py`,
+  `parte4_frontend/bff/servicios/simulacion.py`, `parte4_frontend/bff/rutas/operaciones.py`,
+  `parte4_frontend/web/src/paginas/operaciones/{CargaHistorica,Simulador}.tsx`, `parte4_frontend/CONTRATOS.md`
+- **Cómo comprobarlo:** en el portal (tras `make frontend`), Operaciones → «Enviar los 999 al tiempo real», y a
+  los 20-30 s aparecen en Tiempo real en el día siguiente al último que había.
+- **Resultado:** 541 tests de Python y 206 de Vitest en verde; `tsc` y lint limpios. Con la plataforma real
+  (tiempo real en el 11/12/2020), la muestra movida al 12/12 apareció a los 20 s: Manhattan 932, Queens 41,
+  Brooklyn 12 y el resto oculto. Portal reconstruido.
+- **Pendiente y riesgos:** cada envío adelanta la marca de agua un día; la captura en directo sigue desde ahí
+  (`DIRECTO.punto_de_partida`). El 31/12 ya no hay día siguiente en 2020: los viajes van con su fecha y se
+  descartan. En la suite completa de Vitest dentro de Docker, dos tests de gestos y documentación pueden pasar
+  del tiempo límite por lentitud; solos pasan.
+- **Contexto para quien siga:** los 500 viajes inventados del 01/01 que envié el 24/09 al probar el generador
+  los descartó la marca de agua; no quedó nada publicado.
 
 ### 2026-09-22 · Javier Saguar · Viajes sintéticos para la simulación de tiempo real
 

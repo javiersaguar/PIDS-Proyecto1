@@ -31,7 +31,7 @@ Solo servicios con credencial:
 | Servicio | URL | Credencial |
 |---|---|---|
 | Portal | http://localhost:8020 | `FRONTEND_CLAVE` |
-| Chatbot y chatbot RAG | http://localhost:8010 y :8011 | `CHATBOT_USUARIO` / `CHATBOT_CLAVE`. La sesión la firma `CHAINLIT_AUTH_SECRET` |
+| Chatbot y chatbot RAG | http://localhost:8010 y :8011 (`PUERTO_CHATBOT_RAG`) | `CHATBOT_USUARIO` / `CHATBOT_CLAVE`. La sesión la firma `CHAINLIT_AUTH_SECRET` |
 | Airflow | http://localhost:8085 | `AIRFLOW_ADMIN_USER` / `AIRFLOW_ADMIN_PASSWORD` |
 | Grafana | http://localhost:3000 | Ver los cuadros no pide clave (solo `127.0.0.1`; el portal lee de ahí el estado de las alertas). Editar sigue siendo `admin` / `GRAFANA_ADMIN_PASSWORD`. El alta pública está cerrada |
 | API de acceso y de captura | :8002 y :8001 | Cabecera `X-API-Key` |
@@ -51,6 +51,28 @@ No tienen login y ven datos o pueden lanzar trabajo. Se usan por el nombre del c
 | Prometheus | Grafana y el portal lo consultan en `prometheus:9090`. El portal solo ejecuta las consultas de los JSON de los cuadros: desde el navegador (o por el túnel) se pide un cuadro por su nombre, nunca una consulta de PromQL |
 | Ollama | El chatbot lo usa en `ollama:11434` |
 | Qdrant | El índice lo leen el chatbot RAG y el portal en `qdrant:6333` |
+| Máster, filer y volúmenes de SeaweedFS (`9333`, `8888`, `8080`) | La API del máster borra colecciones sin credencial, y el filer y los volúmenes sirven los ficheros de `crudo` |
+
+## Mirarlas un rato: `make ver`
+
+Para enseñar o depurar, cuatro de esas interfaces se pueden abrir **solo mientras se miran**, en
+`127.0.0.1` y **de solo lectura**. `make ver` levanta un proxy aparte (servicio `ver`, perfil `ver`, Caddy con
+[`docker/ver/Caddyfile`](../docker/ver/Caddyfile)) y `make ver-cerrar` lo quita. Como es un contenedor aparte,
+abrirlas no reinicia ningún servicio: el tiempo real sigue en marcha. `make parar` también lo cierra.
+
+| Interfaz | En el anfitrión | Qué deja el proxy |
+|---|---|---|
+| Prometheus | http://localhost:9091 (`PUERTO_PROMETHEUS`; el 9090 lo suele ocupar otro Prometheus) | Consultas y objetivos. Nada de `/api/v1/admin/*` ni `/-/*` |
+| Spark | http://localhost:8090 | Solo `GET`: máster, workers y trabajos, sin los botones *kill*. Los valores con claves o URI salen tapados (`spark.redaction.regex`) |
+| Qdrant | http://localhost:6333/dashboard | Leer y buscar. Nada de `PUT`, `PATCH`, `DELETE`, borrados por `POST` ni alias |
+| SeaweedFS | http://localhost:9333 | Solo la página de estado del máster: volúmenes, colecciones y tamaños, **sin nombres de ficheros**. El resto de su API, `403` |
+
+Lo que lleva viajes individuales **no se abre nunca**, ni con `make ver`: Kafka, la consola de Redpanda y el
+filer o los volúmenes de SeaweedFS (E3). Ollama tampoco: es una API sin interfaz.
+
+`make localhost` lista todas las direcciones, las publicadas y las de `make ver`, y dice cuáles responden
+(`ARGS=--abrir` las abre en el navegador). Solo lee las variables `PUERTO_*` de `.env`: no imprime ninguna
+clave, solo el nombre de la variable que la guarda.
 
 ## Qué queda fuera
 

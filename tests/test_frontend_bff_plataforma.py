@@ -11,7 +11,8 @@ import json
 import random
 import re
 import time
-from datetime import datetime, timedelta, timezone
+from collections import Counter
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 import httpx
@@ -844,9 +845,9 @@ def test_simulacion_respeta_maximo_y_la_clave_de_captura(cliente, plataforma, si
 
 
 @pytest.fixture
-def simulador_muestra(monkeypatch) -> SIM.Simulador:
-    """Simulador sobre la muestra real del repositorio: los viajes sintéticos salen de ella."""
-    nuevo = SIM.Simulador(carpeta=SIM.CARPETA_MUESTRA)
+def simulador_muestra(monkeypatch, tmp_path) -> SIM.Simulador:
+    """Simulador sobre la muestra real del repositorio, sin días preparados de la captura en directo."""
+    nuevo = SIM.Simulador(carpeta=SIM.CARPETA_MUESTRA, carpeta_directo=tmp_path / 'sin_directo')
     monkeypatch.setattr(SIM, 'SIMULADOR', nuevo)
     return nuevo
 
@@ -866,22 +867,46 @@ def test_simulacion_sintetica_inventa_los_viajes_que_se_piden(cliente, plataform
     assert fechas == sorted(fechas) and all(f.year == 2020 for f in fechas)  # válidos para la plataforma
 
 
-def test_los_sinteticos_se_fechan_tras_la_ultima_hora_publicada(cliente, plataforma, monkeypatch, tmp_path):
-    """El tiempo real descarta lo anterior a su marca de agua: los viajes se generan a partir de ahí."""
+@pytest.fixture
+def tiempo_real_en_diciembre(plataforma, monkeypatch, tmp_path) -> SIM.Simulador:
+    """El tiempo real ya ha publicado el 1 de diciembre: lo anterior lo descartaría la marca de agua."""
     carpeta = tmp_path / 'directo'
     dia_directo(carpeta, '2020-12-01', ['12/01/2020 12:00:00 AM'])
-    monkeypatch.setattr(SIM, 'SIMULADOR', SIM.Simulador(carpeta=SIM.CARPETA_MUESTRA, carpeta_directo=carpeta))
+    nuevo = SIM.Simulador(carpeta=SIM.CARPETA_MUESTRA, carpeta_directo=carpeta)
+    monkeypatch.setattr(SIM, 'SIMULADOR', nuevo)
     plataforma.filas[('tiempo_real', 'dia_barrio')] = [dia('2020-12-01', 'Manhattan', 40)]
     plataforma.filas[('tiempo_real', 'hora_zona')] = [hora('2020-12-01T05:00:00', 132, 40)]
+    return nuevo
 
+
+def recogidas_enviadas(plataforma) -> list[datetime]:
+    return [SIM.fecha_recogida(v['tpep_pickup_datetime']) for lote in plataforma.captura_lotes for v in lote['viajes']]
+
+
+def test_los_sinteticos_se_fechan_el_dia_siguiente_al_ultimo_publicado(cliente, plataforma, tiempo_real_en_diciembre):
     r = cliente.post('/api/operaciones/simulacion',
                      json={'fichero': 'yellow_tripdata_2020_muestra.csv', 'sinteticos': 60, 'ritmo': 5000})
-    assert r.status_code == 202
+    assert r.status_code == 202 and r.json()['dia'] == '2020-12-02'
     assert esperar_fin(cliente)['enviados'] == 60
-    enviados = [v for lote in plataforma.captura_lotes for v in lote['viajes']]
-    fechas = [SIM.fecha_recogida(v['tpep_pickup_datetime']) for v in enviados]
-    assert min(fechas) >= datetime(2020, 12, 1) and max(fechas) < datetime(2020, 12, 3)   # no en enero
+    assert {f.date() for f in recogidas_enviadas(plataforma)} == {date(2020, 12, 2)}   # no en enero
     assert any(c['fuente'] == 'tiempo_real' for c in plataforma.consultas)
+
+
+def test_la_muestra_tal_cual_tambien_se_mueve_al_dia_siguiente(cliente, plataforma, tiempo_real_en_diciembre):
+    """El botón de los 999: sin moverlos, la marca de agua del tiempo real los descartaría todos."""
+    r = cliente.post('/api/operaciones/simulacion', json={'fichero': 'yellow_tripdata_2020_muestra.csv', 'ritmo': 5000})
+    assert r.status_code == 202
+    assert r.json()['dia'] == '2020-12-02' and r.json()['total'] == 999 and r.json()['sinteticos'] is None
+    assert esperar_fin(cliente)['enviados'] == 999
+    dias = Counter(f.date() for f in recogidas_enviadas(plataforma))
+    assert dias.most_common(1)[0] == (date(2020, 12, 2), 996)    # los 996 del 1 de enero (3 son de 2019), ahora el 2/12
+
+
+def test_sin_saber_por_donde_va_el_tiempo_real_se_envian_con_su_fecha(cliente, plataforma, simulador_muestra):
+    r = cliente.post('/api/operaciones/simulacion', json={'fichero': 'yellow_tripdata_2020_muestra.csv', 'ritmo': 5000})
+    assert r.status_code == 202 and r.json()['dia'] is None
+    esperar_fin(cliente)
+    assert Counter(f.date() for f in recogidas_enviadas(plataforma)).most_common(1)[0][0] == date(2020, 1, 1)
 
 
 def test_los_sinteticos_validan_cantidad_y_plantilla(cliente, plataforma, simulador_muestra, simulador):

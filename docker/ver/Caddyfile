@@ -1,0 +1,63 @@
+# Interfaces sin login, publicadas en 127.0.0.1 solo mientras se miran: `make ver` las abre y `make ver-cerrar`
+# las cierra. Todas de solo lectura. Lo que enseña viajes individuales no pasa por aquí (docs/seguridad.md).
+{
+	admin off
+	auto_https off
+}
+
+# Prometheus: sin la API de administración ni la de ciclo de vida (no se activan), ya es de solo lectura.
+# En el anfitrión sale por PUERTO_PROMETHEUS (9091: el 9090 lo suele ocupar otro Prometheus)
+:9090 {
+	# Por si alguien activa esas API: el proxy tampoco las deja pasar (las consultas de la interfaz sí son POST)
+	@administracion path /api/v1/admin/* /-/*
+	handle @administracion {
+		respond "Solo lectura (docs/seguridad.md)" 403
+	}
+	handle {
+		reverse_proxy prometheus:9090
+	}
+}
+
+# Spark: máster, workers y trabajos. Los botones «kill» son POST: solo se deja leer
+:8090 {
+	@lectura method GET HEAD
+	handle @lectura {
+		reverse_proxy spark-master:8080
+	}
+	handle {
+		respond "Solo lectura (docs/seguridad.md)" 403
+	}
+}
+
+# Qdrant: el panel del índice del chatbot RAG. Se puede buscar, no crear, cambiar ni borrar
+:6333 {
+	@cambios not method GET HEAD POST
+	@borrado {
+		method POST
+		path_regexp (?i)(delete|aliases)
+	}
+	handle @cambios {
+		respond "Solo lectura (docs/seguridad.md)" 403
+	}
+	handle @borrado {
+		respond "Solo lectura (docs/seguridad.md)" 403
+	}
+	handle {
+		reverse_proxy qdrant:6333
+	}
+}
+
+# SeaweedFS: solo la página de estado del máster (volúmenes, colecciones y tamaños, sin ficheros). El resto de la
+# API del máster permite borrar colecciones, y el filer y los volúmenes sirven los viajes: no se exponen
+:9333 {
+	@estado {
+		method GET HEAD
+		path / /seaweedfsstatic/* /cluster/status /dir/status /vol/status
+	}
+	handle @estado {
+		reverse_proxy s3:9333
+	}
+	handle {
+		respond "Solo la página de estado (docs/seguridad.md)" 403
+	}
+}

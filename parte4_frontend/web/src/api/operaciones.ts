@@ -22,11 +22,15 @@ import type { EjecucionAirflow, Panel, Simulacion } from './tipos'
 export const ENLACES_POR_DEFECTO: Panel['enlaces'] = {
   grafana: 'http://localhost:3000',
   airflow: 'http://localhost:8085',
-  spark: '',
   chatbot: 'http://localhost:8010',
   chatbot_rag: 'http://localhost:8011',
   api_acceso: 'http://localhost:8002/docs',
   api_captura: 'http://localhost:8001/docs',
+  // sin login: solo responden con `make ver` (proxy de solo lectura, docs/seguridad.md)
+  spark: 'http://localhost:8090',
+  prometheus: 'http://localhost:9091',
+  qdrant: 'http://localhost:6333/dashboard',
+  seaweed: 'http://localhost:9333',
 }
 
 /**

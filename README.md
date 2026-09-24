@@ -137,9 +137,15 @@ desde cero (el histórico no se toca).
 | Grafana | http://localhost:3000 (y en el portal, sección Observabilidad) | Ver, sin clave; editar, `admin` / `GRAFANA_ADMIN_PASSWORD` |
 | API de acceso | http://localhost:8002/docs | Cabecera `X-API-Key`: `ACCESO_CLAVE_EQUIPO` |
 | API de captura | http://localhost:8001/docs | Cabecera `X-API-Key`: `CAPTURA_CLAVE_SIMULADOR` |
+| SeaweedFS S3 | http://localhost:8333 (solo API S3) | Claves `S3_*_ACCESS_KEY` / `S3_*_SECRET_KEY` |
+| Spark · Prometheus · Qdrant · estado de SeaweedFS | :8090 · :9091 · :6333/dashboard · :9333 | Sin login: **solo con `make ver`**, de solo lectura; se cierran con `make ver-cerrar` |
 
-Spark, Prometheus, Ollama, Qdrant, Kafka y la consola de Redpanda no se publican: no tienen login.
-Se usan desde dentro de Docker. El detalle está en [`docs/seguridad.md`](docs/seguridad.md).
+```bash
+make localhost                    # todas las direcciones y cuáles responden ahora (ARGS=--abrir las abre)
+```
+
+Ollama, Kafka, la consola de Redpanda y los ficheros de SeaweedFS no se abren nunca: no tienen login, y los tres
+últimos llevan viajes individuales (E3). El detalle está en [`docs/seguridad.md`](docs/seguridad.md).
 
 ```bash
 grep '^FRONTEND_CLAVE=' .env      # la contraseña del portal

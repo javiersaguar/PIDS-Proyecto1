@@ -13,8 +13,10 @@ biblioteca estándar (`csv`, `datetime`) y `httpx`: pandas no va en la imagen de
   normaliza. E3: aquí no se guarda ni se registra ningún viaje, solo se cuentan.
 - `sinteticos=N` no envía el fichero: lo usa de plantilla para inventar N viajes
   (`parte2_plataforma/simulador/sinteticos.py`), porque la muestra tiene 999 y se agota en segundos. Cumplen las
-  mismas reglas de `config/esquema_viaje.json`, así que la plataforma los da por válidos, y se fechan a partir de
-  la última hora publicada en tiempo real: con una fecha anterior, la marca de agua de Spark los descartaría.
+  mismas reglas de `config/esquema_viaje.json`, así que la plataforma los da por válidos.
+- Marca de agua: Spark descarta en tiempo real lo anterior a la última hora que ya ha publicado, así que la muestra
+  del 1 de enero no aparecería si el tiempo real va por diciembre. Si se sabe por dónde va, los viajes (del fichero
+  o inventados) se fechan en el **día siguiente** al último publicado, conservando la hora; `dia` lo dice.
 
 Captura en directo (`iniciar_directo`, botón «Capturar datos» del grafo): viajes reales de un mes de 2020 que se
 envían con un reloj simulado, sin fin fijo (`parte2_plataforma/simulador/directo.py`). Comparte el estado con la
@@ -30,7 +32,7 @@ import time
 from collections.abc import Iterator
 from contextlib import suppress
 from dataclasses import asdict, dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 import httpx
@@ -39,6 +41,7 @@ from parte2_plataforma.simulador import directo as DIRECTO
 from parte2_plataforma.simulador import sinteticos as SINTETICOS
 
 from ..configuracion import RAIZ
+from .acceso import ServicioNoDisponible
 
 log = logging.getLogger('pids.frontend')
 
@@ -129,6 +132,7 @@ class EstadoSimulacion:
     lote: str | None = None
     fichero: str | None = None
     sinteticos: int | None = None                  # viajes generados a partir del fichero, si no se envía tal cual
+    dia: str | None = None                         # día de 2020 al que se han movido los viajes (marca de agua)
     enviados: int = 0
     total: int = 0
     ritmo: float = RITMO_POR_DEFECTO
@@ -239,48 +243,53 @@ class Simulador:
         if self.activa:
             raise SimulacionActiva('Ya hay una simulación en marcha')
         ruta = self.ruta(fichero)
+        dia = await self._dia_tiempo_real(consultar)
         if sinteticos:
-            desde = await self._desde_para_sinteticos(consultar)
-            viajes = await asyncio.to_thread(self._generar, ruta, sinteticos, semilla, desde)
+            viajes = await asyncio.to_thread(self._generar, ruta, sinteticos, semilla, dia)
         else:
             viajes = await asyncio.to_thread(leer_viajes, ruta, maximo)
+            if dia is not None:
+                viajes = SINTETICOS.desplazar_a_dia(viajes, dia)
         if not viajes:
             raise FicheroNoPermitido(f'El fichero {fichero!r} no tiene viajes')
         ahora = datetime.now()
         self._progreso = None
         self.estado = EstadoSimulacion(activa=True, lote=nombre_lote(fichero, ahora, sinteticos), fichero=fichero,
-                                       sinteticos=sinteticos, total=len(viajes), ritmo=ritmo, inicio=_ahora())
+                                       sinteticos=sinteticos, dia=dia.isoformat() if dia else None,
+                                       total=len(viajes), ritmo=ritmo, inicio=_ahora())
         self._tarea = asyncio.create_task(self._enviar(http, url.rstrip('/'), clave, viajes))
         log.info('Simulación %s iniciada: %d viajes %s %s a %.0f viajes/s', self.estado.lote, len(viajes),
                  'generados a partir de' if sinteticos else 'de', fichero, ritmo)
         return self.estado.a_dict()
 
-    async def _desde_para_sinteticos(self, consultar: DIRECTO.Consultar | None) -> datetime | None:
-        """Desde qué hora de 2020 inventar los viajes, para que el streaming no los descarte.
+    async def _dia_tiempo_real(self, consultar: DIRECTO.Consultar | None) -> date | None:
+        """El día de 2020 en el que fechar lo que se envía para que el streaming no lo descarte.
 
-        Spark publica en tiempo real con marca de agua: lo anterior a la última hora publicada se tira. Si
-        se sabe por dónde va (la última hora publicada, o el reloj de la última captura en directo), se
-        genera a partir de ahí; si no, se usan los días de la plantilla.
+        Spark publica en tiempo real con marca de agua: lo anterior a la última hora publicada se tira. Si se
+        sabe por dónde va (la última hora publicada, o el reloj de la última captura en directo), se usa el día
+        siguiente; si no se sabe, o ya no queda día en 2020, None (los viajes van con su fecha).
         """
         ultima = self.reloj_directo
         dias = DIRECTO.dias_disponibles(self.carpeta_directo)
         if consultar is not None and dias:
             try:
                 publicada = await DIRECTO.ultima_hora_publicada(consultar, dias)
-            except httpx.HTTPError:                  # la API de acceso no responde: no es motivo para fallar
+            except (httpx.HTTPError, ServicioNoDisponible):   # sin API de acceso se envían con su fecha
                 publicada = None
             if publicada is not None and (ultima is None or publicada > ultima):
                 ultima = publicada
-        return ultima.replace(minute=0, second=0, microsecond=0) if ultima else None
+        if ultima is None:
+            return None
+        siguiente = ultima.date() + timedelta(days=1)
+        return siguiente if siguiente < SINTETICOS.ventana()[1].date() else None
 
     @staticmethod
-    def _generar(ruta: Path, cuantos: int, semilla: int | None, desde: datetime | None = None) -> list[dict]:
+    def _generar(ruta: Path, cuantos: int, semilla: int | None, dia: date | None = None) -> list[dict]:
         """Viajes inventados con la plantilla elegida; los errores se traducen al 400 del contrato."""
         if cuantos > MAXIMO_SINTETICOS:
             raise FicheroNoPermitido(f'Como mucho se pueden generar {MAXIMO_SINTETICOS:,} viajes')
-        hasta = min(desde + timedelta(days=1), SINTETICOS.ventana()[1]) if desde else None
-        if desde and desde >= hasta:                  # el 31 de diciembre ya no cabe otro día: sin tramo
-            desde = hasta = None
+        desde = datetime.combine(dia, datetime.min.time()) if dia else None
+        hasta = desde + timedelta(days=1) if desde else None
         try:
             return SINTETICOS.generar(cuantos, ruta, semilla, desde, hasta)[1]
         except (SINTETICOS.SinPlantillas, ValueError) as error:

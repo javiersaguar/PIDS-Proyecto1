@@ -1,12 +1,13 @@
 # Plataforma PIDS (E3: privacidad total).
 #
 # Sin perfil se levanta el núcleo: S3, Redpanda, MongoDB, API de captura y API de acceso.
-# Perfiles:  spark · airflow · observabilidad · chatbot · rag · rag-indexar · frontend · herramientas · simulador
+# Perfiles:  spark · airflow · observabilidad · chatbot · rag · rag-indexar · frontend · herramientas · simulador · ver
 # Ejemplo:   docker compose --profile spark --profile observabilidad up -d   (o: make todo)
 #
 # Los puertos publicados van solo a 127.0.0.1 y solo si el servicio exige credencial.
 # Sin credencial (Spark, Prometheus, Ollama, Qdrant, Kafka y la consola de Redpanda) no se publican:
-# se usan por el nombre del contenedor. Detalle en docs/seguridad.md.
+# se usan por el nombre del contenedor. Prometheus, Spark, Qdrant y el estado de SeaweedFS se pueden mirar
+# un rato con `make ver` (proxy de solo lectura). Detalle en docs/seguridad.md.
 # Las redes separan lo que puede ver cada servicio:
 #   datos       almacenamiento y cola (S3, MongoDB, Redpanda) y quien los usa
 #   servicios   APIs, chatbots, Qdrant, portal web, Grafana y Prometheus
@@ -584,6 +585,11 @@ services:
       ENLACES_CHATBOT_RAG: http://localhost:${PUERTO_CHATBOT_RAG:-8011}
       ENLACES_API_ACCESO: http://localhost:${PUERTO_ACCESO:-8002}/docs
       ENLACES_API_CAPTURA: http://localhost:${PUERTO_CAPTURA:-8001}/docs
+      # Estas cuatro solo responden mientras `make ver` está en marcha (sin login: docs/seguridad.md)
+      ENLACES_SPARK: http://localhost:${PUERTO_SPARK:-8090}
+      ENLACES_PROMETHEUS: http://localhost:${PUERTO_PROMETHEUS:-9091}
+      ENLACES_QDRANT: http://localhost:${PUERTO_QDRANT:-6333}/dashboard
+      ENLACES_SEAWEED: http://localhost:${PUERTO_SEAWEED:-9333}
     volumes:
       # Viajes reales de un mes, uno por día, para la captura en directo (`make captura-preparar`)
       - ./data/directo:/app/data/directo:ro
@@ -640,6 +646,22 @@ services:
     depends_on:
       captura:
         condition: service_healthy
+
+  # Interfaces sin login (Prometheus, Spark, Qdrant y el estado de SeaweedFS), solo mientras se miran y de solo
+  # lectura: `make ver` / `make ver-cerrar`. Es un proxy aparte, así que abrirlas no reinicia ningún servicio.
+  # Kafka, la consola de Redpanda y el filer de SeaweedFS no pasan por aquí: llevan viajes individuales.
+  ver:
+    image: caddy:2.10-alpine
+    profiles: [ver]
+    restart: "no"
+    networks: [datos, servicios]
+    volumes:
+      - ./docker/ver/Caddyfile:/etc/caddy/Caddyfile:ro
+    ports:
+      - "127.0.0.1:${PUERTO_PROMETHEUS:-9091}:9090"
+      - "127.0.0.1:${PUERTO_SPARK:-8090}:8090"
+      - "127.0.0.1:${PUERTO_QDRANT:-6333}:6333"
+      - "127.0.0.1:${PUERTO_SEAWEED:-9333}:9333"
 
 networks:
   datos:

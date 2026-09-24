@@ -95,7 +95,8 @@ describe('PaginaDocumentacion', () => {
     await usuario.click(within(lienzo).getByRole('button', { name: /Spark/ }))
     const fichaSpark = await screen.findByRole('dialog')
     expect(within(fichaSpark).getByRole('heading', { name: 'Spark' })).toBeInTheDocument()
-    expect(within(fichaSpark).queryByRole('link', { name: 'Abrir Spark' })).not.toBeInTheDocument()
+    // sin login: el enlace existe, pero solo responde con `make ver`, y lo dice
+    expect(within(fichaSpark).getByRole('link', { name: 'Abrir Spark (make ver)' })).toHaveAttribute('href', 'http://localhost:8090')
 
     await usuario.click(screen.getByRole('button', { name: 'Cerrar' }))
     await usuario.click(within(lienzo).getByRole('button', { name: /API de acceso/ }))

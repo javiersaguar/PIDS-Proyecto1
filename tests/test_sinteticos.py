@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import csv
 import random
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 import pandas as pd
@@ -148,6 +148,41 @@ def test_cli_escribe_el_fichero(tmp_path, capsys):
 def test_cli_avisa_del_error_sin_reventar(tmp_path, capsys):
     assert S.main(['10', '--plantilla', str(tmp_path / 'nada.csv'), '--salida', str(tmp_path / 'x.csv')]) == 1
     assert 'Error' in capsys.readouterr().err
+
+
+def test_desplazar_mueve_el_dia_mas_frecuente_y_conserva_hora_duracion_y_formato():
+    viajes = [
+        {'VendorID': '1', 'tpep_pickup_datetime': '01/01/2020 12:28:15 AM', 'tpep_dropoff_datetime': '01/01/2020 12:33:03 AM'},
+        {'VendorID': '2', 'tpep_pickup_datetime': '01/01/2020 11:50:00 PM', 'tpep_dropoff_datetime': '01/02/2020 12:10:00 AM'},
+        {'VendorID': '1', 'tpep_pickup_datetime': '12/31/2019 11:59:00 PM', 'tpep_dropoff_datetime': '01/01/2020 12:04:00 AM'},
+        {'VendorID': '2', 'tpep_pickup_datetime': 'rota', 'tpep_dropoff_datetime': ''},
+    ]
+    movidos = S.desplazar_a_dia(viajes, date(2020, 12, 12))
+    assert [v['tpep_pickup_datetime'] for v in movidos] == [
+        '12/12/2020 12:28:15 AM', '12/12/2020 11:50:00 PM', '12/11/2020 11:59:00 PM', 'rota']
+    assert movidos[1]['tpep_dropoff_datetime'] == '12/13/2020 12:10:00 AM'     # la duración no cambia
+    assert movidos[3]['tpep_dropoff_datetime'] == ''                            # lo ilegible se deja
+    assert viajes[0]['tpep_pickup_datetime'] == '01/01/2020 12:28:15 AM'        # no toca el original
+
+
+def test_desplazar_entiende_el_formato_europeo_y_los_datetime():
+    europeo = [{'tpep_pickup_datetime': '2020 Jan 01 12:28:15 AM', 'tpep_dropoff_datetime': '2020 Jan 01 12:33:03 AM'}]
+    assert S.desplazar_a_dia(europeo, date(2020, 3, 5))[0]['tpep_pickup_datetime'] == '2020 Mar 05 12:28:15 AM'
+    parquet = [{'TPEP_PICKUP_DATETIME': datetime(2020, 1, 1, 8), 'tpep_dropoff_datetime': datetime(2020, 1, 1, 9)}]
+    movido = S.desplazar_a_dia(parquet, date(2020, 6, 1))[0]
+    assert movido['TPEP_PICKUP_DATETIME'] == datetime(2020, 6, 1, 8)
+    assert movido['tpep_dropoff_datetime'] == datetime(2020, 6, 1, 9)
+    assert S.desplazar_a_dia([{'a': 1}], date(2020, 6, 1)) == [{'a': 1}]         # sin fechas, igual
+
+
+def test_la_muestra_movida_sigue_siendo_valida():
+    with MUESTRA.open(newline='', encoding='utf-8-sig') as f:
+        muestra = list(csv.DictReader(f))
+    movida = S.desplazar_a_dia(muestra, date(2020, 12, 12))
+    validos, rechazados = esquema.validar(esquema.normalizar(pd.DataFrame(movida))[0])
+    originales = esquema.validar(esquema.normalizar(pd.DataFrame(muestra))[0])
+    assert len(validos) >= len(originales[0])        # los mismos motivos de rechazo, no más
+    assert pd.to_datetime(validos['recogida']).dt.date.value_counts().idxmax() == date(2020, 12, 12)
 
 
 def test_viaje_usa_la_hora_de_la_plantilla():

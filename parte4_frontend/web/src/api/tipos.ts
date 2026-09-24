@@ -39,7 +39,8 @@ export interface Panel {                         // GET /api/panel
   frescura_tiempo_real: { instante: string | null; segundos: number | null };   // desde publico_ultima_actualizacion_timestamp_segundos
   consultas_24h: { permitida: number; enmascarada: number; rechazada: number } | null;   // increase(acceso_consultas_total[24h]) por resultado
   servicios: Servicio[];                                                        // `up` por job en Prometheus + GET /salud de las APIs
-  enlaces: Record<'grafana' | 'airflow' | 'spark' | 'chatbot' | 'chatbot_rag' | 'api_acceso' | 'api_captura', string>;
+  enlaces: Record<'grafana' | 'airflow' | 'spark' | 'chatbot' | 'chatbot_rag' | 'api_acceso' | 'api_captura', string> &
+    Partial<Record<'prometheus' | 'qdrant' | 'seaweed', string>>;   // sin login: solo con `make ver`
   prometheus_disponible: boolean;
   acceso_disponible: boolean;                    // false si la API de acceso no ha respondido (distinto de «sin datos»)
 }
@@ -76,6 +77,7 @@ export interface EjecucionAirflow {              // GET /api/operaciones/airflow
 // POST /api/operaciones/airflow/cargas {mes: '2020-01', muestra: boolean} -> EjecucionAirflow (202)
 export interface Simulacion {                    // GET /api/operaciones/simulacion · POST (inicia) · DELETE (para)
   activa: boolean; lote: string | null; fichero: string | null; sinteticos: number | null;
+  dia?: string | null;                           // 'AAAA-MM-DD': día al que se movieron los viajes (marca de agua)
   enviados: number; total: number;
   ritmo: number; inicio: string | null; fin: string | null; error: string | null;
 }

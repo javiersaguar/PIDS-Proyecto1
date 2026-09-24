@@ -29,16 +29,21 @@ interface Enlace {
   clave: keyof Panel['enlaces']
   titulo: string
   descripcion: string
+  /** Sin login: solo responde mientras `make ver` está en marcha (proxy de solo lectura). */
+  conVer?: boolean
 }
 
 const ENLACES: Enlace[] = [
   { clave: 'grafana', titulo: 'Grafana', descripcion: 'Los mismos cuadros, en su propia ventana' },
   { clave: 'airflow', titulo: 'Airflow', descripcion: 'Cargas históricas' },
-  { clave: 'spark', titulo: 'Spark', descripcion: 'Trabajos por lotes y streaming' },
   { clave: 'api_acceso', titulo: 'API de acceso', descripcion: 'Documentación interactiva' },
   { clave: 'api_captura', titulo: 'API de captura', descripcion: 'Documentación interactiva' },
   { clave: 'chatbot', titulo: 'Chatbot', descripcion: 'Chainlit con Ollama' },
   { clave: 'chatbot_rag', titulo: 'Chatbot RAG', descripcion: 'Chainlit con documentación' },
+  { clave: 'spark', titulo: 'Spark', descripcion: 'Máster, workers y trabajos', conVer: true },
+  { clave: 'prometheus', titulo: 'Prometheus', descripcion: 'Métricas y objetivos en bruto', conVer: true },
+  { clave: 'seaweed', titulo: 'SeaweedFS (S3)', descripcion: 'Almacenamiento: volúmenes y tamaños, sin ficheros', conVer: true },
+  { clave: 'qdrant', titulo: 'Qdrant', descripcion: 'Índice del chatbot RAG', conVer: true },
 ]
 
 function destinoDe(url: string): string {
@@ -119,31 +124,47 @@ function TablaAccesos({ enlaces }: { enlaces: Panel['enlaces'] | undefined }) {
   if (disponibles.length === 0) {
     return <EstadoVacio titulo="Sin enlaces configurados" descripcion="Las variables ENLACES_* del BFF están vacías." className="border-0 bg-transparent py-8" />
   }
+  const hayConVer = disponibles.some((enlace) => enlace.conVer)
   return (
-    <table aria-label="Accesos directos" className="w-full border-separate border-spacing-0 text-sm">
-      <Cabecera columnas={['Acceso', 'Descripción', 'Destino', '']} />
-      <tbody>
-        {disponibles.map((enlace, indice) => {
-          const href = enlaces?.[enlace.clave] ?? ''
-          const borde = indice < disponibles.length - 1 ? 'border-b border-slate-100' : ''
-          return (
-            <tr key={enlace.clave}>
-              <td className={cn('px-4 py-3.5', borde)}>
-                <span className="flex items-center gap-3">
-                  <MarcaServicio textos={[enlace.titulo, enlace.clave]} />
-                  <span className="font-medium text-slate-900">{enlace.titulo}</span>
-                </span>
-              </td>
-              <td className={cn('px-4 py-3.5 text-slate-500', borde)}>{enlace.descripcion}</td>
-              <td className={cn('cifra px-4 py-3.5 text-slate-700', borde)}>{destinoDe(href)}</td>
-              <td className={cn('px-4 py-3.5 text-right', borde)}>
-                <Abrir href={href} nombre={enlace.titulo} />
-              </td>
-            </tr>
-          )
-        })}
-      </tbody>
-    </table>
+    <>
+      <table aria-label="Accesos directos" className="w-full border-separate border-spacing-0 text-sm">
+        <Cabecera columnas={['Acceso', 'Descripción', 'Destino', '']} />
+        <tbody>
+          {disponibles.map((enlace, indice) => {
+            const href = enlaces?.[enlace.clave] ?? ''
+            const borde = indice < disponibles.length - 1 ? 'border-b border-slate-100' : ''
+            return (
+              <tr key={enlace.clave}>
+                <td className={cn('px-4 py-3.5', borde)}>
+                  <span className="flex items-center gap-3">
+                    <MarcaServicio textos={[enlace.titulo, enlace.clave]} />
+                    <span className="font-medium text-slate-900">{enlace.titulo}</span>
+                  </span>
+                </td>
+                <td className={cn('px-4 py-3.5 text-slate-500', borde)}>
+                  {enlace.descripcion}
+                  {enlace.conVer && (
+                    <span className="ml-2 rounded-md bg-amber-50 px-1.5 py-0.5 font-mono text-xs text-amber-700">make ver</span>
+                  )}
+                </td>
+                <td className={cn('cifra px-4 py-3.5 text-slate-700', borde)}>{destinoDe(href)}</td>
+                <td className={cn('px-4 py-3.5 text-right', borde)}>
+                  <Abrir href={href} nombre={enlace.titulo} />
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+      {hayConVer && (
+        <p className="px-4 pt-3 text-xs text-slate-500">
+          Los marcados con <span className="font-mono">make ver</span> no tienen login: solo se abren mientras ese comando
+          está en marcha, de solo lectura, y se cierran con <span className="font-mono">make ver-cerrar</span>. La consola de
+          Redpanda y los ficheros de SeaweedFS no se abren nunca: llevan viajes individuales. Todas las direcciones:{' '}
+          <span className="font-mono">make localhost</span>.
+        </p>
+      )}
+    </>
   )
 }
 

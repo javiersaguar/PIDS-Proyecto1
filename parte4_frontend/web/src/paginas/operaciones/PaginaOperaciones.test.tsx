@@ -121,19 +121,42 @@ describe('PaginaOperaciones', () => {
     expect(JSON.parse(llamadas(espia, 'POST', '/api/operaciones/airflow/cargas')[0][1]?.body as string)).toEqual({ mes: '2020-01', muestra: true })
   })
 
-  it('con el histórico ya cargado, la muestra queda apagada y explica por qué', async () => {
-    apiBase({
+  it('con el histórico ya cargado, la muestra no se carga: explica por qué y la manda al tiempo real', async () => {
+    const espia = apiBase({
       'GET /api/operaciones/airflow/muestra': {
         bloqueada: true,
         motivo: 'Ya hay una carga del histórico que no es la muestra. Los 999 viajes de prueba sustituirían los grupos del 1 de enero, así que no se cargan.',
       },
+      'POST /api/operaciones/simulacion': { status: 202, json: { ...SIMULACION_ACTIVA, dia: '2020-12-12' } },
     })
     renderizarRutas('/operaciones')
+    const usuario = userEvent.setup()
 
-    expect(await screen.findByText(/1 de enero/)).toBeInTheDocument()
-    const casilla = screen.getByRole('switch', { name: /999 viajes de prueba/ })
-    expect(casilla).toBeDisabled()
-    expect(casilla).not.toBeChecked()
+    expect(await screen.findByText(/sustituirían los datos del 1 de enero/)).toBeInTheDocument()
+    expect(screen.queryByRole('switch', { name: /999 viajes de prueba/ })).not.toBeInTheDocument()
+
+    const boton = await screen.findByRole('button', { name: 'Enviar los 999 al tiempo real' })
+    await waitFor(() => expect(boton).toBeEnabled())
+    await usuario.click(boton)
+
+    await waitFor(() => expect(llamadas(espia, 'POST', '/api/operaciones/simulacion')).toHaveLength(1))
+    expect(JSON.parse(llamadas(espia, 'POST', '/api/operaciones/simulacion')[0][1]?.body as string)).toEqual({
+      fichero: 'yellow_tripdata_2020_muestra.csv',
+    })
+    expect(llamadas(espia, 'POST', '/api/operaciones/airflow/cargas')).toHaveLength(0)       // el histórico no se toca
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith('Los 999 viajes de prueba van al tiempo real', {
+        description: 'Aparecerán en Tiempo real como viajes del 12/12/2020 en unos 30 segundos.',
+      }),
+    )
+  })
+
+  it('una simulación movida de día lo explica en el progreso', async () => {
+    apiBase({ 'GET /api/operaciones/simulacion': { ...SIMULACION_ACTIVA, dia: '2020-12-12' } })
+    renderizarRutas('/operaciones')
+
+    expect(await screen.findByText('Simulación en marcha')).toBeInTheDocument()
+    expect(screen.getByText('12/12/2020')).toBeInTheDocument()
   })
 
   it('si Airflow rechaza la carga, el error llega como toast y el diálogo sigue abierto', async () => {

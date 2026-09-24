@@ -98,6 +98,36 @@ describe('PaginaPanel', () => {
     expect(within(enlaces).getAllByRole('row')[1]?.querySelector('img')?.getAttribute('src')).toMatch(/grafana\.png$/)
   })
 
+  it('los accesos sin login (Spark, Prometheus, SeaweedFS, Qdrant) salen marcados con «make ver»', async () => {
+    conSesion({
+      ...PANEL,
+      enlaces: {
+        ...PANEL.enlaces,
+        prometheus: 'http://localhost:9091',
+        qdrant: 'http://localhost:6333/dashboard',
+        seaweed: 'http://localhost:9333',
+      },
+    })
+    renderizarRutas('/')
+    const usuario = userEvent.setup()
+
+    await usuario.click(await screen.findByRole('tab', { name: 'Accesos directos' }))
+    const enlaces = await screen.findByRole('table', { name: 'Accesos directos' })
+    expect(within(enlaces).getAllByRole('link')).toHaveLength(10)
+    for (const [nombre, href] of [
+      [/Prometheus/, 'http://localhost:9091'],
+      [/SeaweedFS/, 'http://localhost:9333'],
+      [/Qdrant/, 'http://localhost:6333/dashboard'],
+      [/Spark/, 'http://localhost:8090'],
+    ] as const) {
+      const enlace = within(enlaces).getByRole('link', { name: nombre })
+      expect(enlace).toHaveAttribute('href', href)
+      expect(enlace.closest('tr')).toHaveTextContent('make ver')
+    }
+    expect(within(enlaces).getByRole('link', { name: /Grafana/ }).closest('tr')).not.toHaveTextContent('make ver')
+    expect(screen.getByText(/La consola de Redpanda y los ficheros de SeaweedFS no se abren nunca/)).toBeInTheDocument()
+  })
+
   it('sin Prometheus, las tarjetas que dependen de él dicen «no disponible» y el resto sigue', async () => {
     conSesion({ ...PANEL, prometheus_disponible: false, consultas_24h: null, frescura_tiempo_real: { instante: null, segundos: null } })
     renderizarRutas('/')

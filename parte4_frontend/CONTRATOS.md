@@ -83,7 +83,7 @@ de Docker (misma técnica que `parte3_chatbot_rag/fabrica.py`, rama `rag/4-inter
 | `AIRFLOW_URL` / `AIRFLOW_USUARIO` / `AIRFLOW_CLAVE` | `http://airflow-apiserver:8080` / `${AIRFLOW_ADMIN_USER}` / `${AIRFLOW_ADMIN_PASSWORD}` | `http://127.0.0.1:${PUERTO_AIRFLOW}` | Cargas históricas (API REST v2 de Airflow 3: `POST /auth/token` → JWT) |
 | `AUDITORIA_MONGO_URI` | `mongodb://pids_auditor:${MONGO_AUDITOR_PASSWORD}@mongo:27017/?authSource=admin` | `mongodb://pids_auditor:…@127.0.0.1:${PUERTO_MONGO}/?authSource=admin` | Lectura de `auditoria.decisiones` y `auditoria.cargas` |
 | `OLLAMA_URL` / `OLLAMA_MODELO` | `http://ollama:11434` / `${OLLAMA_MODELO}` | `http://127.0.0.1:${PUERTO_OLLAMA}` | Motor de chat local |
-| `ENLACES_*` | `ENLACES_GRAFANA=http://localhost:3000`, `ENLACES_AIRFLOW=http://localhost:8085`, `ENLACES_CHATBOT=http://localhost:8010`, `ENLACES_CHATBOT_RAG=http://localhost:8011`, `ENLACES_API_ACCESO=http://localhost:8002/docs`, `ENLACES_API_CAPTURA=http://localhost:8001/docs`. `ENLACES_SPARK` vacío: la interfaz no se publica | iguales | Enlaces del menú (son URL del navegador del usuario, no del contenedor) |
+| `ENLACES_*` | `ENLACES_GRAFANA=http://localhost:3000`, `ENLACES_AIRFLOW=http://localhost:8085`, `ENLACES_CHATBOT=http://localhost:8010`, `ENLACES_CHATBOT_RAG=http://localhost:8011`, `ENLACES_API_ACCESO=http://localhost:8002/docs`, `ENLACES_API_CAPTURA=http://localhost:8001/docs`; y, sin login, solo con `make ver`: `ENLACES_SPARK=http://localhost:8090`, `ENLACES_PROMETHEUS=http://localhost:9091`, `ENLACES_QDRANT=http://localhost:6333/dashboard`, `ENLACES_SEAWEED=http://localhost:9333` | iguales | Enlaces del menú (son URL del navegador del usuario, no del contenedor) |
 
 Nuevas en `.env.example` (F0): `ACCESO_CLAVE_FRONTEND=`, `FRONTEND_CLAVE=`, `FRONTEND_SECRETO=`, `PUERTO_FRONTEND=8020`.
 `scripts/generar_env.py` ya rellena con aleatorio cualquier valor vacío. En `docker-compose.yml`, el servicio `acceso`
@@ -186,6 +186,7 @@ export interface EjecucionAirflow {              // GET /api/operaciones/airflow
 // POST /api/operaciones/airflow/cargas {mes: '2020-01', muestra: boolean} -> EjecucionAirflow (202; 409 si la muestra pisaría el histórico)
 export interface Simulacion {                    // GET /api/operaciones/simulacion · POST (inicia) · DELETE (para)
   activa: boolean; lote: string | null; fichero: string | null; sinteticos: number | null;
+  dia?: string | null;                           // 'AAAA-MM-DD': día al que se movieron los viajes (marca de agua)
   enviados: number; total: number;
   ritmo: number; inicio: string | null; fin: string | null; error: string | null;
 }
@@ -193,8 +194,11 @@ export interface Simulacion {                    // GET /api/operaciones/simulac
 //   sinteticos?: number (1…200 000), semilla?: number} -> Simulacion (202)
 // `sinteticos`: en vez de enviar el fichero, se inventan esos viajes con él de plantilla (la muestra tiene 999 y se
 //   agota en segundos); cumplen config/esquema_viaje.json, el lote es `portal-sinteticos-<N>-<fecha>` y el estado lo
-//   devuelve en `sinteticos`. Se fechan a partir de la última hora publicada en tiempo real (la marca de agua de
-//   Spark descarta lo anterior). 400 si la plantilla no sirve, 422 fuera del rango.
+//   devuelve en `sinteticos`. 400 si la plantilla no sirve, 422 fuera del rango.
+// Marca de agua: con el fichero o con `sinteticos`, si se sabe por dónde va el tiempo real, los viajes se mueven al
+//   día siguiente al último publicado (misma hora y duración) y `dia` lo dice; con su fecha, Spark los descartaría.
+// Carga histórica con el año ya cargado: en vez del interruptor de la muestra (T19), «Enviar los 999 al tiempo real»
+//   hace este mismo POST con {fichero: 'yellow_tripdata_2020_muestra.csv'}.
 // Captura en directo (grafo, «Capturar datos»): GET /api/operaciones/captura -> {disponible, primer_dia, ultimo_dia, reloj,
 //   velocidad_por_defecto, velocidad_maxima} · POST {velocidad?: 60, desde?} -> Simulacion (202) con modo: 'directo', reloj
 //   (hora de 2020) y velocidad; total 0 · DELETE -> Simulacion. Comparte estado con la simulación: una sola a la vez (409).

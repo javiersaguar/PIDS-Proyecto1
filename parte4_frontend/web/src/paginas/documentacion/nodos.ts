@@ -108,6 +108,7 @@ export const NODOS: Nodo[] = [
       'La llave del cajón cerrado la tienen Airflow y Spark. Esta web, el chat y los paneles no pueden abrirlo.',
       'Si te preguntan: un viaje suelto vive aquí, y también un rato en la cola. Lo que nosotros consultamos ya no es ese viaje. Son totales.',
     ],
+    enlaces: [{ clave: 'seaweed', texto: 'Ver su estado (make ver)' }],
   },
   {
     id: 'simulador',
@@ -197,7 +198,7 @@ export const NODOS: Nodo[] = [
       'Lee el archivador y la cola. En la base de datos solo escribe totales, nunca la lista de viajes.',
       'Si te preguntan: Spark es el único que ve el viaje entero. Cuando termina, ya no se puede reconstruir una carrera. Tampoco decimos, hora a hora, a qué barrio iba alguien. Así no se pueden seguir sus pasos.',
     ],
-    enlaces: [{ clave: 'spark', texto: 'Abrir Spark' }],
+    enlaces: [{ clave: 'spark', texto: 'Abrir Spark (make ver)' }],
   },
   {
     id: 'prometheus',
@@ -220,6 +221,7 @@ export const NODOS: Nodo[] = [
       'Pregunta a tantas piezas que no se dibuja una línea a cada una: cada 15 segundos, las que vigila laten un instante en azul verdoso, a la vez que él.',
       'Si te preguntan: miramos si la máquina funciona, no quién iba en el taxi.',
     ],
+    enlaces: [{ clave: 'prometheus', texto: 'Abrir Prometheus (make ver)' }],
   },
   {
     id: 'mongo',

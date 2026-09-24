@@ -148,7 +148,7 @@ async def iniciar_simulacion(peticion: PeticionSimulacion, cfg: ConfiguracionDep
     cliente = ACCESO.cliente(cfg, http)
 
     async def consultar(consulta: dict) -> list[dict]:
-        """Para fechar los viajes inventados donde el tiempo real los acepte (§ `_desde_para_sinteticos`)."""
+        """Para fechar los viajes donde el tiempo real los acepte (`Simulador._dia_tiempo_real`)."""
         codigo, cuerpo = await cliente.consultar(consulta)
         return cuerpo.get('filas', []) if codigo == 200 else []
 
@@ -156,7 +156,7 @@ async def iniciar_simulacion(peticion: PeticionSimulacion, cfg: ConfiguracionDep
         return await _simulador().iniciar(http, cfg.captura_url, cfg.captura_clave, peticion.fichero,
                                           ritmo=peticion.ritmo, maximo=peticion.maximo,
                                           sinteticos=peticion.sinteticos, semilla=peticion.semilla,
-                                          consultar=consultar if peticion.sinteticos else None)
+                                          consultar=consultar)
     except SIM.SimulacionActiva as error:
         raise HTTPException(status_code=409,
                             detail='Ya hay una simulación en marcha; párala antes de iniciar otra') from error

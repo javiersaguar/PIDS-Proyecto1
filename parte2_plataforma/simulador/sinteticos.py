@@ -24,6 +24,7 @@ import json
 import os
 import random
 import sys
+from collections import Counter
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
@@ -187,6 +188,51 @@ def generar(filas: int, plantilla: Path = PLANTILLA_POR_DEFECTO, semilla: int | 
     generados = [viaje(azar.choice(plantillas), azar, desde, hasta, regs, zonas_aleatorias) for _ in range(filas)]
     generados.sort(key=lambda fila: _fecha(fila[COLUMNA_RECOGIDA]) or datetime.max)
     return columnas, generados
+
+
+# Formatos de fecha de los ficheros de viajes: TLC (muestra), exportación europea e ISO
+FORMATOS_LECTURA = (FORMATO_FECHA, '%Y %b %d %I:%M:%S %p', '%Y-%m-%d %H:%M:%S', '%Y-%m-%dT%H:%M:%S')
+
+
+def _fecha_y_formato(valor) -> tuple[datetime, str | None] | None:
+    """La fecha de una celda y el formato en que venía (None si ya era un datetime)."""
+    if isinstance(valor, datetime):
+        return valor, None
+    if isinstance(valor, str) and valor.strip():
+        for formato in FORMATOS_LECTURA:
+            try:
+                return datetime.strptime(valor.strip(), formato), formato
+            except ValueError:
+                continue
+    return None
+
+
+def desplazar_a_dia(viajes: list[dict], dia: date) -> list[dict]:
+    """Los mismos viajes movidos días enteros para que su día más frecuente pase a ser `dia`.
+
+    Sirve para enviar la muestra (1 de enero) al tiempo real cuando este ya va más adelante: Spark
+    descarta lo anterior a la última hora publicada. Se conservan la hora, la duración y el formato de
+    cada fecha; las que no se entienden se dejan tal cual (la plataforma las rechazará como siempre).
+    """
+    columnas = {c for v in viajes[:1] for c in v if c.lower() in (COLUMNA_RECOGIDA, COLUMNA_LLEGADA)}
+    recogida = next((c for c in columnas if c.lower() == COLUMNA_RECOGIDA), None)
+    if recogida is None:
+        return viajes
+    dias = Counter(f[0].date() for f in (_fecha_y_formato(v.get(recogida)) for v in viajes) if f)
+    if not dias:
+        return viajes
+    desplazamiento = dia - dias.most_common(1)[0][0]
+    movidos = []
+    for viaje in viajes:
+        nuevo = dict(viaje)
+        for columna in columnas:
+            leida = _fecha_y_formato(viaje.get(columna))
+            if leida:
+                fecha, formato = leida
+                fecha += desplazamiento
+                nuevo[columna] = fecha.strftime(formato) if formato else fecha
+        movidos.append(nuevo)
+    return movidos
 
 
 def escribir(ruta: Path, columnas: list[str], filas: list[dict[str, str]]) -> None:

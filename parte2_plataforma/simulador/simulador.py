@@ -58,8 +58,8 @@ def main() -> int:
                    help='genera este número de viajes a partir del fichero en vez de enviarlo entero')
     p.add_argument('--semilla', type=int, default=None, help='semilla de --sinteticos, para repetir la generación')
     p.add_argument('--desde', type=datetime.fromisoformat, default=None,
-                   help='primer día de los viajes generados (AAAA-MM-DD). El tiempo real descarta lo anterior a la '
-                        'última hora que ya ha publicado')
+                   help='día de 2020 en el que caen los viajes (AAAA-MM-DD); sin --sinteticos, el fichero se mueve a '
+                        'ese día. El tiempo real descarta lo anterior a la última hora que ya ha publicado')
     p.add_argument('--hasta', type=datetime.fromisoformat, default=None, help='día final, sin incluir')
     p.add_argument('--url', default=os.environ.get('CAPTURA_URL', 'http://localhost:8001'))
     p.add_argument('--clave', default=os.environ.get('CAPTURA_CLAVE'))
@@ -81,6 +81,8 @@ def main() -> int:
         etiqueta = f'sinteticos-{args.sinteticos}'
     else:
         df = leer(args.fichero, args.maximo)
+        if args.desde:                           # la muestra es del 1 de enero: se mueve al día pedido
+            df = pd.DataFrame(SINTETICOS.desplazar_a_dia(df.to_dict('records'), args.desde.date()))
         etiqueta = args.fichero.stem
     nombre_lote = f'sim-{etiqueta}-{datetime.now():%Y%m%d%H%M%S}'
     sesion = requests.Session()

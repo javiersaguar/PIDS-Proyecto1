@@ -18,7 +18,7 @@ import {
   useSimulacion,
 } from '@/api/operaciones'
 import type { Simulacion } from '@/api/tipos'
-import { formatearFechaHora, formatearNumero } from '@/componentes/chat/formato'
+import { formatearFecha, formatearFechaHora, formatearNumero } from '@/componentes/chat/formato'
 import { EstadoCargando, EstadoError } from '@/componentes/shell'
 import { Button } from '@/componentes/ui/button'
 import { Card, CardContent, CardHeader } from '@/componentes/ui/card'
@@ -71,6 +71,12 @@ function Progreso({ simulacion }: { simulacion: Simulacion }) {
         aria-valuetext={`${porcentaje} %: ${formatearNumero(simulacion.enviados)} de ${formatearNumero(simulacion.total)} viajes`}
       />
       {simulacion.lote && <span className="sr-only">{simulacion.lote}</span>}
+      {simulacion.dia && (
+        <p className="text-sm text-slate-600">
+          Van fechados el <span className="cifra font-medium text-slate-900">{formatearFecha(simulacion.dia)}</span>, el día
+          siguiente al último que ya muestra Tiempo real: con su fecha original, el tiempo real los descartaría.
+        </p>
+      )}
       <dl className="grid gap-3 text-sm sm:grid-cols-3">
         <div className="min-w-0">
           <dt className="text-slate-500">{simulacion.sinteticos ? 'Viajes' : 'Fichero'}</dt>
