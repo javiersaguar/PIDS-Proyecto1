@@ -5,7 +5,7 @@
  *   await lanzarCarga({ mes: '2020-01', muestra: false })   // POST /api/operaciones/airflow/cargas → 202
  *   useSimulacion()                                // GET /api/operaciones/simulacion (cada 2 s mientras está activa)
  *   useFicherosSimulacion()                        // GET /api/operaciones/simulacion/ficheros → string[]
- *   await iniciarSimulacion({ fichero, ritmo, maximo })     // POST /api/operaciones/simulacion → 202 (409 si ya hay una)
+ *   await iniciarSimulacion({ fichero, ritmo, maximo, sinteticos })  // POST /api/operaciones/simulacion → 202 (409 si ya hay una)
  *   await pararSimulacion()                        // DELETE /api/operaciones/simulacion
  *
  * Si Airflow no responde, el BFF puede contestar con un error 502/503 (→ tarjeta de error con «Reintentar») o con
@@ -65,7 +65,13 @@ export interface PeticionSimulacion {
   fichero: string
   ritmo?: number
   maximo?: number
+  /** Viajes inventados a partir del fichero, en vez de enviarlo entero. */
+  sinteticos?: number
+  semilla?: number
 }
+
+/** Tope del BFF (`SIM.MAXIMO_SINTETICOS`): más viajes generados bloquearían la petición. */
+export const MAXIMO_SINTETICOS = 200_000
 
 /** Los doce meses que admite el DAG `pids_carga_historica`. */
 export const MESES_2020 = Array.from({ length: 12 }, (_, i) => `2020-${String(i + 1).padStart(2, '0')}`)
@@ -127,6 +133,8 @@ export function iniciarSimulacion(peticion: PeticionSimulacion): Promise<Simulac
   const cuerpo: PeticionSimulacion = { fichero: peticion.fichero }
   if (peticion.ritmo !== undefined) cuerpo.ritmo = peticion.ritmo
   if (peticion.maximo !== undefined) cuerpo.maximo = peticion.maximo
+  if (peticion.sinteticos !== undefined) cuerpo.sinteticos = peticion.sinteticos
+  if (peticion.semilla !== undefined) cuerpo.semilla = peticion.semilla
   return api<Simulacion>(RUTA_SIMULACION, { method: 'POST', json: cuerpo })
 }
 

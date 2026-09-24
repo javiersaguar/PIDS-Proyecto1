@@ -843,6 +843,58 @@ def test_simulacion_respeta_maximo_y_la_clave_de_captura(cliente, plataforma, si
     assert [len(lote['viajes']) for lote in plataforma.captura_lotes] == [100, 50]
 
 
+@pytest.fixture
+def simulador_muestra(monkeypatch) -> SIM.Simulador:
+    """Simulador sobre la muestra real del repositorio: los viajes sintéticos salen de ella."""
+    nuevo = SIM.Simulador(carpeta=SIM.CARPETA_MUESTRA)
+    monkeypatch.setattr(SIM, 'SIMULADOR', nuevo)
+    return nuevo
+
+
+def test_simulacion_sintetica_inventa_los_viajes_que_se_piden(cliente, plataforma, simulador_muestra):
+    peticion = {'fichero': 'yellow_tripdata_2020_muestra.csv', 'sinteticos': 250, 'semilla': 1, 'ritmo': 5000}
+    r = cliente.post('/api/operaciones/simulacion', json=peticion)
+    assert r.status_code == 202
+    inicial = r.json()
+    assert inicial['total'] == 250 and inicial['sinteticos'] == 250          # no los 999 de la muestra
+    assert inicial['fichero'] == 'yellow_tripdata_2020_muestra.csv'
+    assert re.fullmatch(r'portal-sinteticos-250-\d{14}', inicial['lote'])
+    assert esperar_fin(cliente)['enviados'] == 250
+    enviados = [v for lote in plataforma.captura_lotes for v in lote['viajes']]
+    assert len(enviados) == 250 and all(v['tpep_pickup_datetime'].endswith(('AM', 'PM')) for v in enviados)
+    fechas = [SIM.fecha_recogida(v['tpep_pickup_datetime']) for v in enviados]
+    assert fechas == sorted(fechas) and all(f.year == 2020 for f in fechas)  # válidos para la plataforma
+
+
+def test_los_sinteticos_se_fechan_tras_la_ultima_hora_publicada(cliente, plataforma, monkeypatch, tmp_path):
+    """El tiempo real descarta lo anterior a su marca de agua: los viajes se generan a partir de ahí."""
+    carpeta = tmp_path / 'directo'
+    dia_directo(carpeta, '2020-12-01', ['12/01/2020 12:00:00 AM'])
+    monkeypatch.setattr(SIM, 'SIMULADOR', SIM.Simulador(carpeta=SIM.CARPETA_MUESTRA, carpeta_directo=carpeta))
+    plataforma.filas[('tiempo_real', 'dia_barrio')] = [dia('2020-12-01', 'Manhattan', 40)]
+    plataforma.filas[('tiempo_real', 'hora_zona')] = [hora('2020-12-01T05:00:00', 132, 40)]
+
+    r = cliente.post('/api/operaciones/simulacion',
+                     json={'fichero': 'yellow_tripdata_2020_muestra.csv', 'sinteticos': 60, 'ritmo': 5000})
+    assert r.status_code == 202
+    assert esperar_fin(cliente)['enviados'] == 60
+    enviados = [v for lote in plataforma.captura_lotes for v in lote['viajes']]
+    fechas = [SIM.fecha_recogida(v['tpep_pickup_datetime']) for v in enviados]
+    assert min(fechas) >= datetime(2020, 12, 1) and max(fechas) < datetime(2020, 12, 3)   # no en enero
+    assert any(c['fuente'] == 'tiempo_real' for c in plataforma.consultas)
+
+
+def test_los_sinteticos_validan_cantidad_y_plantilla(cliente, plataforma, simulador_muestra, simulador):
+    muestra = {'fichero': 'yellow_tripdata_2020_muestra.csv'}
+    for cuantos in (0, -1, SIM.MAXIMO_SINTETICOS + 1):
+        assert cliente.post('/api/operaciones/simulacion', json={**muestra, 'sinteticos': cuantos}).status_code == 422
+    # `simulador` (el de la última fixture) tiene un CSV de prueba sin columna de llegada: no sirve de plantilla
+    r = cliente.post('/api/operaciones/simulacion', json={'fichero': 'viajes.csv', 'sinteticos': 10})
+    assert r.status_code == 400 and 'generar' in r.json()['detail']
+    assert cliente.get('/api/operaciones/simulacion').json()['activa'] is False
+    assert plataforma_sin_lotes(cliente)
+
+
 def test_una_sola_simulacion_activa_y_delete_la_para(cliente, plataforma, simulador):
     r = cliente.post('/api/operaciones/simulacion', json={'fichero': 'viajes.csv', 'ritmo': 1})
     assert r.status_code == 202

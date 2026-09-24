@@ -54,3 +54,36 @@ La normalización acepta ahora los cuatro formatos, y hay dos ficheros de muestr
 - Avisos que no invalidan: 21 viajes con 0 pasajeros y 9 con distancia 0.
 - 82 zonas de origen distintas en cinco horas: la mayoría de grupos por hora y zona tienen menos de 10
   viajes y quedan suprimidos, así que la muestra sirve para probar el enmascarado.
+
+## Viajes sintéticos para las demos
+
+La muestra se agota en segundos, así que `parte2_plataforma/simulador/sinteticos.py` inventa los que
+hagan falta tomando cada fila como plantilla y variando día, duración, distancia e importes. Las
+reglas salen de `config/esquema_viaje.json`, las mismas que aplican la captura y Spark: los viajes
+generados **pasan la validación** (un test lo comprueba con el validador real). Son datos falsos: no
+hay ninguna persona detrás, así que no afectan a E3.
+
+| Campo | Cómo se genera |
+|---|---|
+| Recogida | La hora de la plantilla (mantiene la curva diaria real) en un día al azar del tramo. Por defecto, los días de la propia plantilla recortados a 2020; desde el portal, el día siguiente a la última hora publicada en tiempo real |
+| Llegada | Duración entre 2 y 75 minutos ajustada por la distancia, siempre por debajo del máximo (12 h) |
+| Distancia e importes | Los de la plantilla con una variación del ±25 %; el total cuadra con sus partes |
+| Zonas | Las de la plantilla; con `--zonas-aleatorias`, repartidas por las 265 |
+| Proveedor, tarifa y tipo de pago | Copiados de la plantilla, que ya usa valores admitidos |
+
+```bash
+make sinteticos FILAS=50000                   # CSV nuevo en data/muestra (SEMILLA=7 lo repite igual)
+make simular SINTETICOS=20000 RITMO=200       # envía 20 000 inventados a la API de captura
+```
+
+En el portal, sección Operaciones, el interruptor «Inventar más viajes» del simulador hace lo mismo
+(hasta 200 000 por simulación) sin crear ningún fichero.
+
+**Cuidado con la marca de agua del tiempo real.** Spark descarta los viajes anteriores a la última hora
+que ya ha publicado, así que enviar viajes del 1 de enero cuando el tiempo real va por diciembre no
+cambia nada (le pasa igual a la muestra tal cual). El portal lo resuelve solo: pregunta a la API de
+acceso por dónde va y fecha los viajes a partir de ahí. Desde la línea de comandos hay que decirlo:
+
+```bash
+python -m parte2_plataforma.simulador.simulador --sinteticos 20000 --desde 2020-12-11 --ritmo 200
+```

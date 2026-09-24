@@ -6,7 +6,7 @@
                                                             409 si muestra=true y ya hay una carga que no es la muestra)
   GET    /api/operaciones/simulacion/ficheros            -> string[] (solo los CSV de data/muestra)
   GET    /api/operaciones/simulacion                     -> Simulacion
-  POST   /api/operaciones/simulacion {fichero, ritmo?, maximo?}
+  POST   /api/operaciones/simulacion {fichero, ritmo?, maximo?, sinteticos?, semilla?}
                                                          -> 202 Simulacion (409 si ya hay una; 400 si el fichero no vale)
   DELETE /api/operaciones/simulacion                     -> Simulacion (cancelada)
   GET    /api/operaciones/captura                        -> qué hay preparado para la captura en directo
@@ -71,6 +71,9 @@ class PeticionSimulacion(BaseModel):
     fichero: str = Field(min_length=1, max_length=255, examples=['yellow_tripdata_2020_muestra.csv'])
     ritmo: float = Field(default=SIM.RITMO_POR_DEFECTO, gt=0, le=MAX_RITMO, description='Viajes por segundo')
     maximo: int | None = Field(default=None, ge=1, description='Enviar como mucho estos viajes')
+    sinteticos: int | None = Field(default=None, ge=1, le=SIM.MAXIMO_SINTETICOS,
+                                   description='Generar estos viajes a partir del fichero en vez de enviarlo entero')
+    semilla: int | None = Field(default=None, description='Semilla de la generación, para repetirla igual')
 
 
 class PeticionCaptura(BaseModel):
@@ -142,9 +145,18 @@ async def estado_simulacion() -> dict:
 
 @router.post('/operaciones/simulacion', status_code=202)
 async def iniciar_simulacion(peticion: PeticionSimulacion, cfg: ConfiguracionDep, http: HttpDep) -> dict:
+    cliente = ACCESO.cliente(cfg, http)
+
+    async def consultar(consulta: dict) -> list[dict]:
+        """Para fechar los viajes inventados donde el tiempo real los acepte (§ `_desde_para_sinteticos`)."""
+        codigo, cuerpo = await cliente.consultar(consulta)
+        return cuerpo.get('filas', []) if codigo == 200 else []
+
     try:
         return await _simulador().iniciar(http, cfg.captura_url, cfg.captura_clave, peticion.fichero,
-                                          ritmo=peticion.ritmo, maximo=peticion.maximo)
+                                          ritmo=peticion.ritmo, maximo=peticion.maximo,
+                                          sinteticos=peticion.sinteticos, semilla=peticion.semilla,
+                                          consultar=consultar if peticion.sinteticos else None)
     except SIM.SimulacionActiva as error:
         raise HTTPException(status_code=409,
                             detail='Ya hay una simulación en marcha; párala antes de iniciar otra') from error

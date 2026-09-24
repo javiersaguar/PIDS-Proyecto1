@@ -16,7 +16,7 @@ WEB := parte4_frontend/web
 .DEFAULT_GOAL := ayuda
 .PHONY: ayuda entorno entorno-completar sync hooks test test-spark test-frontend construir nucleo spark airflow observabilidad \
 	    chatbot chatbot-rag rag-clave rag-indexar rag-comprobar rag-casos rag-bateria rag-comparar frontend frontend-dev \
-	    herramientas todo arrancar parar estado logs tiempo-real simular historico historico-muestra \
+	    herramientas todo arrancar parar estado logs tiempo-real simular sinteticos historico historico-muestra \
 	    datos-muestra descargar borrar-todo alta-disponibilidad tiempo-real-reiniciar captura-preparar capturar \
 	    capturar-parar tunel tunel-parar
 
@@ -125,8 +125,13 @@ capturar: _env ## Captura en directo desde el portal: viajes reales a ×VELOCIDA
 capturar-parar: _env ## Para la captura en directo
 	uv run python -m parte2_plataforma.simulador.directo portal --parar
 
-simular: ## Envía viajes a la API de captura (FICHERO=... RITMO=viajes/s)
-	SIMULADOR_FICHERO=$(FICHERO) SIMULADOR_RITMO=$(RITMO) $(COMPOSE) --profile simulador run --rm simulador
+simular: ## Envía viajes a la API de captura (FICHERO=... RITMO=viajes/s SINTETICOS=cuántos inventar)
+	SIMULADOR_FICHERO=$(FICHERO) SIMULADOR_RITMO=$(RITMO) SIMULADOR_SINTETICOS=$(or $(SINTETICOS),0) \
+		$(COMPOSE) --profile simulador run --rm simulador
+
+sinteticos: ## Inventa viajes con el formato de la TLC a partir de la muestra (FILAS=20000 SEMILLA=... SALIDA=...)
+	uv run python -m parte2_plataforma.simulador.sinteticos $(or $(FILAS),20000) \
+		$(if $(SEMILLA),--semilla $(SEMILLA),) $(if $(SALIDA),--salida $(SALIDA),)
 
 historico: ## Ejecuta en Airflow la carga histórica de un mes (MES=2020-01)
 	$(COMPOSE) exec airflow-apiserver airflow dags trigger pids_carga_historica --conf '{"mes": "$(MES)", "muestra": false}'

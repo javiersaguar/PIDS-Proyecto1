@@ -185,10 +185,16 @@ export interface EjecucionAirflow {              // GET /api/operaciones/airflow
 // GET  /api/operaciones/airflow/muestra -> {bloqueada, motivo}
 // POST /api/operaciones/airflow/cargas {mes: '2020-01', muestra: boolean} -> EjecucionAirflow (202; 409 si la muestra pisaría el histórico)
 export interface Simulacion {                    // GET /api/operaciones/simulacion · POST (inicia) · DELETE (para)
-  activa: boolean; lote: string | null; fichero: string | null; enviados: number; total: number;
+  activa: boolean; lote: string | null; fichero: string | null; sinteticos: number | null;
+  enviados: number; total: number;
   ritmo: number; inicio: string | null; fin: string | null; error: string | null;
 }
-// POST /api/operaciones/simulacion {fichero: 'yellow_tripdata_2020_muestra.csv', ritmo?: 50, maximo?: number} -> Simulacion (202)
+// POST /api/operaciones/simulacion {fichero: 'yellow_tripdata_2020_muestra.csv', ritmo?: 50, maximo?: number,
+//   sinteticos?: number (1…200 000), semilla?: number} -> Simulacion (202)
+// `sinteticos`: en vez de enviar el fichero, se inventan esos viajes con él de plantilla (la muestra tiene 999 y se
+//   agota en segundos); cumplen config/esquema_viaje.json, el lote es `portal-sinteticos-<N>-<fecha>` y el estado lo
+//   devuelve en `sinteticos`. Se fechan a partir de la última hora publicada en tiempo real (la marca de agua de
+//   Spark descarta lo anterior). 400 si la plantilla no sirve, 422 fuera del rango.
 // Captura en directo (grafo, «Capturar datos»): GET /api/operaciones/captura -> {disponible, primer_dia, ultimo_dia, reloj,
 //   velocidad_por_defecto, velocidad_maxima} · POST {velocidad?: 60, desde?} -> Simulacion (202) con modo: 'directo', reloj
 //   (hora de 2020) y velocidad; total 0 · DELETE -> Simulacion. Comparte estado con la simulación: una sola a la vez (409).

@@ -188,7 +188,7 @@ con su contraseña; ningún otro servicio sale del equipo.
 │   ├── spark/               trabajos Scala: CargaHistorica y TiempoReal
 │   ├── airflow/             imagen y DAG
 │   ├── s3/  mongodb/        inicialización del almacenamiento
-│   ├── simulador/           reenvío de viajes como tiempo real
+│   ├── simulador/           reenvío de viajes como tiempo real y generador de viajes sintéticos
 │   └── observabilidad/      Prometheus y Grafana
 ├── parte3_chatbot/          Chainlit + Ollama: agente, herramientas y barreras sobre las cifras
 ├── parte3_chatbot_rag/      Chainlit + LangChain + Qdrant + Mistral; reutiliza las herramientas y

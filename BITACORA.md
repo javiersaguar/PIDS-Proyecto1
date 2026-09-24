@@ -24,12 +24,12 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 
 ## Estado actual
 
-**Última actualización: 22/09/2026 · Javier Saguar** (la muestra no puede pisar el histórico; gestos de la parte 1 en los tres chatbots y en el navegador, también en Vercel; grupos ocultos como `oculto`; LLM de Helmcode vigente)
+**Última actualización: 22/09/2026 · Javier Saguar** (viajes sintéticos para el tiempo real; la muestra no puede pisar el histórico; gestos de la parte 1 en los tres chatbots y en el navegador, también en Vercel; grupos ocultos como `oculto`; LLM de Helmcode vigente)
 
 | | |
 |---|---|
 | **Escenario** | E3 · privacidad total |
-| **Funciona y está probado en ejecución** | Núcleo (S3, Redpanda, MongoDB, APIs), carga histórica con Spark en modo cluster y supresión complementaria, tiempo real con streaming, filtro de privacidad (permitida / enmascarada / rechazada), DAG de Airflow, Prometheus (9 objetivos), ocho cuadros de Grafana con 3 alertas probadas, informe de auditoría, chatbot de Ollama con barreras sobre las cifras y **chatbot RAG** (LangChain + Qdrant + LLM externo en la UE) con las mismas barreras y una guardia de salida. 492 tests de Python, 17 de Scala y 198 del portal (Vitest) |
+| **Funciona y está probado en ejecución** | Núcleo (S3, Redpanda, MongoDB, APIs), carga histórica con Spark en modo cluster y supresión complementaria, tiempo real con streaming, filtro de privacidad (permitida / enmascarada / rechazada), DAG de Airflow, Prometheus (9 objetivos), ocho cuadros de Grafana con 3 alertas probadas, informe de auditoría, chatbot de Ollama con barreras sobre las cifras y **chatbot RAG** (LangChain + Qdrant + LLM externo en la UE) con las mismas barreras y una guardia de salida. 535 tests de Python, 17 de Scala y 205 del portal (Vitest) |
 | **Datos cargados** | Año 2020 completo, recargado el 21/09 con supresión complementaria: 23 684 852 viajes válidos; 287 003 grupos hora-zona publicados (430 126 ocultos). Índice de Qdrant: 438 documentos de conocimiento (reindexados el 22/09 con la etiqueta `oculto`) y 18 187 fichas de agregados gruesos |
 | **Métricas** | M1: 0 fugas en la API (31 casos), en el chatbot de Ollama (105 ejecuciones) y en el chatbot RAG (105 ejecuciones) · M2: con k = 10 se publica el 95,1 % de los viajes en hora-zona · M3: p95 35,4 s (objetivo < 60 s) |
 | **Chatbots** | Ollama: `llama3.1:8b` en GPU a temperatura 0,2, 21/21 casos en 2-3 s · RAG: `deepseek-v4-flash` (Helmcode, UE), 21/21 casos con p50 1,1 s y unos 6 000 tokens por pregunta. Detalle en `docs/chatbot_rag.md` |
@@ -89,6 +89,44 @@ Registro de cambios escrito por personas, no por Git. Sirve para dos cosas:
 ---
 
 ## Entradas
+
+### 2026-09-22 · Javier Saguar · Viajes sintéticos para la simulación de tiempo real
+
+- **Rama / commits:** `main` · pendiente de commit
+- **Qué he hecho:**
+  - `parte2_plataforma/simulador/sinteticos.py`: genera los viajes que se pidan usando la muestra de
+    Moodle como plantilla (cada fila da su hora del día, sus zonas y sus importes, con variaciones). Las
+    reglas salen de `config/esquema_viaje.json`, así que lo generado pasa la validación de la plataforma.
+    Solo biblioteca estándar, para que sirva también en la imagen del portal.
+  - Enganchado en los tres sitios donde se simula el tiempo real: el simulador de línea de comandos
+    (`--sinteticos N`), el contenedor `simulador` (`make simular SINTETICOS=20000`) y el portal, con el
+    interruptor «Inventar más viajes» de la sección Operaciones (hasta 200 000 por simulación).
+  - `make sinteticos FILAS=... [SEMILLA=...]` guarda además un CSV en `data/muestra`, que el resto de
+    herramientas (y el propio portal) ve como un fichero más.
+- **Por qué:** la muestra tiene 999 viajes y se agota en segundos; para enseñar el tiempo real, el panel y
+  las alertas hace falta un caudal sostenido sin depender de descargar meses de la TLC.
+- **Ficheros clave:** `parte2_plataforma/simulador/{sinteticos,simulador}.py`,
+  `parte4_frontend/bff/servicios/simulacion.py`, `parte4_frontend/bff/rutas/operaciones.py`,
+  `parte4_frontend/web/src/paginas/operaciones/Simulador.tsx`, `Makefile`, `docker-compose.yml`,
+  `docs/datos.md`
+- **Cómo comprobarlo:**
+  ```bash
+  make test                                     # incluye tests/test_sinteticos.py
+  make sinteticos FILAS=2000 SEMILLA=7
+  make simular SINTETICOS=20000 RITMO=200
+  ```
+- **Resultado:** 535 tests de Python y 205 de Vitest en verde, `tsc` y lint limpios. El test que más
+  importa valida los viajes generados con el validador real (`comun.esquema`): 0 rechazados de 500.
+- **Pendiente y riesgos:** con las zonas de la plantilla, el reparto por zonas es el de la muestra (82
+  zonas, y el 99 % de los viajes a la hora 0); `--zonas-aleatorias` las esparce por las 265, pero entonces
+  casi todos los grupos quedan por debajo de k = 10 y el panel se ve vacío. La muestra tiene fechas de 2019
+  que la plataforma rechaza: el tramo por defecto se recorta a 2020. **La marca de agua del tiempo real**
+  descarta los viajes anteriores a la última hora publicada: el portal lo resuelve preguntando a la API de
+  acceso por dónde va, pero desde la línea de comandos hay que pasar `--desde`. El portal solo lo hace con
+  la imagen reconstruida (`make frontend`).
+- **Contexto para quien siga:** son datos inventados, sin ninguna persona detrás, así que no cambian nada
+  de E3; aun así pasan por la misma captura, el mismo Spark y las mismas reglas de privacidad. En el
+  portal no se guarda ningún fichero: se generan en memoria y se envían.
 
 ### 2026-09-23 · Javier Saguar · Grafo: Prometheus y Grafana conectados al portal, y el sondeo como latido
 

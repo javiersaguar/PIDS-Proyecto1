@@ -75,10 +75,13 @@ export interface EjecucionAirflow {              // GET /api/operaciones/airflow
 }
 // POST /api/operaciones/airflow/cargas {mes: '2020-01', muestra: boolean} -> EjecucionAirflow (202)
 export interface Simulacion {                    // GET /api/operaciones/simulacion · POST (inicia) · DELETE (para)
-  activa: boolean; lote: string | null; fichero: string | null; enviados: number; total: number;
+  activa: boolean; lote: string | null; fichero: string | null; sinteticos: number | null;
+  enviados: number; total: number;
   ritmo: number; inicio: string | null; fin: string | null; error: string | null;
 }
-// POST /api/operaciones/simulacion {fichero: 'yellow_tripdata_2020_muestra.csv', ritmo?: 50, maximo?: number} -> Simulacion (202)
+// POST /api/operaciones/simulacion {fichero: 'yellow_tripdata_2020_muestra.csv', ritmo?: 50, maximo?: number,
+//   sinteticos?: number, semilla?: number} -> Simulacion (202)
+// `sinteticos`: en vez de enviar el fichero, se inventan esos viajes usándolo de plantilla (la muestra tiene 999).
 // Los ficheros permitidos son solo los de data/muestra (GET /api/operaciones/simulacion/ficheros -> string[]).
 
 // --- chat (F2) ---

@@ -26,6 +26,7 @@ const SIMULACION_PARADA: Simulacion = {
   activa: false,
   lote: null,
   fichero: null,
+  sinteticos: null,
   enviados: 0,
   total: 0,
   ritmo: 50,
@@ -37,6 +38,7 @@ const SIMULACION_ACTIVA: Simulacion = {
   activa: true,
   lote: 'portal-yellow_tripdata_2020_muestra.csv-20260922T080000',
   fichero: 'yellow_tripdata_2020_muestra.csv',
+  sinteticos: null,
   enviados: 250,
   total: 999,
   ritmo: 50,
@@ -186,6 +188,38 @@ describe('PaginaOperaciones', () => {
       maximo: 300,
     })
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Ya hay una simulación activa', expect.anything()))
+  })
+
+  it('con «Inventar más viajes» manda sinteticos en vez de maximo', async () => {
+    const espia = apiBase({
+      'POST /api/operaciones/simulacion': { status: 202, json: { ...SIMULACION_ACTIVA, sinteticos: 5000, total: 5000 } },
+    })
+    renderizarRutas('/operaciones')
+    const usuario = userEvent.setup()
+
+    const boton = await screen.findByRole('button', { name: 'Empezar' })
+    await waitFor(() => expect(boton).toBeEnabled())
+    await usuario.click(screen.getByRole('switch', { name: /Inventar más viajes/ }))
+    const cuantos = screen.getByLabelText('Cuántos inventar')
+    await usuario.clear(cuantos)
+    await usuario.type(cuantos, '5000')
+    await usuario.click(boton)
+
+    await waitFor(() => expect(llamadas(espia, 'POST', '/api/operaciones/simulacion')).toHaveLength(1))
+    expect(JSON.parse(llamadas(espia, 'POST', '/api/operaciones/simulacion')[0][1]?.body as string)).toEqual({
+      fichero: 'yellow_tripdata_2020_muestra.csv',
+      ritmo: 50,
+      sinteticos: 5000,
+    })
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Simulación empezada', expect.anything()))
+  })
+
+  it('una simulación de viajes inventados lo dice en el progreso', async () => {
+    apiBase({ 'GET /api/operaciones/simulacion': { ...SIMULACION_ACTIVA, sinteticos: 5000, total: 5000 } })
+    renderizarRutas('/operaciones')
+
+    expect(await screen.findByText('Simulación en marcha')).toBeInTheDocument()
+    expect(screen.getByText(/inventados a partir de Taxis amarillos, muestra de 2020/)).toBeInTheDocument()
   })
 
   it('muestra el error del simulador y los estados de error de Airflow con «Reintentar»', async () => {

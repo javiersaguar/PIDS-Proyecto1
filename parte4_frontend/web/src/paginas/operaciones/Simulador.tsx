@@ -1,13 +1,22 @@
 /**
  * Tarjeta «Simulador de tiempo real»: envía los viajes de un fichero de prueba al ritmo pedido,
  * para que la página Tiempo real se vaya llenando. Solo puede haber una simulación a la vez.
+ *
+ * Con «Inventar más viajes» el BFF no envía el fichero, sino los que se le piden, generados a partir
+ * de él (la muestra tiene 999 y se agota en segundos). Cumplen las mismas reglas de validación.
  */
 import { LoaderCircle, Play, Radio, Square, TriangleAlert } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { toast } from 'sonner'
 
 import { ErrorApi, mensajeDeError } from '@/api/cliente'
-import { useFicherosSimulacion, useIniciarSimulacion, usePararSimulacion, useSimulacion } from '@/api/operaciones'
+import {
+  MAXIMO_SINTETICOS,
+  useFicherosSimulacion,
+  useIniciarSimulacion,
+  usePararSimulacion,
+  useSimulacion,
+} from '@/api/operaciones'
 import type { Simulacion } from '@/api/tipos'
 import { formatearFechaHora, formatearNumero } from '@/componentes/chat/formato'
 import { EstadoCargando, EstadoError } from '@/componentes/shell'
@@ -17,8 +26,10 @@ import { Input } from '@/componentes/ui/input'
 import { Label } from '@/componentes/ui/label'
 import { Progress } from '@/componentes/ui/progress'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/componentes/ui/select'
+import { Switch } from '@/componentes/ui/switch'
 
 const RITMO_POR_DEFECTO = 50
+const SINTETICOS_POR_DEFECTO = 20000
 
 const NOMBRES_FICHERO: Record<string, string> = {
   'yellow_tripdata_2020_muestra.csv': 'Taxis amarillos, muestra de 2020',
@@ -27,6 +38,13 @@ const NOMBRES_FICHERO: Record<string, string> = {
 
 function nombreFichero(fichero: string): string {
   return NOMBRES_FICHERO[fichero] ?? fichero.replace(/\.csv$/i, '').replaceAll('_', ' ')
+}
+
+/** Qué viajes lleva la simulación: el fichero, o los inventados a partir de él. */
+function origen(simulacion: Simulacion): string {
+  if (!simulacion.fichero) return '—'
+  const fichero = nombreFichero(simulacion.fichero)
+  return simulacion.sinteticos ? `inventados a partir de ${fichero}` : fichero
 }
 
 function Progreso({ simulacion }: { simulacion: Simulacion }) {
@@ -55,8 +73,8 @@ function Progreso({ simulacion }: { simulacion: Simulacion }) {
       {simulacion.lote && <span className="sr-only">{simulacion.lote}</span>}
       <dl className="grid gap-3 text-sm sm:grid-cols-3">
         <div className="min-w-0">
-          <dt className="text-slate-500">Fichero</dt>
-          <dd className="mt-0.5 text-slate-900">{simulacion.fichero ? nombreFichero(simulacion.fichero) : '—'}</dd>
+          <dt className="text-slate-500">{simulacion.sinteticos ? 'Viajes' : 'Fichero'}</dt>
+          <dd className="mt-0.5 text-slate-900">{origen(simulacion)}</dd>
         </div>
         <div>
           <dt className="text-slate-500">Velocidad</dt>
@@ -83,7 +101,8 @@ function UltimaSimulacion({ simulacion }: { simulacion: Simulacion }) {
       {simulacion.fichero && (
         <>
           {' '}
-          del fichero <span className="font-medium text-slate-900">{nombreFichero(simulacion.fichero)}</span>
+          {simulacion.sinteticos ? 'inventados a partir de' : 'del fichero'}{' '}
+          <span className="font-medium text-slate-900">{nombreFichero(simulacion.fichero)}</span>
         </>
       )}
       {simulacion.inicio && (
@@ -104,6 +123,8 @@ export function Simulador() {
   const [ficheroElegido, setFicheroElegido] = useState<string | null>(null)
   const [ritmo, setRitmo] = useState(String(RITMO_POR_DEFECTO))
   const [maximo, setMaximo] = useState('')
+  const [inventar, setInventar] = useState(false)
+  const [cuantos, setCuantos] = useState(String(SINTETICOS_POR_DEFECTO))
 
   const listaFicheros = ficheros.data ?? []
   const fichero = ficheroElegido && listaFicheros.includes(ficheroElegido) ? ficheroElegido : listaFicheros[0] ?? null
@@ -111,14 +132,19 @@ export function Simulador() {
   const ocupado = iniciar.isPending || parar.isPending
   const ritmoNumero = Number(ritmo)
   const maximoNumero = maximo.trim() === '' ? undefined : Number(maximo)
+  const cuantosNumero = Number(cuantos)
   const ritmoValido = Number.isFinite(ritmoNumero) && ritmoNumero > 0
-  const maximoValido = maximoNumero === undefined || (Number.isInteger(maximoNumero) && maximoNumero > 0)
+  const maximoValido = inventar
+    ? Number.isInteger(cuantosNumero) && cuantosNumero > 0 && cuantosNumero <= MAXIMO_SINTETICOS
+    : maximoNumero === undefined || (Number.isInteger(maximoNumero) && maximoNumero > 0)
 
   const enviar = (evento: FormEvent<HTMLFormElement>) => {
     evento.preventDefault()
     if (!fichero || !ritmoValido || !maximoValido || activa || ocupado) return
     iniciar.mutate(
-      { fichero, ritmo: ritmoNumero, maximo: maximoNumero },
+      inventar
+        ? { fichero, ritmo: ritmoNumero, sinteticos: cuantosNumero }
+        : { fichero, ritmo: ritmoNumero, maximo: maximoNumero },
       {
         onSuccess: () => toast.success('Simulación empezada', { description: 'Los viajes ya se están enviando.' }),
         onError: (error) => {
@@ -181,7 +207,7 @@ export function Simulador() {
 
         <form onSubmit={enviar} className="grid gap-4 rounded-xl bg-slate-50 p-4 md:grid-cols-[minmax(0,1.4fr)_11rem_12rem_auto] md:items-end" noValidate>
           <div className="min-w-0 space-y-2">
-            <Label htmlFor="fichero-simulacion">Qué viajes enviar</Label>
+            <Label htmlFor="fichero-simulacion">{inventar ? 'De qué viajes copiar el estilo' : 'Qué viajes enviar'}</Label>
             {ficheros.isError ? (
               <p className="text-sm text-rose-700">No se ha podido leer la lista de ficheros: {mensajeDeError(ficheros.error)}</p>
             ) : (
@@ -214,16 +240,17 @@ export function Simulador() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="maximo-simulacion">Máximo de viajes</Label>
+            <Label htmlFor="maximo-simulacion">{inventar ? 'Cuántos inventar' : 'Máximo de viajes'}</Label>
             <Input
               id="maximo-simulacion"
               type="number"
               min={1}
+              max={inventar ? MAXIMO_SINTETICOS : undefined}
               step={1}
               inputMode="numeric"
-              placeholder="todos"
-              value={maximo}
-              onChange={(e) => setMaximo(e.target.value)}
+              placeholder={inventar ? String(SINTETICOS_POR_DEFECTO) : 'todos'}
+              value={inventar ? cuantos : maximo}
+              onChange={(e) => (inventar ? setCuantos(e.target.value) : setMaximo(e.target.value))}
               disabled={activa}
               aria-invalid={!maximoValido || undefined}
             />
@@ -239,6 +266,13 @@ export function Simulador() {
               Empezar
             </Button>
           )}
+          <div className="flex flex-wrap items-center gap-3 md:col-span-full">
+            <Switch id="inventar-simulacion" checked={inventar} onCheckedChange={setInventar} disabled={activa} />
+            <Label htmlFor="inventar-simulacion" className="font-normal text-slate-600">
+              Inventar más viajes a partir de ese fichero, para que la demo no se quede en los{' '}
+              {formatearNumero(999)} de la muestra. Son datos falsos con las mismas reglas: nadie real detrás.
+            </Label>
+          </div>
         </form>
       </CardContent>
     </Card>
