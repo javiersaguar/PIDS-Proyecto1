@@ -204,9 +204,9 @@ def chatbots() -> dict:
     l.fila('Preguntas')
     colocar(l, [
         {'tipo': 'texto', 'titulo': 'De dónde sale cada pregunta', 'ancho': 24, 'alto': 3, 'content':
-         '**Ollama** es el cliente `chatbot`. **DeepSeek en Helmcode** es `chatbot_rag`. **TAXI AI**, el asistente de esta web, entra como `frontend`, igual que el explorador. Una serie vacía significa que ese cliente no ha preguntado en el periodo.'},
+         '**Ollama** es el cliente `chatbot`. **Mistral** (LLM externo del RAG) es `chatbot_rag`. **TAXI AI**, el asistente de esta web, entra como `frontend`, igual que el explorador. Una serie vacía significa que ese cliente no ha preguntado en el periodo.'},
         stat('Ollama', f'sum(increase(acceso_consultas_total{{{clientes},cliente="chatbot"}}[$__range]))', 8),
-        stat('DeepSeek (Helmcode)', f'sum(increase(acceso_consultas_total{{{clientes},cliente="chatbot_rag"}}[$__range]))', 8),
+        stat('Mistral (RAG)', f'sum(increase(acceso_consultas_total{{{clientes},cliente="chatbot_rag"}}[$__range]))', 8),
         stat('Portal (TAXI AI y explorador)', f'sum(increase(acceso_consultas_total{{cliente="frontend"}}[$__range]))', 8),
         serie('Preguntas por minuto', f'sum by (cliente) (increase(acceso_consultas_total{{{clientes}}}[1m]))', '{{cliente}}', 16),
         {'tipo': 'bargauge', 'titulo': 'Veredicto de cada asistente', 'ancho': 8, 'alto': 8,

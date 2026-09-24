@@ -1,4 +1,5 @@
-"""Proveedor LLM del chatbot RAG (parte3_chatbot_rag/llm.py): lista blanca, configuración y llamadas HTTP simuladas."""
+"""Proveedor LLM del chatbot RAG (parte3_chatbot_rag/llm.py): proveedores, lista blanca, configuración y llamadas HTTP
+simuladas. Por defecto las pruebas usan Helmcode (el que tiene rerank); las de Mistral lo cambian con `mistral`."""
 import sys
 from pathlib import Path
 
@@ -11,10 +12,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'parte3_chatbot_rag
 import llm as L  # noqa: E402
 
 
+HELMCODE = 'https://api.helmcode.com/v1'
+MISTRAL = 'https://api.mistral.ai/v1'
+
+
 @pytest.fixture(autouse=True)
 def entorno(monkeypatch):
     monkeypatch.setenv('LLM_API_KEY', 'clave-de-prueba')
-    monkeypatch.setenv('LLM_BASE_URL', 'https://proveedor.prueba/v1')
+    monkeypatch.setenv('LLM_BASE_URL', HELMCODE)
     for variable in ('LLM_MODELO', 'LLM_MODELO_EMBEDDINGS', 'LLM_TEMPERATURA', 'LLM_RAZONAMIENTO', 'LLM_TIMEOUT_SEGUNDOS'):
         monkeypatch.delenv(variable, raising=False)
 
@@ -51,7 +56,7 @@ def test_el_modelo_del_entorno_tambien_pasa_por_la_lista(monkeypatch):
 def test_llm_por_defecto():
     chat = L.obtener_llm()
     assert chat.model_name == 'deepseek-v4-flash'
-    assert chat.openai_api_base == 'https://proveedor.prueba/v1'
+    assert chat.openai_api_base == HELMCODE
     assert chat.temperature == 0.2
     assert chat.use_responses_api is False
     assert chat.reasoning_effort is None
@@ -85,18 +90,59 @@ def test_sin_clave(monkeypatch):
         L.obtener_embeddings()
 
 
-def test_base_url_por_defecto(monkeypatch):
+def test_base_url_por_defecto_es_mistral(monkeypatch):
     monkeypatch.setenv('LLM_BASE_URL', '')
-    assert L.base_url() == 'https://api.helmcode.com/v1'
+    assert L.base_url() == MISTRAL and L.proveedor().nombre == 'Mistral'
+
+
+@pytest.mark.parametrize('url', ['https://proveedor.prueba/v1', 'https://api.openai.com/v1', 'http://localhost:11434/v1'])
+def test_un_proveedor_que_no_esta_en_la_lista_no_se_usa(monkeypatch, url):
+    monkeypatch.setenv('LLM_BASE_URL', url)
+    with pytest.raises(L.ProveedorNoPermitido):
+        L.obtener_llm()
+    with pytest.raises(L.ProveedorNoPermitido):
+        L.obtener_embeddings()
 
 
 def test_embeddings_sin_tiktoken_y_en_lotes_de_32():
     emb = L.obtener_embeddings()
     assert emb.model == 'qwen3-embedding'
     assert emb.check_embedding_ctx_length is False          # el endpoint no es de OpenAI: textos tal cual
-    assert emb.chunk_size == L.LOTE_EMBEDDINGS == 32          # máximo del endpoint
-    assert emb.openai_api_base == 'https://proveedor.prueba/v1'
-    assert L.DIMENSION_EMBEDDINGS == 4096
+    assert emb.chunk_size == L.proveedor().lote == 32         # máximo del endpoint
+    assert emb.openai_api_base == HELMCODE
+    assert L.proveedor().dimension == 4096
+
+
+# --- Mistral -----------------------------------------------------------------------------------------
+
+@pytest.fixture
+def mistral(monkeypatch):
+    monkeypatch.setenv('LLM_BASE_URL', MISTRAL)
+
+
+def test_mistral_por_defecto(mistral):
+    chat, emb = L.obtener_llm(), L.obtener_embeddings()
+    assert (chat.model_name, chat.openai_api_base) == ('ministral-14b-latest', MISTRAL)
+    assert (emb.model, emb.chunk_size, L.proveedor().dimension) == ('mistral-embed', 64, 1024)
+
+
+@pytest.mark.parametrize('modelo', ['ministral-8b-latest', 'open-mistral-nemo', 'mistral-small-latest'])
+def test_mistral_admite_sus_modelos(mistral, modelo):
+    assert L.obtener_llm(modelo=modelo).model_name == modelo
+
+
+@pytest.mark.parametrize('modelo', ['deepseek-v4-flash', 'qwen3-embedding', 'gpt-4o', 'rerank'])
+def test_cada_proveedor_solo_admite_los_suyos(mistral, modelo):
+    assert not L.modelo_permitido(modelo)
+    with pytest.raises(L.ModeloNoPermitido):
+        L.obtener_llm(modelo=modelo)
+
+
+async def test_mistral_no_tiene_rerank(mistral):
+    capturadas: list = []
+    with pytest.raises(NotImplementedError):
+        await L.reordenar('aeropuerto', ['JFK'], cliente=_cliente({}, capturadas))
+    assert capturadas == []
 
 
 def test_la_clave_no_aparece_en_la_representacion():
@@ -117,7 +163,7 @@ async def test_modelos_disponibles():
     capturadas: list = []
     cliente = _cliente({'data': [{'id': 'qwen3.6'}, {'id': 'claude-sonnet-5'}, {'id': 'deepseek-v4-flash'}]}, capturadas)
     assert await L.modelos_disponibles(cliente) == ['claude-sonnet-5', 'deepseek-v4-flash', 'qwen3.6']
-    assert capturadas[0].url == 'https://proveedor.prueba/v1/models'
+    assert capturadas[0].url == f'{HELMCODE}/models'
     assert capturadas[0].headers['Authorization'] == 'Bearer clave-de-prueba'
 
 

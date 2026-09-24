@@ -6,8 +6,8 @@ import { claveArista, flujosDe } from './actividad'
 import { ARISTAS } from './nodos'
 
 const SIMULACION = {
-  activa: true, lote: 'portal-muestra', fichero: 'yellow_tripdata_2020_muestra.csv', enviados: 450, total: 999,
-  ritmo: 50, inicio: null, fin: null, error: null,
+  activa: true, lote: 'portal-muestra', fichero: 'yellow_tripdata_2020_muestra.csv', sinteticos: null,
+  enviados: 450, total: 999, ritmo: 50, inicio: null, fin: null, error: null,
 }
 
 const con = (parcial: Partial<Actividad>): Actividad => ({ ...SIN_ACTIVIDAD, ...parcial, enMarcha: true })
@@ -68,7 +68,7 @@ describe('flujosDe', () => {
     expect(flujos.nodos.has('helmcode')).toBe(false)
   })
 
-  it('DeepSeek ilumina el tramo hasta Helmcode y, si el portal también consulta, la pastilla del acceso es la del asistente', () => {
+  it('Mistral ilumina el tramo hasta su nodo y, si el portal también consulta, la pastilla del acceso es la del asistente', () => {
     const flujos = flujosDe(con({ chatHelmcode: true, consultando: true }))
     expect(flujos.aristas.has('chatbots-helmcode')).toBe(true)
     expect(flujos.aristas.has('acceso-portal')).toBe(true)

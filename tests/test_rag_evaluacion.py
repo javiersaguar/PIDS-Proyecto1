@@ -306,7 +306,7 @@ def test_exportar_entorno_deja_en_el_proceso_lo_que_leen_los_modulos_del_rag(mon
     cfg = F.exportar_entorno()
     assert F.os.environ == {'RAG_K': '4', 'LLM_API_KEY': 'secreta', 'QDRANT_URL': 'http://127.0.0.1:6333',
                             'ACCESO_URL': 'http://127.0.0.1:8002', 'OLLAMA_URL': 'http://127.0.0.1:11435'}
-    assert cfg['QDRANT_URL'] == 'http://127.0.0.1:6333' and F.modelo_rag() == 'deepseek-v4-flash'
+    assert cfg['QDRANT_URL'] == 'http://127.0.0.1:6333' and F.modelo_rag() == 'ministral-14b-latest'
 
 
 async def test_el_cliente_de_acceso_usa_la_clave_del_chatbot_que_se_evalua(monkeypatch):

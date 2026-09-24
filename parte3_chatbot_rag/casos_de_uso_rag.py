@@ -1,4 +1,4 @@
-"""Suite de los casos de uso (CU1-CU7 de docs/casos_uso.md) contra el chatbot RAG real: Helmcode, Qdrant y la
+"""Suite de los casos de uso (CU1-CU7 de docs/casos_uso.md) contra el chatbot RAG real: Mistral, Qdrant y la
 API de acceso.
 
 Son los mismos casos, consultas de referencia y comprobaciones que la suite del chatbot de Ollama

@@ -11,7 +11,7 @@ la parte 1.
 | 1 | Reconocimiento de gestos con MediaPipe | [`parte1_gestos/`](parte1_gestos/) |
 | 2 | Plataforma: captura, procesado, almacenamiento, acceso y visualización | [`parte2_plataforma/`](parte2_plataforma/) |
 | 3 | Chatbot con LLM local (Ollama) que consulta la plataforma | [`parte3_chatbot/`](parte3_chatbot/) |
-| 3 bis | Chatbot RAG: LangChain + Qdrant + LLM externo en la UE (Helmcode) | [`parte3_chatbot_rag/`](parte3_chatbot_rag/) |
+| 3 bis | Chatbot RAG: LangChain + Qdrant + LLM externo en la UE (Mistral) | [`parte3_chatbot_rag/`](parte3_chatbot_rag/) |
 | — | Integración gestos ↔ plataforma ↔ chatbots: la demo de Windows o la cámara del navegador (el MLP de la parte 1 en el portal, también en Vercel) manejan los tres chatbots | [`integracion/`](integracion/) |
 | 4 | Portal web corporativo: panel, explorador, asistente, tiempo real, auditoría y operaciones | [`parte4_frontend/`](parte4_frontend/) |
 
@@ -37,7 +37,7 @@ la parte 1.
 ![Ollama](https://img.shields.io/badge/Ollama-llama3.1%3A8b-000000?logo=ollama&logoColor=white)
 ![LangChain](https://img.shields.io/badge/LangChain-1.4-1C3C3C?logo=langchain&logoColor=white)
 ![Qdrant](https://img.shields.io/badge/Qdrant-1.19-DC244C?logo=qdrant&logoColor=white)
-![Helmcode](https://img.shields.io/badge/Helmcode-deepseek--v4--flash%20%C2%B7%20UE-0F6FFF)
+![Mistral](https://img.shields.io/badge/Mistral-ministral--14b%20%C2%B7%20UE-FA520F)
 
 **Reconocimiento de gestos**
 
@@ -74,7 +74,7 @@ flowchart LR
     ACC --> BOT[Chatbot · Ollama]
     ACC --> RAG[Chatbot RAG · LangChain]
     ACC -- indexador --> QD[(Qdrant)] --> RAG
-    RAG -.-> HC[Helmcode · LLM en la UE]
+    RAG -.-> HC[Mistral · LLM en la UE]
     ACC --> PR[Prometheus] --> GR[Grafana]
     CAP -. SSE .-> BOT
 ```
@@ -90,7 +90,7 @@ Toolkit.
 
 ```bash
 make entorno              # .env con claves y contraseñas aleatorias (con un .env antiguo: make entorno-completar)
-nano .env                 # pega LLM_API_KEY (panel de Helmcode): es la única clave que no se genera sola
+make rag-clave            # pega LLM_API_KEY (console.mistral.ai, plan gratuito): la única clave que no se genera sola
 make sync && make test    # entorno Python y tests
 make construir            # todas las imágenes (unos minutos la primera vez)
 make todo                 # levanta toda la plataforma, portal web incluido
@@ -191,7 +191,7 @@ con su contraseña; ningún otro servicio sale del equipo.
 │   ├── simulador/           reenvío de viajes como tiempo real
 │   └── observabilidad/      Prometheus y Grafana
 ├── parte3_chatbot/          Chainlit + Ollama: agente, herramientas y barreras sobre las cifras
-├── parte3_chatbot_rag/      Chainlit + LangChain + Qdrant + Helmcode; reutiliza las herramientas y
+├── parte3_chatbot_rag/      Chainlit + LangChain + Qdrant + Mistral; reutiliza las herramientas y
 │                            barreras del anterior. CONTRATOS.md reparte el trabajo en cinco bloques
 ├── parte4_frontend/         portal web: BFF de FastAPI (bff/) y SPA de React (web/)
 ├── integracion/             cliente de gestos (Windows)

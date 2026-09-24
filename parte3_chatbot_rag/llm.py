@@ -1,13 +1,18 @@
-"""Proveedor del LLM del chatbot RAG: Helmcode, una API compatible con OpenAI en infraestructura de la UE y sin logs.
+"""Proveedor del LLM del chatbot RAG: una API compatible con OpenAI en infraestructura de la UE.
+
+Hay dos proveedores admitidos, y se elige por LLM_BASE_URL (PROVEEDORES):
+  - Mistral (api.mistral.ai), el de por defecto desde el 24/09/2026: empresa francesa, modelos propios servidos
+    en la UE y plan gratuito. Con ese plan solo algunos modelos tienen cupo (ministral-*, open-mistral-*).
+  - Helmcode (api.helmcode.com), el que se usó hasta el 23/09/2026 (su clave dejó de ser válida).
 
 Es el único punto del chatbot RAG que construye clientes hacia el proveedor externo. Reglas (E3, docs/chatbot_rag.md):
-  - Solo se admiten los modelos que Helmcode ejecuta en sus propias máquinas (MODELOS_UE). Los que revende de
-    Anthropic, OpenAI y Google salen de la UE y se cobran aparte: se rechazan aunque la clave los listara.
+  - Solo se admiten los proveedores de PROVEEDORES y, de cada uno, los modelos de su lista blanca: los que se
+    ejecutan en la UE. Los que Helmcode revende de Anthropic, OpenAI y Google se rechazan aunque la clave los listara.
   - La clave sale de LLM_API_KEY (.env) y no se escribe nunca en logs ni en el repositorio.
   - Qué se envía al proveedor lo decide el agente (agente_rag.py) y lo revisa la guardia de salida (salida.py):
     preguntas y agregados ya protegidos, nunca datos individuales.
 
-Medido el 21/09/2026 contra la API real:
+Medido el 21/09/2026 contra la API real de Helmcode:
   - el razonamiento llega aparte, en `reasoning_content`, así que `content` es solo la respuesta; LangChain no
     conserva ese texto (solo su recuento de tokens, en `usage_metadata`). `reasoning_effort` lo controla en
     qwen3.6 y gemma4 (`none` lo apaga) y no tiene efecto en deepseek-v4-flash, que decide por sí mismo;
@@ -15,32 +20,56 @@ Medido el 21/09/2026 contra la API real:
     qwen3.6 con `reasoning_effort=none` (~1 s);
   - límites por clave: 100 peticiones/min y 10 simultáneas (5 en qwen3.6 y gemma4); embeddings 60/min en lotes
     de 32 textos, 4096 dimensiones. Los 429 los reintenta el cliente con espera exponencial.
+Medido el 24/09/2026 contra la API real de Mistral (plan gratuito): ministral-14b-latest llama bien a herramientas
+(~1 s, 30 peticiones/min), ministral-8b-latest igual (188/min); mistral-small y mistral-medium tienen cupo 0 en el
+plan gratuito. mistral-embed da 1024 dimensiones, 60 peticiones/min, y admite lotes de 64 textos. No tiene rerank.
 """
 from __future__ import annotations
 
 import os
+from dataclasses import dataclass
 from typing import Any
+from urllib.parse import urlparse
 
 import httpx
 from langchain_core.messages import AIMessage
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
-BASE_URL_POR_DEFECTO = 'https://api.helmcode.com/v1'
-MODELO_POR_DEFECTO = 'deepseek-v4-flash'
-EMBEDDINGS_POR_DEFECTO = 'qwen3-embedding'
-# Modelos que Helmcode ejecuta en la UE (helmcode.com/docs/models). Fuera quedan los revendidos: claude-*, gpt-*,
-# gemini-*. Si Helmcode añade un modelo propio, se añade aquí tras comprobarlo con comprobar_llm.py.
-MODELOS_UE = frozenset({
-    'deepseek-v4-flash', 'qwen3.6', 'gemma4', 'glm5.3', 'glm5.3-flash', 'glm5.2',
-    'qwen3-embedding', 'rerank',
-})
-DIMENSION_EMBEDDINGS = 4096
-LOTE_EMBEDDINGS = 32                    # límite del endpoint /v1/embeddings
+@dataclass(frozen=True)
+class Proveedor:
+    nombre: str
+    modelos: frozenset[str]          # lista blanca: modelos que se ejecutan en la UE
+    chat: str                        # modelo de chat por defecto
+    embeddings: str                  # modelo de embeddings por defecto
+    dimension: int                   # dimensiones de sus embeddings (las de las colecciones de Qdrant)
+    lote: int                        # textos por petición de embeddings
+    rerank: bool                     # si tiene /v1/rerank
+
+
+PROVEEDORES = {
+    'api.mistral.ai': Proveedor(
+        nombre='Mistral',
+        # Modelos propios de Mistral; con el plan gratuito solo tienen cupo ministral-* y open-mistral-*
+        modelos=frozenset({'ministral-14b-latest', 'ministral-8b-latest', 'ministral-3b-latest', 'open-mistral-nemo',
+                           'mistral-small-latest', 'mistral-medium-latest', 'mistral-large-latest', 'mistral-embed'}),
+        chat='ministral-14b-latest', embeddings='mistral-embed', dimension=1024, lote=64, rerank=False),
+    'api.helmcode.com': Proveedor(
+        nombre='Helmcode',
+        # Los que Helmcode ejecuta en la UE (helmcode.com/docs/models). Fuera, los revendidos: claude-*, gpt-*, gemini-*
+        modelos=frozenset({'deepseek-v4-flash', 'qwen3.6', 'gemma4', 'glm5.3', 'glm5.3-flash', 'glm5.2',
+                           'qwen3-embedding', 'rerank'}),
+        chat='deepseek-v4-flash', embeddings='qwen3-embedding', dimension=4096, lote=32, rerank=True),
+}
+BASE_URL_POR_DEFECTO = 'https://api.mistral.ai/v1'
 NIVELES_RAZONAMIENTO = ('none', 'minimal', 'low', 'medium', 'high', 'max')
 
 
 class ModeloNoPermitido(ValueError):
     """El modelo no está en la lista blanca de modelos que no salen de la UE."""
+
+
+class ProveedorNoPermitido(ValueError):
+    """LLM_BASE_URL apunta a un proveedor que no está en PROVEEDORES."""
 
 
 class FaltaClave(RuntimeError):
@@ -51,10 +80,19 @@ def base_url() -> str:
     return os.environ.get('LLM_BASE_URL', '').strip() or BASE_URL_POR_DEFECTO
 
 
+def proveedor() -> Proveedor:
+    """El proveedor de LLM_BASE_URL. Uno que no esté en PROVEEDORES no se usa: no sabemos dónde ejecuta."""
+    host = urlparse(base_url()).hostname or ''
+    if host not in PROVEEDORES:
+        raise ProveedorNoPermitido(f'{host or base_url()!r} no es un proveedor admitido: '
+                                   f'{", ".join(sorted(PROVEEDORES))} (LLM_BASE_URL)')
+    return PROVEEDORES[host]
+
+
 def clave() -> str:
     valor = os.environ.get('LLM_API_KEY', '').strip()
     if not valor:
-        raise FaltaClave('Falta LLM_API_KEY: pega la clave del panel de Helmcode en .env (make entorno-completar)')
+        raise FaltaClave('Falta LLM_API_KEY: pega la clave del proveedor con `make rag-clave`')
     return valor
 
 
@@ -63,14 +101,14 @@ def cabeceras() -> dict[str, str]:
 
 
 def modelo_permitido(modelo: str) -> bool:
-    return modelo.strip() in MODELOS_UE
+    return modelo.strip() in proveedor().modelos
 
 
 def comprobar_modelo(modelo: str) -> str:
     modelo = modelo.strip()
     if not modelo_permitido(modelo):
-        raise ModeloNoPermitido(f'{modelo!r} no está en la lista de modelos que se ejecutan en la UE: '
-                                f'{", ".join(sorted(MODELOS_UE))}')
+        raise ModeloNoPermitido(f'{modelo!r} no está en la lista de modelos de {proveedor().nombre} que se ejecutan '
+                                f'en la UE: {", ".join(sorted(proveedor().modelos))}')
     return modelo
 
 
@@ -86,7 +124,7 @@ def obtener_llm(temperatura: float | None = None, modelo: str | None = None, raz
     `razonamiento` es el `reasoning_effort` de Helmcode (`none` ... `max`); vacío = el del modelo.
     Siempre por /chat/completions: es lo que el proveedor garantiza compatible.
     """
-    modelo = comprobar_modelo(modelo or os.environ.get('LLM_MODELO', MODELO_POR_DEFECTO))
+    modelo = comprobar_modelo(modelo or os.environ.get('LLM_MODELO', '').strip() or proveedor().chat)
     if temperatura is None:
         temperatura = _flotante('LLM_TEMPERATURA', 0.2)
     razonamiento = (razonamiento if razonamiento is not None else os.environ.get('LLM_RAZONAMIENTO', '')).strip()
@@ -99,11 +137,11 @@ def obtener_llm(temperatura: float | None = None, modelo: str | None = None, raz
 
 
 def obtener_embeddings(modelo: str | None = None) -> OpenAIEmbeddings:
-    """Embeddings de 4096 dimensiones. Sin comprobación de longitud con tiktoken (no es un modelo de OpenAI)
-    y en lotes de 32, que es el máximo del endpoint."""
-    modelo = comprobar_modelo(modelo or os.environ.get('LLM_MODELO_EMBEDDINGS', EMBEDDINGS_POR_DEFECTO))
+    """Embeddings del proveedor (1024 dimensiones en Mistral, 4096 en Helmcode). Sin comprobación de longitud con
+    tiktoken (no es un modelo de OpenAI) y en lotes del tamaño que admite su endpoint."""
+    modelo = comprobar_modelo(modelo or os.environ.get('LLM_MODELO_EMBEDDINGS', '').strip() or proveedor().embeddings)
     return OpenAIEmbeddings(model=modelo, base_url=base_url(), api_key=clave(), check_embedding_ctx_length=False,
-                            chunk_size=LOTE_EMBEDDINGS, max_retries=5, timeout=60)
+                            chunk_size=proveedor().lote, max_retries=5, timeout=60)
 
 
 async def modelos_disponibles(cliente: httpx.AsyncClient | None = None) -> list[str]:
@@ -123,6 +161,8 @@ async def reordenar(pregunta: str, documentos: list[str], top_n: int | None = No
     """Reordena textos por relevancia con /v1/rerank. Devuelve (índice en `documentos`, puntuación), de mayor a menor."""
     if not documentos:
         return []
+    if not proveedor().rerank:
+        raise NotImplementedError(f'{proveedor().nombre} no tiene rerank: pon RAG_RERANK=false')
     cuerpo = {'model': comprobar_modelo('rerank'), 'query': pregunta, 'documents': documentos,
               'top_n': top_n or len(documentos)}
 

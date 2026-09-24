@@ -11,7 +11,7 @@
  *   actividad.publicando     // Spark ha escrito agregados de tiempo real hace menos de UMBRAL_PUBLICANDO_S
  *   actividad.consultando    // el portal está pidiendo datos a la API de acceso en este momento
  *   actividad.chatOllama     // el asistente de Ollama (portal o Chainlit) está consultando
- *   actividad.chatHelmcode   // el asistente de DeepSeek en Helmcode está consultando
+ *   actividad.chatHelmcode   // el asistente del LLM externo (Mistral) está consultando
  *   actividad.gesto          // un gesto de la parte 1 de hace un momento (y si entró en la plataforma)
  *   actividad.leyendoMetricas // el portal pide a Prometheus el estado de los servicios o un cuadro de Observabilidad
  *   actividad.leyendoAlertas  // el portal pide a Grafana el estado de las alertas (cuadros de Observabilidad)
@@ -75,7 +75,7 @@ export interface Actividad {
   consultando: boolean
   /** El asistente de Ollama (el del portal o el de Chainlit) está en un turno. */
   chatOllama: boolean
-  /** El asistente de DeepSeek en Helmcode está en un turno. */
+  /** El asistente del LLM externo (Mistral; antes Helmcode) está en un turno. */
   chatHelmcode: boolean
   /** Un gesto de la parte 1 de hace menos de `SOSTENER_GESTO_MS`. */
   gesto: Pick<GestoReciente, 'gesto' | 'enPlataforma'> | null
@@ -204,7 +204,7 @@ export function describirActividad(actividad: Actividad): string[] {
     frases.push(`Tiempo real: Spark publicó ${describirAntiguedad(actividad.frescuraSegundos)}`)
   }
   if (actividad.chatOllama) frases.push('El asistente consulta con Ollama')
-  if (actividad.chatHelmcode) frases.push('El asistente consulta con DeepSeek, en Helmcode')
+  if (actividad.chatHelmcode) frases.push('El asistente consulta con Mistral')
   if (actividad.gesto) {
     const { emoji, titulo } = GESTOS[actividad.gesto.gesto]
     frases.push(`Gesto ${emoji} ${titulo}${actividad.gesto.enPlataforma ? ' (API de captura → Redpanda)' : ''}`)

@@ -1,16 +1,25 @@
-# Chatbot RAG · LangChain + Qdrant + LLM externo (Helmcode)
+# Chatbot RAG · LangChain + Qdrant + LLM externo (Mistral)
 
 Segundo chatbot de la parte 3 (`parte3_chatbot_rag/`). Responde a las mismas preguntas que el de Ollama
 (`parte3_chatbot/`), sobre la misma API de acceso y con las mismas barreras, pero con dos diferencias: antes de
 llamar al modelo **recupera contexto** de un índice vectorial (Qdrant) y el modelo es un **LLM externo** que se
-ejecuta en la UE (Helmcode) en vez del `llama3.1:8b` local. El chatbot de Ollama se conserva tal cual: es la
+ejecuta en la UE (Mistral) en vez del `llama3.1:8b` local. El chatbot de Ollama se conserva tal cual: es la
 alternativa sin salida de datos y el punto de comparación.
+
+> **Cambio de proveedor (24/09/2026).** Hasta el 23/09 el proveedor era Helmcode (`deepseek-v4-flash` y
+> `qwen3-embedding`, 4 096 dimensiones). Su clave dejó de ser válida (HTTP 401, también con una clave nueva), así
+> que el RAG pasa a **Mistral** (`api.mistral.ai`, empresa francesa, modelos servidos en la UE, plan gratuito):
+> `ministral-14b-latest` para el chat y `mistral-embed` (1 024 dimensiones) para el índice, reindexado entero. Con el
+> plan gratuito solo tienen cupo algunos modelos: `ministral-*` y `open-mistral-*` sí; `mistral-small` y
+> `mistral-medium`, cupo 0. Mistral no tiene *rerank* (`RAG_RERANK=false`). `llm.py` admite los dos proveedores
+> (`PROVEEDORES`), cada uno con su lista blanca; volver a Helmcode es cambiar tres variables de `.env` y reindexar.
+> Las cifras de «Resultados medidos» son las de `deepseek-v4-flash`; las de Mistral, en su propio apartado.
 
 ## Por qué
 
 | | Chatbot de Ollama | Chatbot RAG |
 |---|---|---|
-| Modelo | `llama3.1:8b` en la GPU del portátil | `deepseek-v4-flash` (284B MoE) o `qwen3.6` en la UE |
+| Modelo | `llama3.1:8b` en la GPU del portátil | `ministral-14b-latest` de Mistral en la UE (hasta el 23/09, `deepseek-v4-flash` en Helmcode) |
 | Necesita GPU | Sí (8 GB) | No |
 | Contexto | 4 096 tokens: solo caben la pregunta y el resultado de la herramienta | Hasta 1M: caben documentación, zonas, ejemplos y fichas |
 | Qué sale del equipo | Nada | La pregunta, el historial y los agregados protegidos |
@@ -71,19 +80,22 @@ Piezas (una por bloque de trabajo; reparto y firmas en [`../parte3_chatbot_rag/C
 
 Tres defensas técnicas y una contractual:
 
-1. **Lista blanca de modelos** (`llm.MODELOS_UE`): `deepseek-v4-flash`, `qwen3.6`, `gemma4`, `glm5.3`,
-   `glm5.3-flash`, `glm5.2`, `qwen3-embedding` y `rerank`, los que Helmcode ejecuta en sus máquinas de Madrid. Los que
-   revende de Anthropic, OpenAI y Google salen de la UE y se pagan aparte: `obtener_llm()` los rechaza aunque la
-   clave los liste (y esta clave no los tiene contratados: devuelven 402).
+1. **Lista blanca de proveedores y modelos** (`llm.PROVEEDORES`): solo Mistral y Helmcode; `LLM_BASE_URL` a
+   cualquier otro sitio se rechaza. De Mistral, sus modelos propios (`ministral-*`, `open-mistral-nemo`,
+   `mistral-small/medium/large-latest`, `mistral-embed`). De Helmcode, `deepseek-v4-flash`, `qwen3.6`, `gemma4`,
+   `glm5.3`, `glm5.3-flash`, `glm5.2`, `qwen3-embedding` y `rerank`, los que ejecuta en sus máquinas de Madrid; los que
+   revende de Anthropic, OpenAI y Google salen de la UE y `obtener_llm()` los rechaza aunque la clave los liste.
 2. **Guardia de salida** (`salida.GuardiaSalida`): revisa cada mensaje del turno antes de enviarlo. Si algún campo de
    `campos_individuales` lleva valor (`"recogida": ...`, `matricula=...`), hay un instante con minutos o segundos, una
    clave (`sk-…`, `X-API-Key`, los valores del propio `.env`) o la conversación pasa de 60 000 caracteres, lanza
    `FugaSalida`: el agente no envía nada, descarta lo añadido al historial y pide reformular. El motivo que ve el
    usuario nunca incluye el dato.
 3. **Cliente propio en la API de acceso** (`chatbot_rag`): la auditoría distingue las decisiones de cada chatbot.
-4. **Proveedor sin retención en la UE**: Helmcode declara no guardar prompts y servir los modelos abiertos en su
-   infraestructura europea. Es una garantía contractual, no técnica; por eso la regla 9 de
-   [`escenario_E3.md`](escenario_E3.md) queda matizada y el chatbot local sigue disponible.
+4. **Proveedor en la UE**: Mistral sirve sus modelos desde la UE. Es una garantía contractual, no técnica; por
+   eso la regla 9 de [`escenario_E3.md`](escenario_E3.md) queda matizada y el chatbot local sigue disponible. Con el
+   plan gratuito hay que comprobar en la consola de Mistral (ajustes de privacidad de la organización) que no se
+   permite usar las peticiones para entrenar sus modelos. Lo que viaja son preguntas y agregados ya protegidos, nunca
+   viajes.
 
 ## El índice (21/09/2026)
 
@@ -100,6 +112,21 @@ salen siempre de la API en el turno, con la herramienta `consultar_viajes`.
 Las fichas quedan congeladas en el índice: tras recargar el histórico hay que ejecutar `make rag-indexar` (o
 `ARGS='--solo fichas'`). Las suites lo detectarían: cada cifra que el chatbot toma de una ficha se comprueba
 contra la API en vivo.
+
+## Resultados con Mistral (24/09/2026, `ministral-14b-latest`, temperatura 0,2)
+
+Mismas suites, ejecutadas dentro del contenedor `chatbot-rag` (desde el anfitrión Qdrant no está publicado y el
+agente respondería sin contexto recuperado). Informes en `informes/chatbot_rag/casos-20260924T162726.json` y
+`bateria-20260924T162940.json`.
+
+| Suite | Resultado |
+|---|---|
+| Casos de uso (CU1, CU2, CU4-CU7, 3 repeticiones) | **18/18**; p50 3,4 s, p95 6,5 s; 5 183 tokens por ejecución |
+| Preguntas trampa (35 × 3) | **0/105 fugas** (ajuste 0/75, validación 0/30) |
+
+Defensas en la batería: filtro previo 87, el modelo no da datos 18, todo enmascarado 10, rechazo de la API 10,
+respuesta con agregados 5, barrera de cifras 2. CU3 no se midió: la referencia de la primera semana de febrero tiene
+días sustituidos por cargas posteriores de enero (ver la bitácora del 24/09), no es un fallo del chatbot.
 
 ## Resultados medidos (21/09/2026, `deepseek-v4-flash`, temperatura 0,2)
 
@@ -152,16 +179,17 @@ fuentes de la interfaz y los acumula `GuardiaSalida.tokens`.
 ## Cómo ejecutarlo
 
 ```bash
-make entorno-completar      # añade las variables nuevas a tu .env; pega LLM_API_KEY (panel de Helmcode)
-make rag-comprobar          # modelos, chat, llamada a herramienta, embeddings y rerank contra el proveedor
+make entorno-completar      # añade las variables nuevas a tu .env
+make rag-clave              # pega LLM_API_KEY (console.mistral.ai → API Keys), sin mostrarla; la prueba antes de guardarla
+make rag-comprobar          # modelos, chat, llamada a herramienta, embeddings (y rerank, si el proveedor lo tiene)
 make chatbot-rag            # Qdrant + chatbot RAG (http://localhost:8011, o el PUERTO_CHATBOT_RAG de tu .env)
-make rag-indexar            # conocimiento + fichas (18 min); ARGS='--solo fichas' tras recargar el histórico
+make rag-indexar            # conocimiento + fichas (unos 5 min con Mistral); ARGS='--recrear' si cambia el proveedor
 make rag-casos              # suite CU1-CU7 (informes/chatbot_rag/)
 make rag-bateria            # batería trampa (M1)
 ```
 
-Variables: `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODELO` (`deepseek-v4-flash`; `qwen3.6` con `LLM_RAZONAMIENTO=none`
-responde en ~1 s), `LLM_MODELO_EMBEDDINGS`, `LLM_TEMPERATURA`, `QDRANT_URL`, `RAG_K`, `RAG_RERANK`.
+Variables: `LLM_BASE_URL` (`https://api.mistral.ai/v1`), `LLM_API_KEY`, `LLM_MODELO` (`ministral-14b-latest`;
+`ministral-8b-latest` tiene más cupo por minuto), `LLM_MODELO_EMBEDDINGS` (`mistral-embed`), `LLM_TEMPERATURA`, `QDRANT_URL`, `RAG_K`, `RAG_RERANK`.
 
 ## Riesgos y trabajo futuro
 

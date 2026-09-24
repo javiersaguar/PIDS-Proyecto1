@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Sustituye LLM_API_KEY en .env por una clave nueva del panel de Helmcode y reinicia lo que la usa.
+# Sustituye LLM_API_KEY en .env por una clave nueva del proveedor del LLM (Mistral: console.mistral.ai) y reinicia
+# lo que la usa.
 #
 #   make rag-clave
 #
@@ -9,9 +10,9 @@ cd "$(dirname "$0")/.."
 
 [[ -f .env ]] || { echo "Falta .env: ejecuta 'make entorno'"; exit 1; }
 base=$(grep -E '^LLM_BASE_URL=' .env | cut -d= -f2- || true)
-base=${base:-https://api.helmcode.com/v1}
+base=${base:-https://api.mistral.ai/v1}
 
-read -rsp "Pega la clave nueva de Helmcode (no se verá) y pulsa Intro: " clave
+read -rsp "Pega la clave nueva del proveedor del LLM (no se verá) y pulsa Intro: " clave
 echo
 clave=$(printf '%s' "$clave" | tr -d '[:space:]')
 [[ -n "$clave" ]] || { echo "No se ha pegado nada; .env no cambia."; exit 1; }
@@ -38,6 +39,6 @@ ruta.write_text('\n'.join(lineas) + '\n', encoding='utf-8')
 EOF
 echo "Clave aceptada por el proveedor y guardada en .env."
 
-# Compose recrea los contenedores cuyo entorno ha cambiado: el chatbot RAG y el portal (TAXI AI con DeepSeek)
+# Compose recrea los contenedores cuyo entorno ha cambiado: el chatbot RAG y el portal (motor RAG de TAXI AI)
 docker compose --profile rag --profile frontend up -d chatbot-rag frontend
 echo "Chatbot RAG y portal reiniciados con la clave nueva."

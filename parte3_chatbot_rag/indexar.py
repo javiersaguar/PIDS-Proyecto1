@@ -169,7 +169,8 @@ def argumentos(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument('--solo', choices=['conocimiento', 'fichas'], default=None)
     p.add_argument('--recrear', action='store_true', help='borrar las colecciones antes de indexar')
     p.add_argument('--reanudar', action='store_true', help='saltar los documentos que ya están en Qdrant')
-    p.add_argument('--lote', type=int, default=LOTE, help=f'textos por petición de embeddings (máximo {LOTE})')
+    p.add_argument('--lote', type=int, default=None,
+                   help='textos por petición de embeddings (por defecto y como máximo, el del proveedor: 64 en Mistral)')
     p.add_argument('--pausa', type=float, default=PAUSA_SEGUNDOS, help='segundos de espera tras cada lote')
     p.add_argument('--paralelo', type=int, default=PARALELO, help='lotes en vuelo a la vez (límite de la clave: 10)')
     p.add_argument('--fuente', choices=['historico', 'tiempo_real'], default='historico', help='fuente de las fichas')
@@ -182,8 +183,8 @@ async def main(argv: list[str] | None = None) -> None:
     for ruidoso in ('httpx', 'httpcore', 'httpx2', 'httpcore2', 'openai'):      # el cliente de OpenAI trae su httpx
         logging.getLogger(ruidoso).setLevel(logging.WARNING)
     args = argumentos(argv)
-    from llm import LOTE_EMBEDDINGS, obtener_embeddings
-    lote = min(args.lote, LOTE_EMBEDDINGS)
+    from llm import obtener_embeddings, proveedor
+    lote = min(args.lote or proveedor().lote, proveedor().lote)
     embeddings = obtener_embeddings()
     cliente = AsyncQdrantClient(url=args.qdrant, timeout=60)
     acceso = ClienteAcceso()

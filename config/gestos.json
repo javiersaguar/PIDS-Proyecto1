@@ -14,7 +14,7 @@
       "emoji": "👍",
       "accion": "motor",
       "titulo": "Cambiar de motor",
-      "texto": "Pasa TAXI AI de Ollama a DeepSeek y al revés; empieza una conversación nueva"
+      "texto": "Pasa TAXI AI de Ollama a Mistral y al revés; empieza una conversación nueva"
     },
     "paper": {
       "emoji": "✋",

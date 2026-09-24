@@ -1,4 +1,4 @@
-"""Chatbot RAG de la plataforma (Chainlit + LangChain con Helmcode + Qdrant).
+"""Chatbot RAG de la plataforma (Chainlit + LangChain con Mistral + Qdrant).
 
 La lógica de cada mensaje está en agente_rag.py (filtro previo heredado, recuperación, herramientas y
 barreras sobre las cifras) y el agente se construye en fabrica.py, igual que en las suites de evaluación.

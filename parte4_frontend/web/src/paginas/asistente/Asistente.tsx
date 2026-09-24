@@ -94,7 +94,7 @@ export function Asistente({ alCerrar }: Props) {
     conversacion.reiniciar()
   }
 
-  // 👍: al otro motor (Ollama ↔ DeepSeek), si está disponible
+  // 👍: al otro motor (Ollama ↔ Mistral), si está disponible
   const alternarMotor = () => {
     const otro = listaMotores.find((m) => m.id !== motor)
     if (!otro) return

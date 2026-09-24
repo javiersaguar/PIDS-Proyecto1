@@ -163,7 +163,7 @@ def motores(cfg: Configuracion) -> list[Motor]:
               disponible=bool(cfg.ollama_url) and ClienteOllama is not None,
               descripcion='LLM local; ninguna pregunta sale del equipo'),
         Motor(id='rag', nombre='RAG', modelo=rag.modelo_rag() if rag is not None else '',
-              disponible=rag is not None, descripcion='Helmcode + Qdrant; barreras heredadas'),
+              disponible=rag is not None, descripcion='Mistral + Qdrant; barreras heredadas'),
     ]
 
 

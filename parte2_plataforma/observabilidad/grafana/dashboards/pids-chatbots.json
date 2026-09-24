@@ -57,7 +57,7 @@
       },
       "options": {
         "mode": "markdown",
-        "content": "**Ollama** es el cliente `chatbot`. **DeepSeek en Helmcode** es `chatbot_rag`. **TAXI AI**, el asistente de esta web, entra como `frontend`, igual que el explorador. Una serie vacía significa que ese cliente no ha preguntado en el periodo."
+        "content": "**Ollama** es el cliente `chatbot`. **Mistral** (LLM externo del RAG) es `chatbot_rag`. **TAXI AI**, el asistente de esta web, entra como `frontend`, igual que el explorador. Una serie vacía significa que ese cliente no ha preguntado en el periodo."
       },
       "transparent": true
     },
@@ -101,7 +101,7 @@
     {
       "id": 4,
       "type": "stat",
-      "title": "DeepSeek (Helmcode)",
+      "title": "Mistral (RAG)",
       "gridPos": {
         "h": 4,
         "w": 8,

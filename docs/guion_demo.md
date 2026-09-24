@@ -90,7 +90,7 @@ de Spark → MongoDB → API de acceso.
   barrio y por flujos entre barrios. A MongoDB solo llegan agregados.»
 - **API de acceso:** «La única puerta de salida. Aplica el filtro de privacidad y audita cada consulta. El portal, los
   dos chatbots y Airflow pasan por aquí.»
-- **Chatbots → Ollama / Helmcode:** «Dos asistentes: uno con un LLM local, Ollama, y otro RAG con un LLM en la UE.»
+- **Chatbots → Ollama / Mistral:** «Dos asistentes: uno con un LLM local, Ollama, y otro RAG con un LLM en la UE.»
 - **Prometheus → Grafana:** «Y la observabilidad, que solo ve métricas: no tiene credenciales de datos.»
 
 **Objetivo que se cuenta:** arquitectura y comparativa. Una frase por elección, sin leer la tabla entera
@@ -225,11 +225,11 @@ Detalle: [`seguridad.md`](seguridad.md).
 
 3. Cambiar al motor **RAG** y preguntar **CU4:** «¿Cuántos viajes hubo de Queens a Manhattan el 10 de enero?»
 
-   > El segundo chatbot usa LangChain, Qdrant y un modelo mayor, DeepSeek, en Helmcode: infraestructura en la UE y
-   > sin registro de las preguntas. Solo le llegan la pregunta y agregados ya protegidos, porque no tiene otra cosa:
+   > El segundo chatbot usa LangChain, Qdrant y un modelo de Mistral (Ministral 14B), servido en la UE. Solo le
+   > llegan la pregunta y agregados ya protegidos, porque no tiene otra cosa:
    > no está en la red de datos. Debajo, las fuentes que ha recuperado y los tokens.
 
-**Opcional:** con el Grafo abierto detrás, el camino del asistente hasta su modelo (Ollama o Helmcode) se ilumina
+**Opcional:** con el Grafo abierto detrás, el camino del asistente hasta su modelo (Ollama o Mistral) se ilumina
 mientras responde.
 
 **Objetivo que se cuenta:** parte 3 y los casos de uso: **7 casos, 21 de 21 respuestas correctas** en los dos
@@ -245,7 +245,7 @@ vídeo en espejo, los 21 puntos de la mano, el gesto que ve el modelo y la chule
    de captura → Redpanda)» y se ilumina el tramo Captura → Redpanda.
 2. **✌️** hace una pregunta al azar (cada vez otra zona, barrio, día u hora) y el asistente responde; a veces pide
    un viaje concreto y sale rechazada con su alternativa.
-3. **👍** cambia de motor: de Ollama (en el equipo) a DeepSeek (en la UE), con una conversación nueva. Otro **✌️**
+3. **👍** cambia de motor: de Ollama (en el equipo) a Mistral (en la UE), con una conversación nueva. Otro **✌️**
    pregunta ahora al otro chatbot; **👍** vuelve a Ollama.
 4. **👌** lee la respuesta en voz alta; otro **👌** la calla.
 5. **✋** pasa a la siguiente sección del menú, con TAXI AI abierto: Panel, Explorador, Tiempo real… y, tras
@@ -344,7 +344,7 @@ el botón «Gestos», encima del aviso «En vivo»: ✌️ recorre las preguntas
 |---|---|
 | La captura no ilumina nada | `make tiempo-real` (el *streaming* no estaba lanzado) y volver a activarla |
 | Ollama tarda mucho la primera vez | Hablar mientras carga, o usar el motor RAG |
-| Helmcode no responde | Quedarse con Ollama: el RAG aparece como «no disponible» y lo dice |
+| Mistral no responde | Quedarse con Ollama: el RAG aparece como «no disponible» y lo dice |
 | La cámara no reconoce el gesto | Reproducir `docs/capturas/cu8_gesto.mp4` |
 | Algo del equipo se cae en directo | La web pública en modo demostración enseña todas las secciones con datos grabados |
 

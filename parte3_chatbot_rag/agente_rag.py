@@ -1,6 +1,6 @@
 """El agente RAG, sin interfaz: lo usan la aplicación de Chainlit (app.py), las suites y las pruebas.
 
-Es el mismo flujo que parte3_chatbot/agente.py con dos cambios: el LLM es un modelo de LangChain (Helmcode,
+Es el mismo flujo que parte3_chatbot/agente.py con dos cambios: el LLM es un modelo de LangChain (Mistral,
 compatible con OpenAI) y antes de llamarlo se recupera contexto de Qdrant. Todo lo demás se reutiliza tal
 cual del chatbot de Ollama: el filtro previo, el cliente de la API (herramientas.py) y las barreras sobre
 las cifras (cifras.py).
@@ -69,7 +69,7 @@ BLOQUEO_GUARDIA = ('🔒 **Mensaje no enviado al modelo**: {motivo}.\n\n'
 ERROR_LLM = ('El modelo de lenguaje no ha respondido (fallo del proveedor). Vuelve a intentarlo en unos '
              'segundos; si sigue fallando, el chatbot local sigue disponible.')
 ERROR_CLAVE = ('El proveedor del modelo rechaza la clave (`LLM_API_KEY` no válida o caducada). Hay que pegar una '
-               'nueva del panel de Helmcode con `make rag-clave`; mientras tanto, el chatbot local sigue disponible.')
+               'nueva con `make rag-clave`; mientras tanto, el chatbot local sigue disponible.')
 FICHAS_TAL_CUAL = ('No he podido verificar las cifras de la respuesta. Estas son las fichas publicadas que he '
                    'consultado:')
 # Los campos de una fila de la API que puede traer la ficha (metadatos del documento)

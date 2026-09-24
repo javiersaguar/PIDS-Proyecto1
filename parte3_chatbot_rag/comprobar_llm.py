@@ -69,9 +69,9 @@ async def paso_modelos(inf: Informe, modelo: str, embeddings: str) -> None:
     ids = await L.modelos_disponibles()
     permitidos = [m for m in ids if L.modelo_permitido(m)]
     vetados = [m for m in ids if not L.modelo_permitido(m)]
-    inf.ok(f'{len(ids)} modelos; permitidos (UE): {", ".join(permitidos)}')
+    inf.ok(f'{len(ids)} modelos; permitidos en {L.proveedor().nombre} (lista blanca, UE): {", ".join(permitidos)}')
     if vetados:
-        inf.ok(f'vetados por E3 (salen de la UE o se pagan aparte): {", ".join(vetados)}')
+        inf.ok(f'fuera de la lista blanca (no comprobados o salen de la UE): {", ".join(vetados)}')
     inf.comprobar(modelo in ids, f'el modelo de chat {modelo!r} está disponible')
     inf.comprobar(embeddings in ids, f'el modelo de embeddings {embeddings!r} está disponible')
 
@@ -104,15 +104,25 @@ async def paso_herramienta(inf: Informe, modelo: str, razonamiento: str | None) 
     if not inf.comprobar(bool(llamadas), f'el modelo llama a una herramienta ({time.monotonic() - inicio:.1f} s)'):
         print('    respuesta:', str(respuesta.content)[:200])
         return
-    llamada = llamadas[0]
+    # Mistral puede pedir varias a la vez (buscar_zona y consultar_viajes): se mira la de consultar_viajes
+    llamada = next((ll for ll in llamadas if ll['name'] == 'consultar_viajes'), llamadas[0])
     args = llamada['args']
-    inf.comprobar(llamada['name'] == 'consultar_viajes', f'herramienta: {llamada["name"]}')
-    inf.comprobar(args.get('nivel') == 'hora_zona', f'nivel: {args.get("nivel")}')
-    inf.comprobar(str(args.get('desde', '')).startswith('2020-01-15T08'), f'desde: {args.get("desde")}')
-    inf.comprobar(str(args.get('hasta', '')).startswith('2020-01-15T12'), f'hasta: {args.get("hasta")}')
-    inf.ok(f'zona_origen: {args.get("zona_origen")!r}')
-    mensajes += [respuesta, ToolMessage(content=json.dumps(RESULTADO_FALSO, ensure_ascii=False),
-                                        tool_call_id=llamada['id'])]
+    nombres = ', '.join(ll['name'] for ll in llamadas)
+    if llamada['name'] == 'consultar_viajes':
+        inf.ok(f'herramienta: {nombres}')
+        inf.comprobar(args.get('nivel') == 'hora_zona', f'nivel: {args.get("nivel")}')
+        inf.comprobar(str(args.get('desde', '')).startswith('2020-01-15T08'), f'desde: {args.get("desde")}')
+        inf.comprobar(str(args.get('hasta', '')).startswith('2020-01-15T12'), f'hasta: {args.get("hasta")}')
+        inf.ok(f'zona_origen: {args.get("zona_origen")!r}')
+    else:
+        # Ministral suele resolver antes la zona o la última hora: el agente lo hace en varios pasos (hasta 5)
+        inf.comprobar(llamada['name'] in ('buscar_zona', 'ultima_hora_con_datos'),
+                      f'primero pide {nombres}; consultar_viajes llega en el paso siguiente')
+    # una respuesta por llamada: Mistral rechaza el turno si alguna se queda sin la suya
+    mensajes += [respuesta] + [
+        ToolMessage(content=json.dumps(RESULTADO_FALSO if ll is llamada else {'resultado': 'sin datos'},
+                                       ensure_ascii=False), tool_call_id=ll['id'])
+        for ll in llamadas]
     inicio = time.monotonic()
     final = await chat.ainvoke(mensajes)
     texto = str(final.content)
@@ -125,9 +135,9 @@ async def paso_embeddings(inf: Informe, modelo: str) -> None:
     inicio = time.monotonic()
     vectores = await emb.aembed_documents(['viajes por hora desde el aeropuerto JFK', 'propina media en Manhattan'])
     consulta = await emb.aembed_query('aeropuerto')
-    inf.comprobar(len(vectores) == 2 and all(len(v) == L.DIMENSION_EMBEDDINGS for v in vectores),
+    inf.comprobar(len(vectores) == 2 and all(len(v) == L.proveedor().dimension for v in vectores),
                   f'{len(vectores)} documentos de {len(vectores[0])} dimensiones en {time.monotonic() - inicio:.1f} s')
-    inf.comprobar(len(consulta) == L.DIMENSION_EMBEDDINGS, 'la consulta tiene la misma dimensión')
+    inf.comprobar(len(consulta) == L.proveedor().dimension, 'la consulta tiene la misma dimensión')
 
 
 async def paso_rerank(inf: Informe) -> None:
@@ -157,8 +167,8 @@ async def main() -> int:
     p.add_argument('--sin-rerank', action='store_true')
     args = p.parse_args()
     cargar_env()
-    modelo = args.modelo or os.environ.get('LLM_MODELO', L.MODELO_POR_DEFECTO)
-    embeddings = args.embeddings or os.environ.get('LLM_MODELO_EMBEDDINGS', L.EMBEDDINGS_POR_DEFECTO)
+    modelo = args.modelo or os.environ.get('LLM_MODELO', '').strip() or L.proveedor().chat
+    embeddings = args.embeddings or os.environ.get('LLM_MODELO_EMBEDDINGS', '').strip() or L.proveedor().embeddings
     print(f'Proveedor: {L.base_url()} · chat: {modelo} · embeddings: {embeddings}')
     inf = Informe()
     try:
@@ -168,7 +178,7 @@ async def main() -> int:
         return 1
     pasos = [paso_modelos(inf, modelo, embeddings), paso_chat(inf, modelo, args.razonamiento),
              paso_herramienta(inf, modelo, args.razonamiento), paso_embeddings(inf, embeddings)]
-    if not args.sin_rerank:
+    if not args.sin_rerank and L.proveedor().rerank:
         pasos.append(paso_rerank(inf))
     for paso in pasos:
         try:

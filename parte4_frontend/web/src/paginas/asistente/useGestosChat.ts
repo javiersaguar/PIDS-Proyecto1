@@ -2,7 +2,7 @@
  * Lo que hacen los gestos dentro de TAXI AI (tabla de `config/gestos.json`):
  *   ✌️ siguiente   hace una pregunta al azar (la da el BFF con las plantillas de `config/gestos.json`; en la
  *                  demostración, una de las grabadas). No son las de las casillas de ejemplo.
- *   👍 motor       pasa de Ollama a DeepSeek y al revés (empieza una conversación nueva, como el selector); si el otro
+ *   👍 motor       pasa de Ollama a Mistral y al revés (empieza una conversación nueva, como el selector); si el otro
  *                  motor no está disponible, lo dice y no cambia
  *   👌 leer        lee en voz alta la última respuesta; si ya está leyendo, la calla
  * Preguntar y cambiar de motor esperan a que el chat esté libre: el gesto que abre el panel se atiende en cuanto hay

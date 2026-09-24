@@ -137,9 +137,18 @@ if [[ -z "${LLM_API_KEY:-}" ]]; then
     aviso "Falta LLM_API_KEY: el chatbot RAG no funcionará. Pega una con 'make rag-clave'"
 else
     codigo=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 \
-        -H "Authorization: Bearer ${LLM_API_KEY}" "${LLM_BASE_URL:-https://api.helmcode.com/v1}/models")
+        -H "Authorization: Bearer ${LLM_API_KEY}" "${LLM_BASE_URL:-https://api.mistral.ai/v1}/models")
+    if [[ "$codigo" == 200 ]]; then
+        # la clave vale; falta ver que el modelo tiene cupo (en el plan gratuito de Mistral algunos tienen 0)
+        modelo=${LLM_MODELO:-ministral-14b-latest}
+        codigo=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 -H "Authorization: Bearer ${LLM_API_KEY}" \
+            -H 'Content-Type: application/json' "${LLM_BASE_URL:-https://api.mistral.ai/v1}/chat/completions" \
+            -d "{\"model\":\"${modelo}\",\"messages\":[{\"role\":\"user\",\"content\":\"hola\"}],\"max_tokens\":1}")
+        [[ "$codigo" == 429 ]] && codigo=sin_cupo
+    fi
     case "$codigo" in
-        200) bien "Clave del LLM externo aceptada (chatbot RAG operativo)" ;;
+        200) bien "Clave del LLM externo aceptada y ${LLM_MODELO:-ministral-14b-latest} responde (chatbot RAG operativo)" ;;
+        sin_cupo) aviso "El modelo ${LLM_MODELO:-ministral-14b-latest} no tiene cupo ahora (HTTP 429); si persiste, cambia LLM_MODELO en .env" ;;
         401|403) aviso "El proveedor RECHAZA la clave del LLM (HTTP $codigo): caducada o revocada. Pega una nueva con 'make rag-clave'" ;;
         000) aviso "Sin respuesta del proveedor del LLM (¿sin internet?): el chatbot RAG no funcionará" ;;
         *) aviso "El proveedor del LLM responde HTTP $codigo: el chatbot RAG puede fallar" ;;

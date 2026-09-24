@@ -11,7 +11,7 @@ export interface Cuadro {
 export const CUADROS: readonly Cuadro[] = [
   { uid: 'pids-plataforma', titulo: 'Plataforma', texto: 'Servicios, frescura, cola y alertas' },
   { uid: 'pids-privacidad', titulo: 'Privacidad', texto: 'Permitidas, enmascaradas y rechazadas' },
-  { uid: 'pids-chatbots', titulo: 'Chatbots', texto: 'Ollama, DeepSeek y el asistente de esta web' },
+  { uid: 'pids-chatbots', titulo: 'Chatbots', texto: 'Ollama, Mistral y el asistente de esta web' },
   { uid: 'pids-kafka', titulo: 'Kafka', texto: 'Viajes, gestos y la captura' },
   { uid: 'pids-spark', titulo: 'Spark', texto: 'Workers, núcleos y memoria' },
   { uid: 'pids-mongo', titulo: 'MongoDB', texto: 'Agregados publicados, no viajes sueltos' },

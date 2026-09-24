@@ -6,7 +6,7 @@
  *   simulación          Simulador → Captura → Redpanda → Spark
  *   Spark publicando    Redpanda → Spark → MongoDB
  *   el portal consulta  MongoDB → API de acceso → Portal
- *   un chatbot         MongoDB → API de acceso → Chatbots → Ollama o Helmcode (DeepSeek)
+ *   un chatbot         MongoDB → API de acceso → Chatbots → Ollama o Mistral (nodo `helmcode`)
  *   el portal vigila   Prometheus → Portal (estado de los servicios, Observabilidad) y Grafana → Portal (alertas)
  *   un gesto           Captura → Redpanda (si entró en la plataforma) y la pastilla del gesto en Chatbots (en el
  *                      Portal si es ✋, que cambia de sección)

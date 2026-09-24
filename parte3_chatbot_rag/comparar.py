@@ -1,5 +1,5 @@
 """Compara los dos chatbots sobre la misma suite de casos de uso y la misma batería trampa: el de Ollama (LLM
-local, parte3_chatbot) y el RAG (Helmcode + Qdrant, parte3_chatbot_rag).
+local, parte3_chatbot) y el RAG (Mistral + Qdrant, parte3_chatbot_rag).
 
 Saca la tabla aciertos / p50 / p95 / tokens / fugas que va a docs/casos_uso.md y docs/metricas_calidad.md, y
 guarda el detalle de todas las ejecuciones en informes/chatbot_rag/comparativa-<fecha>.json. Los dos agentes
@@ -33,7 +33,7 @@ from casos_de_uso import CASOS, percentil  # noqa: E402
 # clave -> (nombre en la tabla, cliente de la API de acceso, modelo, fábrica del agente)
 AGENTES = {
     'ollama': ('Ollama (local)', 'chatbot', lambda: MODELO_OLLAMA, fabrica.agente_ollama),
-    'rag': ('RAG (Helmcode)', 'chatbot_rag', fabrica.modelo_rag, fabrica.agente_rag),
+    'rag': ('RAG (Mistral)', 'chatbot_rag', fabrica.modelo_rag, fabrica.agente_rag),
 }
 
 

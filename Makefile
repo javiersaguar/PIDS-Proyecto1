@@ -159,7 +159,7 @@ descargar: ## Descarga un mes a data/crudo (MES=2020-01 FUENTE=parquet|api)
 	uv run python scripts/descargar_datos.py --fuente $(FUENTE) --meses $(MES)
 
 # --- chatbot RAG (perfil rag) ---------------------------------------------------------------
-rag-clave: _env ## Pega una clave nueva de Helmcode en .env (sin mostrarla), la prueba y reinicia el chatbot RAG y el portal
+rag-clave: _env ## Pega una clave nueva del LLM externo (Mistral) en .env (sin mostrarla), la prueba y reinicia el chatbot RAG y el portal
 	./scripts/cambiar_clave_llm.sh
 
 rag-comprobar: _env ## Comprueba el proveedor LLM: modelos, chat, llamada a herramienta y embeddings (ARGS='--modelo qwen3.6')

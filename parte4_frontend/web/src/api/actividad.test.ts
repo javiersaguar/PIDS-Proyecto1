@@ -14,8 +14,8 @@ const ejecucion = (parcial: Partial<EjecucionAirflow>): EjecucionAirflow => ({
 })
 
 const SIMULACION: Simulacion = {
-  activa: true, lote: 'portal-muestra', fichero: 'yellow_tripdata_2020_muestra.csv', enviados: 450, total: 999,
-  ritmo: 50, inicio: '2026-09-22T09:59:50+00:00', fin: null, error: null,
+  activa: true, lote: 'portal-muestra', fichero: 'yellow_tripdata_2020_muestra.csv', sinteticos: null,
+  enviados: 450, total: 999, ritmo: 50, inicio: '2026-09-22T09:59:50+00:00', fin: null, error: null,
 }
 
 describe('derivarActividad', () => {
@@ -67,7 +67,7 @@ describe('derivarActividad', () => {
     const helmcode = derivarActividad({ chatHelmcode: true, ahoraMs: AHORA })
     expect(ollama.enMarcha).toBe(true)
     expect(describirActividad(ollama)).toEqual(['El asistente consulta con Ollama'])
-    expect(describirActividad(helmcode)).toEqual(['El asistente consulta con DeepSeek, en Helmcode'])
+    expect(describirActividad(helmcode)).toEqual(['El asistente consulta con Mistral'])
   })
 
   it('la auditoría reciente de Chainlit enciende el modelo que preguntó', () => {

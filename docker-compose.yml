@@ -445,7 +445,7 @@ services:
   # ---------------------------------------------------------------- chatbot RAG (parte 3, LLM externo)
   # Variante con LangChain: Qdrant guarda el conocimiento (docs, catálogo, zonas) y fichas de agregados ya
   # protegidos, obtenidas por la API de acceso; las cifras siguen saliendo de esa API. El LLM es un proveedor
-  # externo compatible con OpenAI (Helmcode, UE, sin logs), limitado a la lista blanca de llm.py. Igual que el
+  # externo compatible con OpenAI (Mistral, UE), limitado a la lista blanca de llm.py. Igual que el
   # chatbot de Ollama, no está en la red de datos. El chatbot de Ollama no cambia.
   qdrant:
     image: qdrant/qdrant:v1.19.1
@@ -476,10 +476,10 @@ services:
     environment: &rag-env
       # el chatbot RAG reutiliza herramientas.py y cifras.py del chatbot de Ollama sin modificarlos
       PYTHONPATH: /app/parte3_chatbot_rag:/app/parte3_chatbot
-      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.helmcode.com/v1}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.mistral.ai/v1}
       LLM_API_KEY: ${LLM_API_KEY}
-      LLM_MODELO: ${LLM_MODELO:-deepseek-v4-flash}
-      LLM_MODELO_EMBEDDINGS: ${LLM_MODELO_EMBEDDINGS:-qwen3-embedding}
+      LLM_MODELO: ${LLM_MODELO:-ministral-14b-latest}
+      LLM_MODELO_EMBEDDINGS: ${LLM_MODELO_EMBEDDINGS:-mistral-embed}
       LLM_TEMPERATURA: ${LLM_TEMPERATURA:-0.2}
       QDRANT_URL: http://qdrant:6333
       RAG_K: ${RAG_K:-6}
@@ -569,10 +569,10 @@ services:
       OLLAMA_MODELO: ${OLLAMA_MODELO:-llama3.1:8b}
       # Motor RAG del asistente: mismo proveedor, índice y reglas que el servicio chatbot-rag (sus claves de la API de
       # acceso son las del portal, así que en la auditoría sigue apareciendo como `frontend`)
-      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.helmcode.com/v1}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.mistral.ai/v1}
       LLM_API_KEY: ${LLM_API_KEY}
-      LLM_MODELO: ${LLM_MODELO:-deepseek-v4-flash}
-      LLM_MODELO_EMBEDDINGS: ${LLM_MODELO_EMBEDDINGS:-qwen3-embedding}
+      LLM_MODELO: ${LLM_MODELO:-ministral-14b-latest}
+      LLM_MODELO_EMBEDDINGS: ${LLM_MODELO_EMBEDDINGS:-mistral-embed}
       LLM_TEMPERATURA: ${LLM_TEMPERATURA:-0.2}
       QDRANT_URL: http://qdrant:6333
       RAG_K: ${RAG_K:-6}
@@ -629,6 +629,9 @@ services:
       - ${SIMULADOR_FICHERO:-data/muestra/yellow_tripdata_2020_muestra.csv}
       - --ritmo
       - ${SIMULADOR_RITMO:-50}
+      # 0 = enviar el fichero tal cual; con un número, inventa esos viajes usándolo de plantilla (make simular SINTETICOS=20000)
+      - --sinteticos
+      - ${SIMULADOR_SINTETICOS:-0}
     environment:
       CAPTURA_URL: http://captura:8000
       CAPTURA_CLAVE: ${CAPTURA_CLAVE_SIMULADOR}

@@ -1,8 +1,8 @@
-"""Construcción de los agentes listos para usar: el chatbot RAG (Helmcode + LangChain + Qdrant) y el de Ollama.
+"""Construcción de los agentes listos para usar: el chatbot RAG (Mistral + LangChain + Qdrant) y el de Ollama.
 
 Lo usan la interfaz (app.py) y las suites de evaluación (casos_de_uso_rag.py, bateria_trampa_rag.py y
 comparar.py), para que todos construyan el agente exactamente igual. Las piezas vienen de:
-  - llm.obtener_llm()                  el modelo de Helmcode, con la lista blanca de modelos de la UE
+  - llm.obtener_llm()                  el modelo del proveedor (Mistral), con la lista blanca de modelos de la UE
   - recuperador.obtener_recuperador()  las dos colecciones de Qdrant (conocimiento y fichas de agregados)
   - salida.GuardiaSalida()             revisa lo que sale hacia el proveedor y cuenta los tokens de la sesión
   - agente_rag.AgenteRAG               el agente: filtro previo, recuperación, herramientas y barreras
@@ -32,7 +32,7 @@ except ImportError:                      # sin el grupo `rag` instalado solo se 
 
 RAIZ = Path(__file__).resolve().parents[1]
 EN_CONTENEDOR = Path('/.dockerenv').exists() or os.environ.get('PIDS_CONFIG_DIR', '').startswith('/app')
-MODELO_RAG_POR_DEFECTO = 'deepseek-v4-flash'
+MODELO_RAG_POR_DEFECTO = 'ministral-14b-latest'      # el de llm.PROVEEDORES['api.mistral.ai']
 # variable de la URL -> (servicio en Compose, variable del puerto publicado, puerto por defecto)
 SERVICIOS = {
     'ACCESO_URL': ('acceso', 'PUERTO_ACCESO', '8002'),

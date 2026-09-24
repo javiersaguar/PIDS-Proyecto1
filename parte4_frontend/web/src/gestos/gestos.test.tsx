@@ -15,7 +15,7 @@ import { textoParaLeer } from './voz'
 
 const MOTORES: Motor[] = [
   { id: 'ollama', nombre: 'Ollama', modelo: 'llama3.1:8b', disponible: true, descripcion: 'Agente local con Ollama' },
-  { id: 'rag', nombre: 'RAG', modelo: 'deepseek-v4-flash', disponible: true, descripcion: 'DeepSeek en Helmcode' },
+  { id: 'rag', nombre: 'RAG', modelo: 'ministral-14b-latest', disponible: true, descripcion: 'Mistral + Qdrant' },
 ]
 const RESPUESTA: EventoRespuesta = {
   respuesta: '', bloqueo: null, pasos_llm: 1, segundos: 1.2, tokens: 100, alternativa: null,
@@ -77,7 +77,7 @@ describe('gestos de la parte 1 en TAXI AI', () => {
     turno.cerrar()
     await screen.findByText('La propina media fue de 1,80 dólares.')
 
-    // 👍: el de esta pestaña (ya atendido) y uno dudoso no cuentan; el bueno pasa a DeepSeek
+    // 👍: el de esta pestaña (ya atendido) y uno dudoso no cuentan; el bueno pasa a Mistral
     const sesionesRag = () => espia.mock.calls.filter(([url, init]) => String(url).endsWith('/api/chat/sesiones')
       && String((init as RequestInit | undefined)?.body).includes('rag'))
     gestos.emitir('gesto', gesto('thumbsup', DISPOSITIVO))

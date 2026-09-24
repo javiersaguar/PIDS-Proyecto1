@@ -184,13 +184,13 @@ async def test_lista_de_motores(cliente, monkeypatch):
     assert list(motores) == ['ollama', 'rag']
     assert motores['ollama'] == {'id': 'ollama', 'nombre': 'Ollama', 'modelo': 'llama3.1:8b', 'disponible': True,
                                  'descripcion': 'LLM local; ninguna pregunta sale del equipo'}
-    assert motores['rag']['descripcion'] == 'Helmcode + Qdrant; barreras heredadas'
+    assert motores['rag']['descripcion'] == 'Mistral + Qdrant; barreras heredadas'
     assert motores['rag']['disponible'] is (SC.fabrica_rag() is not None)
 
     monkeypatch.setattr(SC, 'fabrica_rag', lambda: None)             # sin parte3_chatbot_rag/fabrica.py (esta rama)
     rag = next(m for m in (await cliente.get('/api/chat/motores')).json() if m['id'] == 'rag')
     assert rag == {'id': 'rag', 'nombre': 'RAG', 'modelo': '', 'disponible': False,
-                   'descripcion': 'Helmcode + Qdrant; barreras heredadas'}
+                   'descripcion': 'Mistral + Qdrant; barreras heredadas'}
     r = await cliente.post('/api/chat/sesiones', json={'motor': 'rag'})
     assert r.status_code == 409 and r.json() == {'detail': 'El motor rag no está disponible en esta instalación'}
 
