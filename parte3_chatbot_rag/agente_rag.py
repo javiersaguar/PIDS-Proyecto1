@@ -68,6 +68,8 @@ BLOQUEO_GUARDIA = ('🔒 **Mensaje no enviado al modelo**: {motivo}.\n\n'
                    'Reformula la pregunta sin datos personales, identificadores ni claves.')
 ERROR_LLM = ('El modelo de lenguaje no ha respondido (fallo del proveedor). Vuelve a intentarlo en unos '
              'segundos; si sigue fallando, el chatbot local sigue disponible.')
+ERROR_CLAVE = ('El proveedor del modelo rechaza la clave (`LLM_API_KEY` no válida o caducada). Hay que pegar una '
+               'nueva del panel de Helmcode con `make rag-clave`; mientras tanto, el chatbot local sigue disponible.')
 FICHAS_TAL_CUAL = ('No he podido verificar las cifras de la respuesta. Estas son las fichas publicadas que he '
                    'consultado:')
 # Los campos de una fila de la API que puede traer la ficha (metadatos del documento)
@@ -292,8 +294,9 @@ class AgenteRAG:
                 return
             except Exception as e:  # noqa: BLE001 - proveedor externo: se avisa al usuario en vez de romper la sesión
                 log.warning('la llamada al LLM ha fallado: %s: %s', type(e).__name__, str(e)[:200])
-                turno.bloqueo, turno.respuesta = 'error_llm', ERROR_LLM
-                self.historial.append(AIMessage(content=ERROR_LLM))
+                aviso = ERROR_CLAVE if getattr(e, 'status_code', None) in (401, 403) else ERROR_LLM
+                turno.bloqueo, turno.respuesta = 'error_llm', aviso
+                self.historial.append(AIMessage(content=aviso))
                 return
             self.historial.append(respuesta)
             if not respuesta.tool_calls and not respuesta.invalid_tool_calls:

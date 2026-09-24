@@ -15,8 +15,8 @@ WEB := parte4_frontend/web
 
 .DEFAULT_GOAL := ayuda
 .PHONY: ayuda entorno entorno-completar sync hooks test test-spark test-frontend construir nucleo spark airflow observabilidad \
-	    chatbot chatbot-rag rag-indexar rag-comprobar rag-casos rag-bateria rag-comparar frontend frontend-dev \
-	    herramientas todo parar estado logs tiempo-real simular historico historico-muestra \
+	    chatbot chatbot-rag rag-clave rag-indexar rag-comprobar rag-casos rag-bateria rag-comparar frontend frontend-dev \
+	    herramientas todo arrancar parar estado logs tiempo-real simular historico historico-muestra \
 	    datos-muestra descargar borrar-todo alta-disponibilidad tiempo-real-reiniciar captura-preparar capturar \
 	    capturar-parar tunel tunel-parar
 
@@ -92,6 +92,9 @@ herramientas: _env ## Consola de Redpanda en la red interna (no se publica: mues
 todo: _env ## Toda la plataforma
 	$(COMPOSE) $(PERFILES_TODO) up -d
 
+arrancar: _env ## Cada vez que se enciende el portátil: todo + tiempo real + túnel, y comprueba que responde (ARGS=--sin-tunel)
+	SIN_GPU=$(SIN_GPU) ./scripts/arrancar.sh $(ARGS)
+
 parar: ## Para todos los servicios (conserva los datos)
 	$(COMPOSE) $(PERFILES_TODO) $(PERFILES_UNA_VEZ) down
 
@@ -156,6 +159,9 @@ descargar: ## Descarga un mes a data/crudo (MES=2020-01 FUENTE=parquet|api)
 	uv run python scripts/descargar_datos.py --fuente $(FUENTE) --meses $(MES)
 
 # --- chatbot RAG (perfil rag) ---------------------------------------------------------------
+rag-clave: _env ## Pega una clave nueva de Helmcode en .env (sin mostrarla), la prueba y reinicia el chatbot RAG y el portal
+	./scripts/cambiar_clave_llm.sh
+
 rag-comprobar: _env ## Comprueba el proveedor LLM: modelos, chat, llamada a herramienta y embeddings (ARGS='--modelo qwen3.6')
 	$(COMPOSE) --profile rag run --rm --no-deps chatbot-rag python comprobar_llm.py $(ARGS)
 

@@ -457,6 +457,16 @@ async def test_si_el_proveedor_falla_se_avisa_sin_romper_la_sesion():
     assert [type(m) for m in agente.historial] == [HumanMessage, AIMessage]
 
 
+async def test_si_el_proveedor_rechaza_la_clave_se_dice_como_arreglarlo():
+    class ClaveRechazada(Exception):
+        status_code = 401
+
+    agente = _agente(llm=_llm(fallo=ClaveRechazada('Invalid API key.')))
+    turno = await agente.responder('¿Cuántos viajes hubo?')
+    assert turno.bloqueo == 'error_llm' and turno.respuesta == R.ERROR_CLAVE
+    assert 'make rag-clave' in turno.respuesta
+
+
 # --- con ChatOpenAI de verdad y un proveedor simulado (sin red) --------------------------------------------------
 
 class ProveedorFalso:

@@ -107,13 +107,18 @@ Para datos de verdad: `make historico MES=2020-01` carga un mes desde la TLC; el
 ### Cada día
 
 ```bash
-make todo                 # levanta lo que esté parado; los datos siguen en los volúmenes de Docker
-make estado
-make tiempo-real          # arranca el streaming en Spark (cada vez que se reinicia el clúster)
+make arrancar             # todo en uno: levanta lo que esté parado, lanza el tiempo real si no está, abre el
+                          # túnel si hay datos de ngrok y comprueba portal, chatbots, Airflow, Grafana y la
+                          # clave del LLM externo (ARGS=--sin-tunel para no tocar el túnel)
+make rag-clave            # si avisa de que el proveedor rechaza LLM_API_KEY: pega la nueva (no se muestra)
 make capturar             # captura en directo: viajes reales de diciembre de 2020 entrando ahora (o el botón
                           # «Capturar datos» del grafo del portal); make capturar-parar la para
 make parar                # al terminar: lo para todo y conserva los datos
 ```
+
+`make arrancar` equivale a `make todo`, `make tiempo-real` (sin lanzar un segundo trabajo si ya hay uno) y
+`make tunel`. No pares la plataforma con Ctrl+C sobre un `docker compose up`: eso para el núcleo (S3, Redpanda,
+MongoDB y las APIs) y el portal y los chatbots se quedan sin datos.
 
 La captura en directo necesita una vez `make captura-preparar` (descarga el mes de la TLC y lo parte por días). Sigue
 donde se quedó; para volver a empezar por el 1 de diciembre, `make tiempo-real-reiniciar`, que deja el tiempo real
