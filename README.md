@@ -222,7 +222,6 @@ directamente a `main`. Así no nos pisamos el trabajo.
 | Pedro José Orrego | `pedro-jose-orrego` | Airflow, Prometheus, Grafana y métricas de calidad |
 | Daniel Naval | `daniel-naval` | Chatbot, casos de uso e integración con los gestos |
 
-Reparto completo en [`docs/plan.md`](docs/plan.md).
 
 ```bash
 git fetch origin
