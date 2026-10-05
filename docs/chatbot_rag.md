@@ -56,7 +56,7 @@ sequenceDiagram
     A-->>U: respuesta + fuentes + tokens
 ```
 
-Piezas (una por bloque de trabajo; reparto y firmas en [`../parte3_chatbot_rag/CONTRATOS.md`](../parte3_chatbot_rag/CONTRATOS.md)):
+Piezas:
 
 | Fichero | Qué hace |
 |---|---|
@@ -126,7 +126,7 @@ agente respondería sin contexto recuperado). Informes en `informes/chatbot_rag/
 
 Defensas en la batería: filtro previo 87, el modelo no da datos 18, todo enmascarado 10, rechazo de la API 10,
 respuesta con agregados 5, barrera de cifras 2. CU3 no se midió: la referencia de la primera semana de febrero tiene
-días sustituidos por cargas posteriores de enero (ver la bitácora del 24/09), no es un fallo del chatbot.
+días sustituidos por cargas posteriores de enero, no es un fallo del chatbot.
 
 ## Resultados medidos (21/09/2026, `deepseek-v4-flash`, temperatura 0,2)
 

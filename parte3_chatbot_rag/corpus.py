@@ -34,7 +34,7 @@ RUTA_DOCS = Path(os.environ.get('PIDS_DOCS_DIR', RAIZ / 'docs'))
 RUTA_CONFIG = Path(os.environ.get('PIDS_CONFIG_DIR', RAIZ / 'config'))
 
 # Hablan de la organización del equipo y de la puesta a punto de WSL, no de los datos: solo meterían ruido.
-DOCS_EXCLUIDOS = frozenset({'plan.md', 'herramientas.md'})
+DOCS_EXCLUIDOS = frozenset({'plan.md', 'herramientas.md', 'pendiente.md', 'repositorio.md'})
 TIPOS = ('doc', 'catalogo', 'zona', 'ejemplo', 'ficha')
 ESPACIO_IDS = uuid.UUID('6f1c1d1e-0b6e-4f8a-9c1e-2a7d6c5b4a30')
 TAMANO_TROZO, SOLAPE_TROZO, MINIMO_TROZO = 1800, 150, 40

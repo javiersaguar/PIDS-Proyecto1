@@ -33,7 +33,7 @@
    devuelve la API de acceso; nunca datos individuales, porque no los tiene: no está en la red de datos ni tiene
    credenciales. Una lista blanca en `llm.py` veta los modelos que el proveedor revende fuera de la UE, y una
    guardia de salida (`salida.py`) revisa cada mensaje antes de enviarlo. Decisión vigente desde el
-   22/09/2026 (bitácora): la demo enseña los dos chatbots. Detalle en [`chatbot_rag.md`](chatbot_rag.md).
+   22/09/2026: la demo enseña los dos chatbots. Detalle en [`chatbot_rag.md`](chatbot_rag.md).
 
 ## Decisión: los grupos suprimidos se publican, pero vacíos
 

@@ -14,7 +14,6 @@ cifras del chatbot de Ollama (`../parte3_chatbot/`), que sigue igual.
 | `salida.py` | Guardia de salida: qué puede viajar al proveedor y cuenta de tokens |
 | `fabrica.py`, `app.py`, `chainlit.md` | Construcción del agente e interfaz de Chainlit (http://localhost:8011) |
 | `casos_de_uso_rag.py`, `bateria_trampa_rag.py`, `comparar.py` | Suites de evaluación y comparativa con el chatbot de Ollama |
-| `CONTRATOS.md` | Reparto del trabajo en cinco bloques, firmas y orden de integración |
 
 - **Arranque:** `make entorno-completar` (pega `LLM_API_KEY` en `.env`), `make chatbot-rag`, `make rag-indexar`.
 - **Documentación, decisión E3 y resultados medidos:** [`../docs/chatbot_rag.md`](../docs/chatbot_rag.md).

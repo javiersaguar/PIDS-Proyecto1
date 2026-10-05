@@ -62,7 +62,7 @@ ocultos, y la única puerta es una API que rechaza cualquier consulta individual
 alternativa y lo registra todo. Los dos chatbots solo ven esos agregados; el RAG los envía, junto con la
 pregunta, a un LLM que se ejecuta en la UE sin registro de datos, y el de Ollama no saca nada del equipo.
 Detalle en [`docs/escenario_E3.md`](docs/escenario_E3.md) y, para el chatbot RAG,
-[`parte3_chatbot_rag/CONTRATOS.md`](parte3_chatbot_rag/CONTRATOS.md).
+[`docs/chatbot_rag.md`](docs/chatbot_rag.md).
 
 ```mermaid
 flowchart LR
@@ -101,7 +101,7 @@ make rag-indexar          # índice de Qdrant para el chatbot RAG (tras cada car
 ```
 
 Para datos de verdad: `make historico MES=2020-01` carga un mes desde la TLC; el año 2020 completo se cargó con
-`make subir-csv` y `make historico-fichero` (bitácora del 17/09). En un equipo sin GPU NVIDIA, añade `SIN_GPU=1`
+`make subir-csv` y `make historico-fichero`. En un equipo sin GPU NVIDIA, añade `SIN_GPU=1`
 (`make todo SIN_GPU=1`) y pon `OLLAMA_MODELO=llama3.2:3b` en `.env`.
 
 ### Cada día
@@ -198,7 +198,7 @@ con su contraseña; ningún otro servicio sale del equipo.
 │   └── observabilidad/      Prometheus y Grafana
 ├── parte3_chatbot/          Chainlit + Ollama: agente, herramientas y barreras sobre las cifras
 ├── parte3_chatbot_rag/      Chainlit + LangChain + Qdrant + Mistral; reutiliza las herramientas y
-│                            barreras del anterior. CONTRATOS.md reparte el trabajo en cinco bloques
+│                            barreras del anterior
 ├── parte4_frontend/         portal web: BFF de FastAPI (bff/) y SPA de React (web/)
 ├── integracion/             cliente de gestos (Windows)
 ├── scripts/                 descarga, perfilado, generación de .env, auditoría, latencia y ataques
@@ -231,26 +231,11 @@ git merge origin/main         # al empezar el día y antes de abrir el pull requ
 git push origin <tu-rama>     # y el pull request, de <tu-rama> a main
 ```
 
-Para una tarea larga puedes abrir una rama de tarea (`tarea/...`) a partir de la tuya. El chatbot RAG se
-construye así: la rama `tarea/rag-base` lleva la infraestructura y cada bloque (`rag/2-corpus`,
-`rag/3-agente`, `rag/4-interfaz`, `rag/5-privacidad`) se fusiona en ella antes del *pull request* a `main`;
-el reparto de ficheros y las firmas están en [`parte3_chatbot_rag/CONTRATOS.md`](parte3_chatbot_rag/CONTRATOS.md).
+Para una tarea larga puedes abrir una rama de tarea (`tarea/...`) a partir de la tuya y fusionarla en `main`
+con un único *pull request*.
 
 ## Cómo trabajamos
 
-Dos ficheros llevan el día a día del proyecto. **Léelos antes de ponerte a trabajar** y, si usas un
-asistente de IA, pásaselos como primer contexto: así nadie trabaja con información desactualizada.
-
-| Fichero | Para qué |
-|---|---|
-| [`TAREAS.md`](TAREAS.md) | Las **10 tareas siguientes**, en orden, con qué hay que hacer y cuándo se considera terminada. Coges una, pones tu nombre y la marcas al acabar |
-| [`BITACORA.md`](BITACORA.md) | Qué se ha hecho ya: cada cambio con su motivo, cómo comprobarlo y qué quedó pendiente. Incluye el estado actual del proyecto y las decisiones tomadas |
-
-Cada cambio termina con una entrada en la bitácora y su tarea actualizada; los *pull requests* lo
-recuerdan con una casilla.
-
-**Autoría:** en el repositorio solo figuramos los cinco del grupo. Ejecuta `make hooks` (o `make sync`) una
-vez en tu copia: el hook quita de los commits las coautorías y firmas que añaden algunas herramientas, y el CI
-«Autoría» rechaza los commits y *pull requests* que las lleven. Si tu copia es anterior al 22/09/2026, o si
-Vercel deja de desplegar, lee [`docs/repositorio.md`](docs/repositorio.md). Los asistentes de programación
-tienen sus instrucciones en [`AGENTS.md`](AGENTS.md).
+Cada cambio entra en `main` por *pull request*, con los tests en verde (`make test`, y `make test-spark` si se
+toca Scala) y la documentación de `docs/` al día. Las decisiones de diseño y su porqué están en
+[`docs/comparativa.md`](docs/comparativa.md) y [`docs/escenario_E3.md`](docs/escenario_E3.md).

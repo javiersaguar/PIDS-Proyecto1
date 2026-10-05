@@ -5,9 +5,8 @@ total**). Sustituye a las interfaces sueltas (Chainlit, Grafana, Airflow, `/docs
 aplicación web con diseño profesional que cubre: panel de inicio, explorador de agregados, asistente
 conversacional, tiempo real, privacidad y auditoría, operaciones y documentación.
 
-Este fichero es el contrato entre las piezas y entre las personas (o agentes) que las construyen en paralelo.
-**Léelo entero antes de tocar nada.** Si algo del contrato no se puede cumplir, no lo cambies en silencio:
-dilo en el mensaje final o en la descripción del *pull request*.
+Este fichero es el contrato entre las piezas del portal: arquitectura, configuración, rutas del BFF con sus
+formas JSON y sistema de diseño. Si algo del contrato tiene que cambiar, se explica en el *pull request*.
 
 ## 1. Arquitectura
 
@@ -32,16 +31,16 @@ navegador ──HTTP──► frontend (un contenedor, puerto 8020, perfil Compo
   SPA con Vite (`npm run dev`, puerto 5173, proxy de `/api` al 8020). El BFF lee `.env` de la raíz del repositorio y
   deriva las URL de los servicios de los puertos publicados (ver §3).
 
-## 2. Propiedad de ficheros (nadie edita lo de otro)
+## 2. Bloques del portal
 
-| Agente | Tema | Ficheros que posee |
+| Bloque | Tema | Ficheros |
 |---|---|---|
 | **F0** | Cimientos | `parte4_frontend/web/*` (configuración: `package.json`, `package-lock.json`, `vite.config.ts`, `tsconfig*.json`, `index.html`, `eslint.config.js`, `components.json`), `web/src/main.tsx`, `web/src/App.tsx`, `web/src/rutas.tsx`, `web/src/estilos/**`, `web/src/componentes/ui/**` (shadcn), `web/src/componentes/shell/**` (barra lateral, cabecera, pie, guardia de sesión), `web/src/api/cliente.ts`, `web/src/api/tipos.ts`, `web/src/api/sesion.ts`, `web/src/paginas/acceso/**`, los **ficheros de página vacíos** del §6, `parte4_frontend/bff/{__init__,app,configuracion,seguridad,estaticos}.py`, `bff/rutas/{__init__,salud,sesion}.py`, los **routers vacíos** del §5, `bff/servicios/__init__.py`, `bff/Dockerfile`, `pyproject.toml`, `uv.lock`, `docker-compose.yml`, `Makefile`, `.env.example`, `.dockerignore`, `.github/workflows/ci.yml`, `tests/test_frontend_bff_base.py` |
 | **F1** | BFF · plataforma | `bff/rutas/{consultas,catalogo,panel,tiempo_real,auditoria,operaciones}.py`, `bff/servicios/{acceso,prometheus,airflow,auditoria,simulacion}.py`, `tests/test_frontend_bff_plataforma.py` |
 | **F2** | BFF · chat | `bff/rutas/chat.py`, `bff/servicios/chat.py`, `tests/test_frontend_bff_chat.py` |
 | **F3** | Web · datos | `web/src/paginas/{panel,explorador,tiempo-real}/**`, `web/src/api/{panel,consultas,tiempoReal}.ts`, `web/src/componentes/graficos/**`, `web/src/componentes/datos/**`, sus tests `*.test.tsx` junto a cada fichero |
 | **F4** | Web · asistente y administración | `web/src/paginas/{asistente,privacidad,operaciones,documentacion}/**`, `web/src/api/{chat,auditoria,operaciones}.ts`, `web/src/componentes/chat/**`, sus tests |
-| **F5** (fase final) | Integración y documentación | `parte4_frontend/README.md`, `docs/frontend.md`, `docs/arquitectura.md`, `README.md`, `BITACORA.md`, `TAREAS.md` |
+| **F5** | Integración y documentación | `parte4_frontend/README.md`, `docs/arquitectura.md`, `README.md` |
 
 Reglas:
 
@@ -49,7 +48,7 @@ Reglas:
    existentes. Lo que haga falta de ahí se **importa** (`parte2_plataforma.comun.privacidad`, `parte3_chatbot`) o, si hay
    que cambiarlo, se copia a `parte4_frontend/`.
 2. **Dependencias:** F0 instala todas las previstas (§7). F1-F4 **no añaden dependencias** ni tocan `package.json`,
-   `package-lock.json`, `pyproject.toml` ni `uv.lock`; si algo falta, se dice en el mensaje final.
+   `package-lock.json`, `pyproject.toml` ni `uv.lock`; si algo falta, se pide en el *pull request*.
 3. **Ficheros compartidos** (`rutas.tsx`, `app.py`, `tipos.ts`, `cliente.ts`): solo F0. Por eso F0 deja creados los
    ficheros de página y los routers **vacíos** con los nombres exactos del §5 y §6, y F1-F4 los **rellenan**
    (sobrescribiéndolos). Los tipos TypeScript de las respuestas del BFF están en `web/src/api/tipos.ts` (§5); si F3 o F4
@@ -59,10 +58,7 @@ Reglas:
    `npm test -- --run` y `npm run build` tienen que pasar antes de dar nada por terminado.
 5. **Idioma y estilo:** todo en español (código, textos, comentarios, mensajes de commit). Python tipado con la lógica
    pura separada de la entrada/salida; TypeScript estricto; componentes pequeños. Ningún secreto en el repositorio.
-6. **Solo la carpeta principal del repositorio ejecuta `docker compose`.** Para probar contra la plataforma levantada
-   (ya está en marcha en este equipo) se usan los puertos publicados en `127.0.0.1` (§3) desde el host.
-7. Cada agente termina con un **mensaje final** que incluya: qué ha hecho, cómo comprobarlo (comandos), qué queda
-   pendiente y qué necesita de otros ficheros (F5 lo consolidará en la bitácora).
+6. Para probar contra la plataforma levantada se usan los puertos publicados en `127.0.0.1` (§3) desde el host.
 
 ## 3. Configuración (variables de entorno)
 

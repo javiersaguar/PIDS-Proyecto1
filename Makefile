@@ -14,7 +14,7 @@ PERFILES_UNA_VEZ := --profile herramientas --profile simulador --profile rag-ind
 WEB := parte4_frontend/web
 
 .DEFAULT_GOAL := ayuda
-.PHONY: ayuda entorno entorno-completar sync hooks test test-spark test-frontend construir nucleo spark airflow observabilidad \
+.PHONY: ayuda entorno entorno-completar sync test test-spark test-frontend construir nucleo spark airflow observabilidad \
 	    chatbot chatbot-rag rag-clave rag-indexar rag-comprobar rag-casos rag-bateria rag-comparar frontend frontend-dev \
 	    herramientas todo arrancar parar estado logs tiempo-real simular sinteticos historico historico-muestra \
 	    datos-muestra descargar borrar-todo alta-disponibilidad tiempo-real-reiniciar captura-preparar capturar \
@@ -30,12 +30,8 @@ entorno: ## Genera .env con claves aleatorias (no sobrescribe; FORZAR=1 regenera
 entorno-completar: ## Añade a un .env existente las variables nuevas de .env.example (sin tocar las demás)
 	python3 scripts/generar_env.py --completar
 
-sync: hooks ## Crea o actualiza el entorno Python local (uv) y activa los hooks de Git
+sync: ## Crea o actualiza el entorno Python local (uv)
 	uv sync
-
-hooks: ## Activa los hooks del repositorio (.githooks): quitan coautorías y firmas automáticas de los commits
-	git config core.hooksPath .githooks
-	@echo "Hooks activos: .githooks (ver docs/repositorio.md)"
 
 test: ## Tests de Python
 	uv run pytest -q

@@ -12,8 +12,7 @@ make test
 
 ## Antes de pedir revisión
 
-- [ ] He añadido una entrada en [`BITACORA.md`](../BITACORA.md) y actualizado «Estado actual»
+- [ ] He actualizado la documentación de `docs/` que afecta al cambio
 - [ ] `make test` pasa (y `make test-spark` si he tocado Scala)
 - [ ] No hay contraseñas, claves ni datos personales en el código ni en la documentación
-- [ ] Los autores somos solo los cinco del grupo (sin menciones a herramientas de IA)
-- [ ] Si he cambiado una decisión anterior, está anotada en «Decisiones tomadas»
+- [ ] Si he cambiado una decisión anterior, está explicada en la documentación

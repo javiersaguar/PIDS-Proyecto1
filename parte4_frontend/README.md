@@ -85,7 +85,7 @@ Ninguno necesita servicios levantados: la API de acceso falsa de los tests aplic
 
 ```
 parte4_frontend/
-├── CONTRATOS.md          contrato BFF ↔ SPA y reparto del trabajo en paralelo
+├── CONTRATOS.md          contrato BFF ↔ SPA
 ├── bff/
 │   ├── app.py            crea la aplicación: routers públicos (salud, sesión) y protegidos, estáticos de la SPA
 │   ├── configuracion.py  variables de entorno; en el host lee .env y deriva las URL de los puertos publicados

@@ -27,16 +27,14 @@
 | Pedro José Orrego | Airflow, Prometheus, Grafana y las 3 métricas de calidad | `parte2_plataforma/{airflow,observabilidad}`, `docs/metricas_calidad.md` |
 | Daniel Naval | Chatbot, casos de uso e integración con los gestos | `parte3_chatbot`, `integracion` |
 
-Documentación y presentación, entre todos. Cada uno describe sus cambios en [`../BITACORA.md`](../BITACORA.md).
+Documentación y presentación, entre todos.
 
 ## Forma de trabajar
 
 - Una rama por persona (tabla en el [README](../README.md#equipo-y-ramas)) y *pull request* a `main`; el
   CI pasa los tests de Python y de Scala y valida el `docker-compose.yml`.
 - Cambios pequeños y probados: `make test` antes de subir.
-- El trabajo del día a día se lleva en dos ficheros de la raíz: [`../TAREAS.md`](../TAREAS.md) (las 10
-  tareas siguientes, con criterio de «hecha») y [`../BITACORA.md`](../BITACORA.md) (qué se hizo, por qué,
-  cómo comprobarlo y qué quedó pendiente). Son también el contexto que se pasa a cualquier asistente de IA.
+- Cada cambio actualiza la documentación de `docs/` que le afecta.
 
 ## Checklist de la entrega (diapositivas 6-10)
 
