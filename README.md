@@ -1,7 +1,5 @@
 # PIDS 26/27 · Proyecto 1
 
-[![CI](https://github.com/javiersaguar/PIDS-Proyecto1/actions/workflows/ci.yml/badge.svg)](https://github.com/javiersaguar/PIDS-Proyecto1/actions/workflows/ci.yml)
-
 Plataforma de datos para una empresa de taxis (viajes de taxi amarillo de Nueva York, 2020) con dos chatbots
 para consultarla, bajo el escenario **E3: privacidad total**, e integración con el reconocimiento de gestos de
 la parte 1.
