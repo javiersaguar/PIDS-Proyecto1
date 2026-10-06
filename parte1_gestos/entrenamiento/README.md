@@ -38,18 +38,18 @@ entrenamiento/
 └── modelos/<nombre>/     modelos exportados                                 [no se versiona]
 ```
 
-Se ejecuta con el entorno del proyecto (`C:\Users\Javier\PIDS_HandPose\.venv`, Python 3.12,
+Se ejecuta con un entorno de Python 3.12 (`.venv`, ver el README de la fase 1),
 Keras 3 con backend PyTorch en GPU NVIDIA RTX 5070 Laptop con CUDA 12.8, sin TensorFlow por Smart App Control). Dependencias exactas en `requirements.txt`.
 
 ## Flujo de trabajo
 
-Todos los comandos, desde `C:\Users\Javier\PIDS_HandPose\entrenamiento`:
+Todos los comandos, desde `parte1_gestos\entrenamiento` y con el entorno en `parte1_gestos\.venv`:
 
 ### 0. Recoger las tomas
 
 Descomprime el `.zip` de cada compañero dentro de `datos/`. Da igual si queda una carpeta
-dentro de otra: las tomas se buscan de forma recursiva. Las tomas grabadas en este portátil con
-el kit (`kit-grabacion/HAR_mediapipe/data/`) se encuentran solas.
+dentro de otra: las tomas se buscan de forma recursiva. También se encuentran solas las tomas
+de `kit_grabacion/HAR_mediapipe/data/` y las de las carpetas de `PIDS_DATOS`.
 
 ### 1. Preprocesar y verificar
 
@@ -111,7 +111,7 @@ Resultado de cada experimento en `resultados/<nombre>/`:
 | Fichero | Contenido |
 |---|---|
 | `informe.md` | **Todo el análisis en una página**: dataset (con la tabla gesto → comando del tanque y las pruebas de diversidad de distancias y ángulos), resultado principal, brecha entre protocolos, métricas por gesto, confusiones, accuracy por participante, coste computacional, invarianza izquierda/derecha y tabla completa |
-| `figuras/` | PNG (200 dpi) y PDF vectorial de cada figura |
+| `figuras/` | PNG de cada figura (y PDF vectorial al generarlas; en el repositorio solo van los PNG) |
 | `tablas/` | cada tabla en CSV |
 | `resultados_pliegues.csv` | una fila por trabajo, con accuracy normal y con la mano opuesta simulada, tiempo y dispositivo (GPU/CPU) |
 | `predicciones.csv.gz` | cada predicción de test, para cualquier análisis posterior |
@@ -134,13 +134,13 @@ en este portátil no se puede usar (Smart App Control).
 
 ### 4. Demo en tiempo real (pasos 12-13 de la presentación)
 
-`work/HAR_mediapipe/src/demo-gestures-PIDS.py` es la copia de `demo-custom-dataset.py` que pide la
+`parte1_gestos/demo/src/demo-gestures-PIDS.py` es la copia de `demo-custom-dataset.py` que pide la
 presentación, con las clases en orden alfabético y `None` al final, y muestra el comando del tanque.
-Desde `C:\Users\Javier\PIDS_HandPose`:
+Desde la raíz del repositorio:
 
 ```
-.venv\Scripts\python.exe work\HAR_mediapipe\src\demo-gestures-PIDS.py
-.venv\Scripts\python.exe work\HAR_mediapipe\src\demo-gestures-PIDS.py --modelo entrenamiento\modelos\<exportado>
+python parte1_gestos\demo\src\demo-gestures-PIDS.py
+python parte1_gestos\demo\src\demo-gestures-PIDS.py --modelo parte1_gestos\modelos\<exportado>
 ```
 
 La primera usa el modelo que guarda el notebook; la segunda, uno exportado por el pipeline (con su

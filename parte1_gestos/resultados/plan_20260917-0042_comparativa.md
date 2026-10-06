@@ -51,7 +51,7 @@ Accuracy en LOPO (participante no visto), media sobre participantes y semillas, 
 
 Informes completos de cada experimento:
 
-- `principal`: C:\Users\Javier\PIDS_HandPose\entrenamiento\resultados\plan_20260917-0042_principal\informe.md
-- `espejo`: C:\Users\Javier\PIDS_HandPose\entrenamiento\resultados\plan_20260917-0042_espejo\informe.md
-- `aumento`: C:\Users\Javier\PIDS_HandPose\entrenamiento\resultados\plan_20260917-0042_aumento\informe.md
-- `volteo`: C:\Users\Javier\PIDS_HandPose\entrenamiento\resultados\plan_20260917-0042_volteo\informe.md
+- [`principal`](principal/informe.md)
+- [`espejo`](espejo/informe.md)
+- [`aumento`](aumento/informe.md)
+- [`volteo`](volteo/informe.md)

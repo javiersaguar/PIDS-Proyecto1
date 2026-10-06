@@ -31,12 +31,13 @@ informes/
 .files/
 
 # Parte 1: se versiona el código, los CSV de landmarks, los informes y los modelos pequeños.
-# Fuera quedan las 3000 imágenes del dataset, las cachés y los ficheros regenerables.
+# Fuera quedan las 3000 imágenes del dataset, las cachés, los ficheros regenerables y las figuras con fotos.
 parte1_gestos/**/data/
 parte1_gestos/**/cache/
 parte1_gestos/**/*.jpg
 parte1_gestos/**/*.npy
-parte1_gestos/**/figuras/
+parte1_gestos/**/figuras/*.pdf
+parte1_gestos/**/figuras/errores_*
 parte1_gestos/**/predicciones.csv.gz
 parte1_gestos/**/muestras.csv.gz
 
@@ -47,3 +48,12 @@ parte1_gestos/**/muestras.csv.gz
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Ficheros auxiliares de LaTeX de la memoria de la fase 1
+parte1_gestos/informe/*.aux
+parte1_gestos/informe/*.log
+parte1_gestos/informe/*.out
+parte1_gestos/informe/*.toc
+parte1_gestos/informe/*.fls
+parte1_gestos/informe/*.fdb_latexmk
+parte1_gestos/informe/*.pdf

@@ -181,18 +181,18 @@ Cifras de accuracy en %; dispersion y IC en puntos porcentuales. Tablas en `tabl
 
 ## 7. Figuras
 
-- [`normalizaciones_lopo`](figuras/normalizaciones_lopo.png) (tambien en PDF)
-- [`confusion_mlp_muneca_escala_rot_lopo`](figuras/confusion_mlp_muneca_escala_rot_lopo.png) (tambien en PDF)
-- [`confusion_cnn_baseline_ninguna_lopo`](figuras/confusion_cnn_baseline_ninguna_lopo.png) (tambien en PDF)
-- [`confusion_cnn_baseline_muneca_escala_rot_lopo`](figuras/confusion_cnn_baseline_muneca_escala_rot_lopo.png) (tambien en PDF)
-- [`participantes_mlp_muneca_escala_rot`](figuras/participantes_mlp_muneca_escala_rot.png) (tambien en PDF)
-- [`participantes_cnn_baseline_ninguna`](figuras/participantes_cnn_baseline_ninguna.png) (tambien en PDF)
-- [`participantes_cnn_baseline_muneca_escala_rot`](figuras/participantes_cnn_baseline_muneca_escala_rot.png) (tambien en PDF)
-- [`f1_por_clase_lopo`](figuras/f1_por_clase_lopo.png) (tambien en PDF)
-- [`curvas_cnn_baseline_muneca_escala_rot_lopo`](figuras/curvas_cnn_baseline_muneca_escala_rot_lopo.png) (tambien en PDF)
-- [`curvas_mlp_muneca_escala_rot_lopo`](figuras/curvas_mlp_muneca_escala_rot_lopo.png) (tambien en PDF)
-- [`diversidad_dataset`](figuras/diversidad_dataset.png) (tambien en PDF)
-- [`errores_mlp_muneca_escala_rot_lopo`](figuras/errores_mlp_muneca_escala_rot_lopo.png) (tambien en PDF)
+- [`normalizaciones_lopo`](figuras/normalizaciones_lopo.png)
+- [`confusion_mlp_muneca_escala_rot_lopo`](figuras/confusion_mlp_muneca_escala_rot_lopo.png)
+- [`confusion_cnn_baseline_ninguna_lopo`](figuras/confusion_cnn_baseline_ninguna_lopo.png)
+- [`confusion_cnn_baseline_muneca_escala_rot_lopo`](figuras/confusion_cnn_baseline_muneca_escala_rot_lopo.png)
+- [`participantes_mlp_muneca_escala_rot`](figuras/participantes_mlp_muneca_escala_rot.png)
+- [`participantes_cnn_baseline_ninguna`](figuras/participantes_cnn_baseline_ninguna.png)
+- [`participantes_cnn_baseline_muneca_escala_rot`](figuras/participantes_cnn_baseline_muneca_escala_rot.png)
+- [`f1_por_clase_lopo`](figuras/f1_por_clase_lopo.png)
+- [`curvas_cnn_baseline_muneca_escala_rot_lopo`](figuras/curvas_cnn_baseline_muneca_escala_rot_lopo.png)
+- [`curvas_mlp_muneca_escala_rot_lopo`](figuras/curvas_mlp_muneca_escala_rot_lopo.png)
+- [`diversidad_dataset`](figuras/diversidad_dataset.png)
+- `errores_mlp_muneca_escala_rot_lopo`: no se publica, porque muestra fotos de los participantes
 
 ## Notas metodologicas
 
