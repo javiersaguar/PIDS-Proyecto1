@@ -209,32 +209,10 @@ con su contraseña; ningún otro servicio sale del equipo.
 └── Makefile
 ```
 
-## Equipo y ramas
+## Equipo
 
-Cada persona trabaja en su propia rama y lleva sus cambios a `main` con un *pull request*; nadie sube
-directamente a `main`. Así no nos pisamos el trabajo.
-
-| Persona | Rama | Responsabilidad principal |
-|---|---|---|
-| Javier Saguar | `javier-saguar` | Spark (Scala): histórico y tiempo real; parte 1 |
-| Alejandro Cuevas | `alejandro-cuevas` | Almacenamiento, cola y despliegue (Compose, S3, MongoDB, Redpanda) |
-| Mónica Fernández | `monica-fernandez` | APIs y reglas de privacidad |
-| Pedro José Orrego | `pedro-jose-orrego` | Airflow, Prometheus, Grafana y métricas de calidad |
-| Daniel Naval | `daniel-naval` | Chatbot, casos de uso e integración con los gestos |
-
-
-```bash
-git fetch origin
-git switch <tu-rama>          # la primera vez la crea a partir de origin/<tu-rama>
-git merge origin/main         # al empezar el día y antes de abrir el pull request
-git push origin <tu-rama>     # y el pull request, de <tu-rama> a main
-```
-
-Para una tarea larga puedes abrir una rama de tarea (`tarea/...`) a partir de la tuya y fusionarla en `main`
-con un único *pull request*.
-
-## Cómo trabajamos
-
-Cada cambio entra en `main` por *pull request*, con los tests en verde (`make test`, y `make test-spark` si se
-toca Scala) y la documentación de `docs/` al día. Las decisiones de diseño y su porqué están en
-[`docs/comparativa.md`](docs/comparativa.md) y [`docs/escenario_E3.md`](docs/escenario_E3.md).
+- Javier Saguar
+- Alejandro Cuevas
+- Mónica Fernández
+- Pedro José Orrego
+- Daniel Naval

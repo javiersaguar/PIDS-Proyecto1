@@ -36,7 +36,7 @@ con [`parte3_chatbot/gestos.py`](../parte3_chatbot/gestos.py) y TAXI AI con `par
 | Gesto | Acción | Chainlit (Ollama y RAG) | TAXI AI (portal) |
 |---|---|---|---|
 | ✌️ `scissors` | Otra pregunta | Hace una pregunta al azar (plantillas de `variantes`) | Igual; en la demostración, una de las grabadas |
-| 👍 `thumbsup` | Cambiar de motor | — | Pasa de Ollama a DeepSeek y al revés (conversación nueva); si el otro no está disponible, lo dice |
+| 👍 `thumbsup` | Cambiar de motor | — | Pasa de Ollama a Mistral y al revés (conversación nueva); si el otro no está disponible, lo dice |
 | ✋ `paper` | Siguiente sección | — | Pasa a la siguiente sección del menú y, tras la última, a la primera. TAXI AI no es una sección: sigue abierto |
 | 👌 `ok` | Leer en voz alta | — | Lee la última respuesta (síntesis de voz del navegador); si ya está leyendo, la calla |
 | 🤘 `rockandroll` | Abrir TAXI AI | — | Abre el panel desde cualquier página |
